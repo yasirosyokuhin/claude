@@ -63,6 +63,7 @@ export function startRound(state) {
   state.handsLeft = state.maxHands;
   state.discardsLeft = state.maxDiscards;
   state.currentBlindScore = 0;
+  for (const c of state.ownedDeck) c.selected = false;
   state.drawPile = shuffle(state.ownedDeck);
   state.hand = state.drawPile.splice(0, state.handSize);
   state.lastScoreResult = null;

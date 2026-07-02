@@ -83,6 +83,8 @@ function dispatch(action, payload) {
       if (item.kind === 'planet') {
         const res = Game.useConsumable(state, item.instanceId);
         if (res.error) ui.toast = res.error;
+      } else if (state.screen !== 'playing') {
+        ui.toast = 'このカードは手札の選択が必要です。プレイ画面で使用してください';
       } else {
         ui.pendingConsumable = item;
         ui.tarotSelectedIds = [];
