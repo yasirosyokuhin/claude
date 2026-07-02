@@ -25,8 +25,8 @@ const MODULE_ORDER = [
 // so recreate that namespace object before main.js runs.
 const GAME_NAMESPACE = `
 const Game = { createNewGame, currentBlindKind, goToBlindScreen, startRound,
-  toggleCardSelection, playHand, discardHand, sortHand, generateShop,
-  rerollShop, buyItem, sellJoker, useConsumable, proceedFromShop };
+  toggleCardSelection, beginPlay, finishPlay, playHand, discardHand, sortHand,
+  generateShop, rerollShop, buyItem, sellJoker, useConsumable, proceedFromShop };
 `;
 
 function stripModuleSyntax(source) {

@@ -123,6 +123,7 @@ export const JOKER_DEFS = [
   },
   {
     id: 'joker_photograph',
+    xmult: true,
     name: '写真',
     desc: 'このハンドで最初にスコアした絵札(J/Q/K)のマルトを x2',
     cost: 5,
@@ -138,6 +139,7 @@ export const JOKER_DEFS = [
   },
   {
     id: 'joker_blackboard',
+    xmult: true,
     name: 'ブラックボード',
     desc: '手札に残った(プレイしなかった)カードが全て♠か♣なら x3マルト',
     cost: 6,
@@ -187,6 +189,7 @@ export const JOKER_DEFS = [
   },
   {
     id: 'joker_cavendish',
+    xmult: true,
     name: 'カベンディッシュ',
     desc: 'x3マルト',
     cost: 6,

@@ -206,6 +206,141 @@ button.danger {
   width: 100%;
   max-width: 1100px;
 }
+
+.played-area {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 130px;
+  align-items: center;
+  padding: 14px 0 4px;
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* Each card sits in a wrapper that carries the idle wobble / deal-in
+   animations, so the inner .card keeps hover & selection transforms. */
+.card-wrap {
+  position: relative;
+  animation: idleFloat 3.4s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i, 0) * -0.45s);
+}
+@keyframes idleFloat {
+  from { transform: rotate(-1.1deg) translateY(0); }
+  to { transform: rotate(1.1deg) translateY(-3px); }
+}
+.card-wrap.deal .card {
+  animation: dealIn 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+@keyframes dealIn {
+  from { transform: translateY(70px) rotate(6deg); opacity: 0; }
+  to { transform: translateY(0) rotate(0); opacity: 1; }
+}
+
+/* Scoring animations */
+.card.trigger-pop {
+  animation: cardPop 0.34s ease-out;
+  z-index: 20;
+}
+@keyframes cardPop {
+  0% { transform: scale(1) translateY(0); }
+  40% { transform: scale(1.22) translateY(-16px); }
+  100% { transform: scale(1) translateY(0); }
+}
+.joker-card.trigger-wiggle {
+  animation: jokerWiggle 0.32s ease-in-out;
+}
+@keyframes jokerWiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-9deg) scale(1.1); }
+  75% { transform: rotate(9deg) scale(1.1); }
+}
+.card.shatter {
+  animation: shatter 0.5s ease-in forwards;
+}
+@keyframes shatter {
+  to { transform: scale(1.35) rotate(18deg); opacity: 0; filter: brightness(2); }
+}
+
+.float-popup {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 40;
+  animation: popupRise 1s ease-out forwards;
+  opacity: 0;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.float-popup.chips { background: #3f7fd1; box-shadow: 0 2px 0 #234c8a; }
+.float-popup.mult { background: var(--red); box-shadow: 0 2px 0 #7a2323; }
+.float-popup.info { background: #666; box-shadow: 0 2px 0 #333; }
+@keyframes popupRise {
+  0% { opacity: 0; margin-top: 8px; }
+  15% { opacity: 1; margin-top: 0; }
+  70% { opacity: 1; }
+  100% { opacity: 0; margin-top: -42px; }
+}
+
+/* ---- Chips x Mult panel ---- */
+.score-panel {
+  width: 100%;
+  max-width: 520px;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.score-panel.muted { opacity: 0.65; }
+.score-panel .hand-name { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+.score-panel .hand-name .lv { font-size: 11px; opacity: 0.7; font-weight: 600; }
+.cm-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.cm-box {
+  min-width: 90px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 26px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 2px rgba(0,0,0,0.35);
+}
+.chip-box { background: linear-gradient(180deg, #4f93e8, #2c5f9e); box-shadow: 0 3px 0 #1c3f6b; }
+.mult-box { background: linear-gradient(180deg, #e85555, #b32c2c); box-shadow: 0 3px 0 #6b1c1c; }
+.cm-x { font-size: 26px; font-weight: 900; color: var(--gold); }
+.cm-box.pulse { animation: cmPulse 0.3s ease-out; }
+@keyframes cmPulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.22); filter: brightness(1.4); }
+  100% { transform: scale(1); }
+}
+.cm-total {
+  min-height: 34px;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--gold);
+  margin-top: 4px;
+}
+.cm-total.slam { animation: totalSlam 0.45s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes totalSlam {
+  0% { transform: scale(2.4); opacity: 0; }
+  60% { transform: scale(0.95); opacity: 1; }
+  100% { transform: scale(1); }
+}
 .card {
   width: 76px;
   height: 108px;
@@ -532,6 +667,10 @@ function evaluateHand(cards) {
 
 // ==== js/scoring.js ====
 // Scoring pipeline: hand base -> per-card chips/enhancements -> held steel cards -> jokers
+// Emits a structured event stream so the UI can replay the calculation step by step
+// (Balatro-style sequential card pops with floating +chips / +mult popups).
+// Event shape: { kind: 'base'|'card'|'held'|'joker', text, runningChips, runningMult,
+//                cardId?, jokerId?, popups?: [{text, kind:'chips'|'mult'|'info'}], broken?, debuffed? }
 
 
 
@@ -545,6 +684,32 @@ function cardLabel(card) {
   return `${rankLabel(card.rank)}${suitInfo(card.suit).symbol}`;
 }
 
+function formatMult(m) {
+  return Number.isInteger(m) ? String(m) : m.toFixed(1);
+}
+
+function deltaPopups(before, after, preferRatio = false) {
+  const popups = [];
+  if (after.chips !== before.chips) {
+    popups.push({ text: `+${Math.round(after.chips - before.chips)}`, kind: 'chips' });
+  }
+  if (after.mult !== before.mult) {
+    if (preferRatio && before.mult > 0) {
+      popups.push({ text: `x${formatMult(Math.round((after.mult / before.mult) * 10) / 10)} マルト`, kind: 'mult' });
+    } else {
+      popups.push({ text: `+${formatMult(after.mult - before.mult)} マルト`, kind: 'mult' });
+    }
+  }
+  return popups;
+}
+
+function describeDelta(before, after) {
+  const parts = [];
+  if (after.chips !== before.chips) parts.push(`+${Math.round(after.chips - before.chips)}チップ`);
+  if (after.mult !== before.mult) parts.push(`マルト ${formatMult(before.mult)} → ${formatMult(after.mult)}`);
+  return parts.join(', ') || '効果発動';
+}
+
 // Returns { chips, mult, total, events, brokenGlassIds }
 function computeScore({ type, level, scoringCards, playedCards, heldCards, jokers, bossEffect, gameState }) {
   const base = getHandStats(type, level);
@@ -553,11 +718,19 @@ function computeScore({ type, level, scoringCards, playedCards, heldCards, joker
   const events = [];
   const brokenGlassIds = [];
 
-  events.push({ text: `${HAND_TYPES[type].name} (Lv.${level}) — 基礎 ${base.chips}チップ x${base.mult}マルト`, chips, mult });
+  const push = (ev) => events.push({ ...ev, runningChips: chips, runningMult: mult });
+
+  push({ kind: 'base', text: `${HAND_TYPES[type].name} (Lv.${level}) — 基礎 ${base.chips}チップ x${base.mult}マルト` });
 
   for (const card of scoringCards) {
     if (isCardDebuffed(card, bossEffect)) {
-      events.push({ text: `${cardLabel(card)} 無効化(ボスブラインド)`, chips: 0, mult: 0 });
+      push({
+        kind: 'card',
+        cardId: card.id,
+        debuffed: true,
+        popups: [{ text: '無効', kind: 'info' }],
+        text: `${cardLabel(card)} 無効化(ボスブラインド)`,
+      });
       continue;
     }
 
@@ -569,21 +742,26 @@ function computeScore({ type, level, scoringCards, playedCards, heldCards, joker
     }
     chips += cardChips;
 
+    const popups = [{ text: `+${cardChips}`, kind: 'chips' }];
     let text = `${card.enhancement === 'stone' ? 'ストーンカード' : cardLabel(card)} +${cardChips}チップ`;
+    let broken = false;
 
     if (card.enhancement === 'mult') {
       mult += 4;
+      popups.push({ text: '+4 マルト', kind: 'mult' });
       text += ' , +4マルト';
     } else if (card.enhancement === 'glass') {
       mult *= 2;
+      popups.push({ text: 'x2 マルト', kind: 'mult' });
       text += ' , x2マルト';
       if (Math.random() < 0.25) {
         brokenGlassIds.push(card.id);
+        broken = true;
         text += ' (ガラスが砕け散った!)';
       }
     }
 
-    events.push({ text, chips: cardChips, mult: 0 });
+    push({ kind: 'card', cardId: card.id, popups, broken, text });
 
     for (const joker of jokers) {
       if (joker.hook === 'card') {
@@ -593,7 +771,12 @@ function computeScore({ type, level, scoringCards, playedCards, heldCards, joker
           chips = result.chips;
           mult = result.mult;
           if (chips !== before.chips || mult !== before.mult) {
-            events.push({ text: `${joker.name}: ${describeDelta(before, { chips, mult })}`, chips: 0, mult: 0 });
+            push({
+              kind: 'joker',
+              jokerId: joker.instanceId,
+              popups: deltaPopups(before, { chips, mult }, joker.xmult),
+              text: `${joker.name}: ${describeDelta(before, { chips, mult })}`,
+            });
           }
         }
       }
@@ -602,9 +785,13 @@ function computeScore({ type, level, scoringCards, playedCards, heldCards, joker
 
   for (const card of heldCards) {
     if (card.enhancement === 'steel' && !isCardDebuffed(card, bossEffect)) {
-      const before = mult;
       mult *= 1.5;
-      events.push({ text: `${cardLabel(card)} (スチール, 手札保持) x1.5マルト`, chips: 0, mult: 0 });
+      push({
+        kind: 'held',
+        cardId: card.id,
+        popups: [{ text: 'x1.5 マルト', kind: 'mult' }],
+        text: `${cardLabel(card)} (スチール, 手札保持) x1.5マルト`,
+      });
     }
   }
 
@@ -616,7 +803,12 @@ function computeScore({ type, level, scoringCards, playedCards, heldCards, joker
         chips = result.chips;
         mult = result.mult;
         if (chips !== before.chips || mult !== before.mult) {
-          events.push({ text: `${joker.name}: ${describeDelta(before, { chips, mult })}`, chips: 0, mult: 0 });
+          push({
+            kind: 'joker',
+            jokerId: joker.instanceId,
+            popups: deltaPopups(before, { chips, mult }, joker.xmult),
+            text: `${joker.name}: ${describeDelta(before, { chips, mult })}`,
+          });
         }
       }
     }
@@ -624,18 +816,6 @@ function computeScore({ type, level, scoringCards, playedCards, heldCards, joker
 
   const total = Math.floor(chips * mult);
   return { chips, mult, total, events, brokenGlassIds };
-}
-
-function describeDelta(before, after) {
-  const parts = [];
-  if (after.chips !== before.chips) parts.push(`${after.chips > before.chips ? '+' : ''}${Math.round(after.chips - before.chips)}チップ`);
-  if (after.mult !== before.mult) {
-    if (Math.abs(after.mult / (before.mult || 1) - Math.round(after.mult / (before.mult || 1))) < 1e-9 && after.mult / (before.mult || 1) !== 1 && before.mult !== 0) {
-      // could be multiplicative but we just show absolute new value for clarity
-    }
-    parts.push(`マルト ${before.mult.toFixed(1)} → ${after.mult.toFixed(1)}`);
-  }
-  return parts.join(', ') || '効果発動';
 }
 
 // ==== js/jokers.js ====
@@ -763,6 +943,7 @@ const JOKER_DEFS = [
   },
   {
     id: 'joker_photograph',
+    xmult: true,
     name: '写真',
     desc: 'このハンドで最初にスコアした絵札(J/Q/K)のマルトを x2',
     cost: 5,
@@ -778,6 +959,7 @@ const JOKER_DEFS = [
   },
   {
     id: 'joker_blackboard',
+    xmult: true,
     name: 'ブラックボード',
     desc: '手札に残った(プレイしなかった)カードが全て♠か♣なら x3マルト',
     cost: 6,
@@ -827,6 +1009,7 @@ const JOKER_DEFS = [
   },
   {
     id: 'joker_cavendish',
+    xmult: true,
     name: 'カベンディッシュ',
     desc: 'x3マルト',
     cost: 6,
@@ -1043,6 +1226,7 @@ function createNewGame() {
     consumables: [],
     consumableSlots: 2,
     handLevels: initHandLevels(),
+    pendingPlay: null,
     currentBlindScore: 0,
     blindRequirement: getBlindRequirement(1, 'small'),
     bossEffect: null,
@@ -1105,9 +1289,13 @@ function refillHand(state, n) {
   sortHand(state, state.sortMode);
 }
 
-function playHand(state) {
+// Phase 1: validate + compute the score (glass breaks decided here, once).
+// State is not applied yet; cards stay in hand so the UI can animate the
+// calculation. Follow with finishPlay() to commit.
+function beginPlay(state) {
   const selected = state.hand.filter((c) => c.selected);
   if (selected.length < 1 || selected.length > 5) return { error: '1〜5枚選択してください' };
+  if (state.handsLeft <= 0) return { error: 'ハンド回数がありません' };
 
   const { type, scoringCards } = evaluateHand(selected);
   const heldCards = state.hand.filter((c) => !c.selected);
@@ -1125,17 +1313,34 @@ function playHand(state) {
     gameState: state,
   });
 
+  state.pendingPlay = {
+    selectedIds: selected.map((c) => c.id),
+    scoringCardIds: scoringCards.map((c) => c.id),
+    type,
+    level,
+    result,
+  };
+  return state.pendingPlay;
+}
+
+// Phase 2: commit the pending play (score, card removal, refill, transitions).
+function finishPlay(state) {
+  const pending = state.pendingPlay;
+  if (!pending) return { error: 'プレイが開始されていません' };
+  const result = pending.result;
+
   state.currentBlindScore += result.total;
   state.handsLeft -= 1;
-  state.lastScoreResult = { ...result, type };
+  state.lastScoreResult = { ...result, type: pending.type };
 
   if (result.brokenGlassIds.length) {
     state.ownedDeck = state.ownedDeck.filter((c) => !result.brokenGlassIds.includes(c.id));
   }
 
-  const playedIds = new Set(selected.map((c) => c.id));
+  const playedIds = new Set(pending.selectedIds);
   state.hand = state.hand.filter((c) => !playedIds.has(c.id));
-  refillHand(state, selected.length);
+  refillHand(state, pending.selectedIds.length);
+  state.pendingPlay = null;
 
   if (state.currentBlindScore >= state.blindRequirement) {
     beatBlind(state);
@@ -1145,6 +1350,13 @@ function playHand(state) {
   }
 
   return result;
+}
+
+// Synchronous play (used by tests and non-animated flows).
+function playHand(state) {
+  const pending = beginPlay(state);
+  if (pending.error) return pending;
+  return finishPlay(state);
 }
 
 function discardHand(state) {
@@ -1339,7 +1551,7 @@ function enhTag(card) {
   return `<span class="enh-tag">${ENHANCEMENTS[card.enhancement].name}</span>`;
 }
 
-function cardHTML(card, { selected = false, debuffed = false, disabled = false } = {}) {
+function cardHTML(card, { selected = false, debuffed = false, disabled = false, index = 0, deal = false } = {}) {
   const info = suitInfo(card.suit);
   const isStone = card.enhancement === 'stone';
   const classes = ['card', isStone ? 'stone' : info.color];
@@ -1347,10 +1559,12 @@ function cardHTML(card, { selected = false, debuffed = false, disabled = false }
   if (debuffed) classes.push('debuffed');
   const label = isStone ? '★' : rankLabel(card.rank);
   const symbol = isStone ? '' : info.symbol;
-  return `<div class="${classes.join(' ')}" ${disabled ? '' : `data-action="toggle-card" data-card-id="${card.id}"`}>
-    <div class="rank">${label}</div>
-    <div class="suit-symbol">${symbol}</div>
-    ${enhTag(card)}
+  return `<div class="card-wrap${deal ? ' deal' : ''}" style="--i:${index}">
+    <div class="${classes.join(' ')}" data-cid="${card.id}" ${disabled ? '' : `data-action="toggle-card" data-card-id="${card.id}"`}>
+      <div class="rank">${label}</div>
+      <div class="suit-symbol">${symbol}</div>
+      ${enhTag(card)}
+    </div>
   </div>`;
 }
 
@@ -1360,7 +1574,7 @@ function tooltip(text) {
 
 function jokerHTML(joker, { sellable = false } = {}) {
   return `<div class="tooltip-wrap">
-    <div class="joker-card rarity-${joker.rarity}" ${sellable ? `data-action="sell-joker" data-instance-id="${joker.instanceId}"` : ''}>
+    <div class="joker-card rarity-${joker.rarity}" data-jid="${joker.instanceId}" ${sellable ? `data-action="sell-joker" data-instance-id="${joker.instanceId}"` : ''}>
       <div class="name">${joker.name}</div>
     </div>
     ${tooltip(`${joker.desc}${sellable ? `<br><b>クリックで売却 (+$${Math.ceil(joker.cost / 2)})</b>` : ''}`)}
@@ -1458,8 +1672,19 @@ function renderBlind(state) {
   </div>`;
 }
 
-function renderPreview(state, ui) {
-  const selected = state.hand.filter((c) => c.selected);
+function scorePanelHTML({ title, chips, mult, total, muted = false }) {
+  return `<div class="score-panel${muted ? ' muted' : ''}">
+    <div class="hand-name">${title}</div>
+    <div class="cm-row">
+      <div class="cm-box chip-box" id="anim-chips">${chips}</div>
+      <div class="cm-x">×</div>
+      <div class="cm-box mult-box" id="anim-mult">${mult}</div>
+    </div>
+    <div class="cm-total" id="anim-total">${total}</div>
+  </div>`;
+}
+
+function renderScorePanel(state, ui) {
   if (ui.pendingConsumable) {
     const need = ui.pendingConsumable.selectCount;
     return `<div class="pending-hint">「${ui.pendingConsumable.name}」を使用中 — カードを${need}枚選択してください (${ui.tarotSelectedIds.length}/${need})
@@ -1469,7 +1694,22 @@ function renderPreview(state, ui) {
       </div>
     </div>`;
   }
-  if (selected.length === 0) return `<div class="hand-type-banner">カードを選択してください(最大5枚)</div>`;
+
+  if (state.pendingPlay) {
+    // Scoring phase: start from the hand's base values; main.js animates the counters.
+    const base = getHandStats(state.pendingPlay.type, state.pendingPlay.level);
+    return scorePanelHTML({
+      title: `${HAND_TYPES[state.pendingPlay.type].name} <span class="lv">Lv.${state.pendingPlay.level}</span>`,
+      chips: base.chips,
+      mult: formatMult(base.mult),
+      total: '',
+    });
+  }
+
+  const selected = state.hand.filter((c) => c.selected);
+  if (selected.length === 0) {
+    return scorePanelHTML({ title: 'カードを選択してください(最大5枚)', chips: '-', mult: '-', total: '', muted: true });
+  }
   const { type, scoringCards } = evaluateHand(selected);
   const heldCards = state.hand.filter((c) => !c.selected);
   const preview = computeScore({
@@ -1482,7 +1722,12 @@ function renderPreview(state, ui) {
     bossEffect: state.bossEffect,
     gameState: { ...state, transient: {} },
   });
-  return `<div class="hand-type-banner"><b>${HAND_TYPES[type].name}</b> (Lv.${state.handLevels[type]}) &nbsp; ${preview.chips}チップ &times; ${preview.mult.toFixed(1)}マルト = <b>${preview.total}</b></div>`;
+  return scorePanelHTML({
+    title: `${HAND_TYPES[type].name} <span class="lv">Lv.${state.handLevels[type]}</span>`,
+    chips: preview.chips,
+    mult: formatMult(preview.mult),
+    total: preview.total,
+  });
 }
 
 function renderScoreLog(state) {
@@ -1497,13 +1742,33 @@ function isCardSelectedForDisplay(card, ui) {
 }
 
 function renderPlaying(state, ui) {
-  const cardsHTML = state.hand
-    .map((c) => cardHTML(c, { selected: isCardSelectedForDisplay(c, ui), debuffed: isDebuffedDisplay(c, state) }))
+  const scoring = !!state.pendingPlay;
+  const playedIds = scoring ? new Set(state.pendingPlay.selectedIds) : null;
+  const playedCards = scoring ? state.hand.filter((c) => playedIds.has(c.id)) : [];
+  const handCards = scoring ? state.hand.filter((c) => !playedIds.has(c.id)) : state.hand;
+
+  const playedHTML = scoring
+    ? `<div class="played-area">${playedCards
+        .map((c, i) => cardHTML(c, { disabled: true, index: i, debuffed: isDebuffedDisplay(c, state) }))
+        .join('')}</div>`
+    : '';
+
+  const cardsHTML = handCards
+    .map((c, i) =>
+      cardHTML(c, {
+        selected: !scoring && isCardSelectedForDisplay(c, ui),
+        debuffed: isDebuffedDisplay(c, state),
+        disabled: scoring,
+        index: i,
+        deal: ui.dealAnim,
+      })
+    )
     .join('');
 
-  const controls = ui.pendingConsumable
-    ? ''
-    : `<div class="actions-row">
+  const controls =
+    ui.pendingConsumable || scoring
+      ? ''
+      : `<div class="actions-row">
         <button data-action="play-hand" ${state.handsLeft <= 0 ? 'disabled' : ''}>プレイ</button>
         <button class="danger" data-action="discard-hand" ${state.discardsLeft <= 0 ? 'disabled' : ''}>捨てる</button>
         <button class="secondary" data-action="sort-rank">ランク順</button>
@@ -1511,12 +1776,13 @@ function renderPlaying(state, ui) {
       </div>`;
 
   return `${renderHUD(state)}
-  ${renderRows(state, { usable: true })}
+  ${renderRows(state, { usable: !scoring })}
   ${renderToast(ui)}
-  ${renderPreview(state, ui)}
+  ${renderScorePanel(state, ui)}
+  ${playedHTML}
   <div class="hand-area">${cardsHTML}</div>
   ${controls}
-  ${renderScoreLog(state)}`;
+  ${scoring ? '' : renderScoreLog(state)}`;
 }
 
 function isDebuffedDisplay(card, state) {
@@ -1594,30 +1860,107 @@ function render(state, ui, root) {
 }
 
 const Game = { createNewGame, currentBlindKind, goToBlindScreen, startRound,
-  toggleCardSelection, playHand, discardHand, sortHand, generateShop,
-  rerollShop, buyItem, sellJoker, useConsumable, proceedFromShop };
+  toggleCardSelection, beginPlay, finishPlay, playHand, discardHand, sortHand,
+  generateShop, rerollShop, buyItem, sellJoker, useConsumable, proceedFromShop };
 
 // ==== js/main.js ====
+
 
 
 const root = document.getElementById('app');
 
 let state = { screen: 'menu' };
-let ui = { pendingConsumable: null, tarotSelectedIds: [], toast: null };
+let ui = { pendingConsumable: null, tarotSelectedIds: [], toast: null, animating: false, dealAnim: false };
 
 function rerender() {
   render(state, ui, root);
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function pulse(el) {
+  if (!el) return;
+  el.classList.remove('pulse');
+  void el.offsetWidth; // restart the CSS animation
+  el.classList.add('pulse');
+}
+
+function setCounters(ev) {
+  const chipsEl = document.getElementById('anim-chips');
+  const multEl = document.getElementById('anim-mult');
+  if (chipsEl && chipsEl.textContent !== String(ev.runningChips)) {
+    chipsEl.textContent = ev.runningChips;
+    pulse(chipsEl);
+  }
+  const multText = formatMult(ev.runningMult);
+  if (multEl && multEl.textContent !== multText) {
+    multEl.textContent = multText;
+    pulse(multEl);
+  }
+}
+
+function spawnPopups(anchor, popups) {
+  if (!anchor || !popups) return;
+  popups.forEach((p, i) => {
+    const el = document.createElement('div');
+    el.className = `float-popup ${p.kind}`;
+    el.textContent = p.text;
+    el.style.top = `${-12 - i * 22}px`;
+    el.style.animationDelay = `${i * 90}ms`;
+    anchor.appendChild(el);
+  });
+}
+
+async function animateScoring() {
+  const result = state.pendingPlay.result;
+
+  for (const ev of result.events) {
+    if (ev.kind === 'base') {
+      setCounters(ev);
+      await sleep(380);
+      continue;
+    }
+
+    let target = null;
+    if (ev.cardId != null) target = document.querySelector(`[data-cid="${ev.cardId}"]`);
+    if (ev.jokerId) target = document.querySelector(`[data-jid="${ev.jokerId}"]`);
+
+    if (target) {
+      const anchor = target.closest('.card-wrap') || target.closest('.tooltip-wrap') || target;
+      target.classList.add(ev.kind === 'joker' ? 'trigger-wiggle' : 'trigger-pop');
+      spawnPopups(anchor, ev.popups);
+    }
+    setCounters(ev);
+
+    if (ev.broken && target) {
+      await sleep(220);
+      target.classList.add('shatter');
+    }
+
+    await sleep(ev.kind === 'card' ? 360 : 320);
+    if (target) target.classList.remove('trigger-pop', 'trigger-wiggle');
+  }
+
+  const totalEl = document.getElementById('anim-total');
+  if (totalEl) {
+    totalEl.textContent = result.total;
+    totalEl.classList.add('slam');
+  }
+  await sleep(800);
+}
+
 function dispatch(action, payload) {
+  if (ui.animating) return;
+
   switch (action) {
     case 'new-game':
       state = Game.createNewGame();
-      ui = { pendingConsumable: null, tarotSelectedIds: [], toast: null };
+      ui = { pendingConsumable: null, tarotSelectedIds: [], toast: null, animating: false, dealAnim: false };
       break;
 
     case 'start-round':
       Game.startRound(state);
+      ui.dealAnim = true;
       break;
 
     case 'toggle-card': {
@@ -1637,15 +1980,28 @@ function dispatch(action, payload) {
 
     case 'play-hand': {
       ui.toast = null;
-      const res = Game.playHand(state);
-      if (res.error) ui.toast = res.error;
-      break;
+      const pending = Game.beginPlay(state);
+      if (pending.error) {
+        ui.toast = pending.error;
+        break;
+      }
+      ui.animating = true;
+      rerender();
+      animateScoring().then(() => {
+        Game.finishPlay(state);
+        ui.animating = false;
+        ui.dealAnim = true;
+        rerender();
+        ui.dealAnim = false;
+      });
+      return;
     }
 
     case 'discard-hand': {
       ui.toast = null;
       const res = Game.discardHand(state);
       if (res.error) ui.toast = res.error;
+      else ui.dealAnim = true;
       break;
     }
 
@@ -1714,6 +2070,7 @@ function dispatch(action, payload) {
       break;
   }
   rerender();
+  ui.dealAnim = false;
 }
 
 initUI(root, dispatch);

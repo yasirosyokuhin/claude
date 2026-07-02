@@ -27,6 +27,7 @@ export function createNewGame() {
     consumables: [],
     consumableSlots: 2,
     handLevels: initHandLevels(),
+    pendingPlay: null,
     currentBlindScore: 0,
     blindRequirement: getBlindRequirement(1, 'small'),
     bossEffect: null,
@@ -89,9 +90,13 @@ function refillHand(state, n) {
   sortHand(state, state.sortMode);
 }
 
-export function playHand(state) {
+// Phase 1: validate + compute the score (glass breaks decided here, once).
+// State is not applied yet; cards stay in hand so the UI can animate the
+// calculation. Follow with finishPlay() to commit.
+export function beginPlay(state) {
   const selected = state.hand.filter((c) => c.selected);
   if (selected.length < 1 || selected.length > 5) return { error: '1〜5枚選択してください' };
+  if (state.handsLeft <= 0) return { error: 'ハンド回数がありません' };
 
   const { type, scoringCards } = evaluateHand(selected);
   const heldCards = state.hand.filter((c) => !c.selected);
@@ -109,17 +114,34 @@ export function playHand(state) {
     gameState: state,
   });
 
+  state.pendingPlay = {
+    selectedIds: selected.map((c) => c.id),
+    scoringCardIds: scoringCards.map((c) => c.id),
+    type,
+    level,
+    result,
+  };
+  return state.pendingPlay;
+}
+
+// Phase 2: commit the pending play (score, card removal, refill, transitions).
+export function finishPlay(state) {
+  const pending = state.pendingPlay;
+  if (!pending) return { error: 'プレイが開始されていません' };
+  const result = pending.result;
+
   state.currentBlindScore += result.total;
   state.handsLeft -= 1;
-  state.lastScoreResult = { ...result, type };
+  state.lastScoreResult = { ...result, type: pending.type };
 
   if (result.brokenGlassIds.length) {
     state.ownedDeck = state.ownedDeck.filter((c) => !result.brokenGlassIds.includes(c.id));
   }
 
-  const playedIds = new Set(selected.map((c) => c.id));
+  const playedIds = new Set(pending.selectedIds);
   state.hand = state.hand.filter((c) => !playedIds.has(c.id));
-  refillHand(state, selected.length);
+  refillHand(state, pending.selectedIds.length);
+  state.pendingPlay = null;
 
   if (state.currentBlindScore >= state.blindRequirement) {
     beatBlind(state);
@@ -129,6 +151,13 @@ export function playHand(state) {
   }
 
   return result;
+}
+
+// Synchronous play (used by tests and non-animated flows).
+export function playHand(state) {
+  const pending = beginPlay(state);
+  if (pending.error) return pending;
+  return finishPlay(state);
 }
 
 export function discardHand(state) {

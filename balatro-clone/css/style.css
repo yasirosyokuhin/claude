@@ -198,6 +198,141 @@ button.danger {
   width: 100%;
   max-width: 1100px;
 }
+
+.played-area {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 130px;
+  align-items: center;
+  padding: 14px 0 4px;
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* Each card sits in a wrapper that carries the idle wobble / deal-in
+   animations, so the inner .card keeps hover & selection transforms. */
+.card-wrap {
+  position: relative;
+  animation: idleFloat 3.4s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i, 0) * -0.45s);
+}
+@keyframes idleFloat {
+  from { transform: rotate(-1.1deg) translateY(0); }
+  to { transform: rotate(1.1deg) translateY(-3px); }
+}
+.card-wrap.deal .card {
+  animation: dealIn 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+@keyframes dealIn {
+  from { transform: translateY(70px) rotate(6deg); opacity: 0; }
+  to { transform: translateY(0) rotate(0); opacity: 1; }
+}
+
+/* Scoring animations */
+.card.trigger-pop {
+  animation: cardPop 0.34s ease-out;
+  z-index: 20;
+}
+@keyframes cardPop {
+  0% { transform: scale(1) translateY(0); }
+  40% { transform: scale(1.22) translateY(-16px); }
+  100% { transform: scale(1) translateY(0); }
+}
+.joker-card.trigger-wiggle {
+  animation: jokerWiggle 0.32s ease-in-out;
+}
+@keyframes jokerWiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-9deg) scale(1.1); }
+  75% { transform: rotate(9deg) scale(1.1); }
+}
+.card.shatter {
+  animation: shatter 0.5s ease-in forwards;
+}
+@keyframes shatter {
+  to { transform: scale(1.35) rotate(18deg); opacity: 0; filter: brightness(2); }
+}
+
+.float-popup {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 40;
+  animation: popupRise 1s ease-out forwards;
+  opacity: 0;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.float-popup.chips { background: #3f7fd1; box-shadow: 0 2px 0 #234c8a; }
+.float-popup.mult { background: var(--red); box-shadow: 0 2px 0 #7a2323; }
+.float-popup.info { background: #666; box-shadow: 0 2px 0 #333; }
+@keyframes popupRise {
+  0% { opacity: 0; margin-top: 8px; }
+  15% { opacity: 1; margin-top: 0; }
+  70% { opacity: 1; }
+  100% { opacity: 0; margin-top: -42px; }
+}
+
+/* ---- Chips x Mult panel ---- */
+.score-panel {
+  width: 100%;
+  max-width: 520px;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.score-panel.muted { opacity: 0.65; }
+.score-panel .hand-name { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+.score-panel .hand-name .lv { font-size: 11px; opacity: 0.7; font-weight: 600; }
+.cm-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.cm-box {
+  min-width: 90px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 26px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 2px rgba(0,0,0,0.35);
+}
+.chip-box { background: linear-gradient(180deg, #4f93e8, #2c5f9e); box-shadow: 0 3px 0 #1c3f6b; }
+.mult-box { background: linear-gradient(180deg, #e85555, #b32c2c); box-shadow: 0 3px 0 #6b1c1c; }
+.cm-x { font-size: 26px; font-weight: 900; color: var(--gold); }
+.cm-box.pulse { animation: cmPulse 0.3s ease-out; }
+@keyframes cmPulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.22); filter: brightness(1.4); }
+  100% { transform: scale(1); }
+}
+.cm-total {
+  min-height: 34px;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--gold);
+  margin-top: 4px;
+}
+.cm-total.slam { animation: totalSlam 0.45s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes totalSlam {
+  0% { transform: scale(2.4); opacity: 0; }
+  60% { transform: scale(0.95); opacity: 1; }
+  100% { transform: scale(1); }
+}
 .card {
   width: 76px;
   height: 108px;

@@ -1,8 +1,8 @@
 // Rendering + event delegation
 
 import { rankLabel, suitInfo, ENHANCEMENTS } from './cards.js';
-import { HAND_TYPES, evaluateHand } from './hands.js';
-import { computeScore } from './scoring.js';
+import { HAND_TYPES, evaluateHand, getHandStats } from './hands.js';
+import { computeScore, formatMult } from './scoring.js';
 import { BLIND_KINDS, MAX_ANTE } from './blinds.js';
 
 let _dispatch = null;
@@ -25,7 +25,7 @@ function enhTag(card) {
   return `<span class="enh-tag">${ENHANCEMENTS[card.enhancement].name}</span>`;
 }
 
-function cardHTML(card, { selected = false, debuffed = false, disabled = false } = {}) {
+function cardHTML(card, { selected = false, debuffed = false, disabled = false, index = 0, deal = false } = {}) {
   const info = suitInfo(card.suit);
   const isStone = card.enhancement === 'stone';
   const classes = ['card', isStone ? 'stone' : info.color];
@@ -33,10 +33,12 @@ function cardHTML(card, { selected = false, debuffed = false, disabled = false }
   if (debuffed) classes.push('debuffed');
   const label = isStone ? '★' : rankLabel(card.rank);
   const symbol = isStone ? '' : info.symbol;
-  return `<div class="${classes.join(' ')}" ${disabled ? '' : `data-action="toggle-card" data-card-id="${card.id}"`}>
-    <div class="rank">${label}</div>
-    <div class="suit-symbol">${symbol}</div>
-    ${enhTag(card)}
+  return `<div class="card-wrap${deal ? ' deal' : ''}" style="--i:${index}">
+    <div class="${classes.join(' ')}" data-cid="${card.id}" ${disabled ? '' : `data-action="toggle-card" data-card-id="${card.id}"`}>
+      <div class="rank">${label}</div>
+      <div class="suit-symbol">${symbol}</div>
+      ${enhTag(card)}
+    </div>
   </div>`;
 }
 
@@ -46,7 +48,7 @@ function tooltip(text) {
 
 function jokerHTML(joker, { sellable = false } = {}) {
   return `<div class="tooltip-wrap">
-    <div class="joker-card rarity-${joker.rarity}" ${sellable ? `data-action="sell-joker" data-instance-id="${joker.instanceId}"` : ''}>
+    <div class="joker-card rarity-${joker.rarity}" data-jid="${joker.instanceId}" ${sellable ? `data-action="sell-joker" data-instance-id="${joker.instanceId}"` : ''}>
       <div class="name">${joker.name}</div>
     </div>
     ${tooltip(`${joker.desc}${sellable ? `<br><b>クリックで売却 (+$${Math.ceil(joker.cost / 2)})</b>` : ''}`)}
@@ -144,8 +146,19 @@ function renderBlind(state) {
   </div>`;
 }
 
-function renderPreview(state, ui) {
-  const selected = state.hand.filter((c) => c.selected);
+function scorePanelHTML({ title, chips, mult, total, muted = false }) {
+  return `<div class="score-panel${muted ? ' muted' : ''}">
+    <div class="hand-name">${title}</div>
+    <div class="cm-row">
+      <div class="cm-box chip-box" id="anim-chips">${chips}</div>
+      <div class="cm-x">×</div>
+      <div class="cm-box mult-box" id="anim-mult">${mult}</div>
+    </div>
+    <div class="cm-total" id="anim-total">${total}</div>
+  </div>`;
+}
+
+function renderScorePanel(state, ui) {
   if (ui.pendingConsumable) {
     const need = ui.pendingConsumable.selectCount;
     return `<div class="pending-hint">「${ui.pendingConsumable.name}」を使用中 — カードを${need}枚選択してください (${ui.tarotSelectedIds.length}/${need})
@@ -155,7 +168,22 @@ function renderPreview(state, ui) {
       </div>
     </div>`;
   }
-  if (selected.length === 0) return `<div class="hand-type-banner">カードを選択してください(最大5枚)</div>`;
+
+  if (state.pendingPlay) {
+    // Scoring phase: start from the hand's base values; main.js animates the counters.
+    const base = getHandStats(state.pendingPlay.type, state.pendingPlay.level);
+    return scorePanelHTML({
+      title: `${HAND_TYPES[state.pendingPlay.type].name} <span class="lv">Lv.${state.pendingPlay.level}</span>`,
+      chips: base.chips,
+      mult: formatMult(base.mult),
+      total: '',
+    });
+  }
+
+  const selected = state.hand.filter((c) => c.selected);
+  if (selected.length === 0) {
+    return scorePanelHTML({ title: 'カードを選択してください(最大5枚)', chips: '-', mult: '-', total: '', muted: true });
+  }
   const { type, scoringCards } = evaluateHand(selected);
   const heldCards = state.hand.filter((c) => !c.selected);
   const preview = computeScore({
@@ -168,7 +196,12 @@ function renderPreview(state, ui) {
     bossEffect: state.bossEffect,
     gameState: { ...state, transient: {} },
   });
-  return `<div class="hand-type-banner"><b>${HAND_TYPES[type].name}</b> (Lv.${state.handLevels[type]}) &nbsp; ${preview.chips}チップ &times; ${preview.mult.toFixed(1)}マルト = <b>${preview.total}</b></div>`;
+  return scorePanelHTML({
+    title: `${HAND_TYPES[type].name} <span class="lv">Lv.${state.handLevels[type]}</span>`,
+    chips: preview.chips,
+    mult: formatMult(preview.mult),
+    total: preview.total,
+  });
 }
 
 function renderScoreLog(state) {
@@ -183,13 +216,33 @@ function isCardSelectedForDisplay(card, ui) {
 }
 
 function renderPlaying(state, ui) {
-  const cardsHTML = state.hand
-    .map((c) => cardHTML(c, { selected: isCardSelectedForDisplay(c, ui), debuffed: isDebuffedDisplay(c, state) }))
+  const scoring = !!state.pendingPlay;
+  const playedIds = scoring ? new Set(state.pendingPlay.selectedIds) : null;
+  const playedCards = scoring ? state.hand.filter((c) => playedIds.has(c.id)) : [];
+  const handCards = scoring ? state.hand.filter((c) => !playedIds.has(c.id)) : state.hand;
+
+  const playedHTML = scoring
+    ? `<div class="played-area">${playedCards
+        .map((c, i) => cardHTML(c, { disabled: true, index: i, debuffed: isDebuffedDisplay(c, state) }))
+        .join('')}</div>`
+    : '';
+
+  const cardsHTML = handCards
+    .map((c, i) =>
+      cardHTML(c, {
+        selected: !scoring && isCardSelectedForDisplay(c, ui),
+        debuffed: isDebuffedDisplay(c, state),
+        disabled: scoring,
+        index: i,
+        deal: ui.dealAnim,
+      })
+    )
     .join('');
 
-  const controls = ui.pendingConsumable
-    ? ''
-    : `<div class="actions-row">
+  const controls =
+    ui.pendingConsumable || scoring
+      ? ''
+      : `<div class="actions-row">
         <button data-action="play-hand" ${state.handsLeft <= 0 ? 'disabled' : ''}>プレイ</button>
         <button class="danger" data-action="discard-hand" ${state.discardsLeft <= 0 ? 'disabled' : ''}>捨てる</button>
         <button class="secondary" data-action="sort-rank">ランク順</button>
@@ -197,12 +250,13 @@ function renderPlaying(state, ui) {
       </div>`;
 
   return `${renderHUD(state)}
-  ${renderRows(state, { usable: true })}
+  ${renderRows(state, { usable: !scoring })}
   ${renderToast(ui)}
-  ${renderPreview(state, ui)}
+  ${renderScorePanel(state, ui)}
+  ${playedHTML}
   <div class="hand-area">${cardsHTML}</div>
   ${controls}
-  ${renderScoreLog(state)}`;
+  ${scoring ? '' : renderScoreLog(state)}`;
 }
 
 function isDebuffedDisplay(card, state) {
