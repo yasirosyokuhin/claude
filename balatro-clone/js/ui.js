@@ -2,7 +2,7 @@
 
 import { rankLabel, suitInfo, ENHANCEMENTS } from './cards.js';
 import { HAND_TYPES, evaluateHand, getHandStats } from './hands.js';
-import { computeScore, formatMult } from './scoring.js';
+import { formatMult } from './scoring.js';
 import { BLIND_KINDS, MAX_ANTE } from './blinds.js';
 
 let _dispatch = null;
@@ -184,23 +184,17 @@ function renderScorePanel(state, ui) {
   if (selected.length === 0) {
     return scorePanelHTML({ title: 'カードを選択してください(最大5枚)', chips: '-', mult: '-', total: '', muted: true });
   }
-  const { type, scoringCards } = evaluateHand(selected);
-  const heldCards = state.hand.filter((c) => !c.selected);
-  const preview = computeScore({
-    type,
-    level: state.handLevels[type],
-    scoringCards,
-    playedCards: selected,
-    heldCards,
-    jokers: state.jokers,
-    bossEffect: state.bossEffect,
-    gameState: { ...state, transient: {} },
-  });
+  // Like the original game, the preview shows only the hand's base chips x mult.
+  // Card chips / enhancements / jokers stack up during the play animation
+  // (some joker effects are random, so a full preview would be misleading).
+  const { type } = evaluateHand(selected);
+  const level = state.handLevels[type];
+  const base = getHandStats(type, level);
   return scorePanelHTML({
-    title: `${HAND_TYPES[type].name} <span class="lv">Lv.${state.handLevels[type]}</span>`,
-    chips: preview.chips,
-    mult: formatMult(preview.mult),
-    total: preview.total,
+    title: `${HAND_TYPES[type].name} <span class="lv">Lv.${level}</span>`,
+    chips: base.chips,
+    mult: formatMult(base.mult),
+    total: '',
   });
 }
 
