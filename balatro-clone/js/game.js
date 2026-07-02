@@ -21,6 +21,7 @@ export function createNewGame() {
     maxHands: 4,
     maxDiscards: 3,
     handSize: 8,
+    sortMode: 'rank',
     jokers: [],
     jokerSlots: 5,
     consumables: [],
@@ -66,6 +67,7 @@ export function startRound(state) {
   for (const c of state.ownedDeck) c.selected = false;
   state.drawPile = shuffle(state.ownedDeck);
   state.hand = state.drawPile.splice(0, state.handSize);
+  sortHand(state, state.sortMode);
   state.lastScoreResult = null;
   state.message = null;
   state.screen = 'playing';
@@ -84,6 +86,7 @@ export function toggleCardSelection(state, cardId) {
 function refillHand(state, n) {
   const draw = state.drawPile.splice(0, n);
   state.hand.push(...draw);
+  sortHand(state, state.sortMode);
 }
 
 export function playHand(state) {
@@ -141,6 +144,7 @@ export function discardHand(state) {
 }
 
 export function sortHand(state, mode) {
+  state.sortMode = mode;
   if (mode === 'rank') {
     state.hand.sort((a, b) => b.rank - a.rank);
   } else {
