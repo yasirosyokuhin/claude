@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <title>北海道つりゲーム</title>
 <style>
   :root {
@@ -147,7 +147,8 @@
     overflow: hidden;
     box-shadow: 0 1px 4px rgba(20,40,35,.08);
   }
-  .map-wrap svg { display: block; width: 100%; height: auto; }
+  .map-wrap svg { display: block; width: 100%; height: auto; touch-action: none; }
+  .map-hint { text-align: center; font-size: 11px; color: var(--sub-ink); margin-top: 6px; }
   .legend {
     display: flex;
     gap: 16px;
@@ -213,17 +214,92 @@
   .fish-stage {
     position: relative;
     width: 100%;
-    aspect-ratio: 360 / 300;
+    aspect-ratio: 360 / 420;
     border-radius: var(--radius);
     overflow: hidden;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     cursor: pointer;
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
     -webkit-tap-highlight-color: transparent;
     background: #cfe6ee;
   }
   .stage-scene { position: absolute; inset: 0; }
   .stage-scene svg { width: 100%; height: 100%; display: block; }
+  #rodLayer { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+  #rodLayer svg { width: 100%; height: 100%; display: block; }
+  .stage-badges { position: absolute; top: 8px; right: 8px; z-index: 4; display: flex; gap: 6px; }
+  .time-badge {
+    font-size: 11px; font-weight: 700; color: #fff;
+    background: rgba(20,45,40,.38); padding: 3px 9px; border-radius: 999px;
+  }
+  .time-badge.mazume { background: rgba(196,110,20,.75); }
+  .mute-btn {
+    position: absolute; bottom: 10px; right: 10px; z-index: 7;
+    width: 40px; height: 40px; border-radius: 50%; border: none;
+    background: rgba(20,45,40,.4); color: #fff; font-size: 18px; cursor: pointer;
+  }
+  /* --- fight gauges --- */
+  .fight-ui {
+    position: absolute; left: 10px; right: 10px; top: 40px; z-index: 5;
+    display: none; flex-direction: column; gap: 6px; pointer-events: none;
+  }
+  .fight-ui.show { display: flex; }
+  .gauge-row { display: flex; align-items: center; gap: 8px; }
+  .gauge-name {
+    width: 58px; font-size: 10px; font-weight: 700; color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5); text-align: right; flex: none;
+    white-space: nowrap;
+  }
+  .gauge-track {
+    position: relative; flex: 1; height: 14px; border-radius: 7px;
+    background: rgba(10,25,30,.45); overflow: hidden;
+  }
+  .gauge-zone {
+    position: absolute; top: 0; bottom: 0; left: 35%; width: 40%;
+    background: rgba(110,220,140,.28);
+    border-left: 1px solid rgba(180,255,200,.5); border-right: 1px solid rgba(180,255,200,.5);
+  }
+  #tensionFill {
+    position: absolute; top: 2px; bottom: 2px; left: 2px; width: 50%;
+    border-radius: 6px; background: #7ede96; transition: background .15s;
+  }
+  #tensionFill.warn { background: #f0c34e; }
+  #tensionFill.danger { background: #e8604c; }
+  #progressFill {
+    position: absolute; top: 2px; bottom: 2px; left: 2px; width: 0%;
+    border-radius: 6px; background: linear-gradient(90deg, #57b7c9, #7ee0d2);
+  }
+  .fight-hint {
+    text-align: center; font-size: 11px; font-weight: 700; color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,.6);
+  }
+  .fish-stage.pulling { animation: shake .28s ease-in-out infinite; }
+  .fish-stage.reeling-grip { outline: 3px solid rgba(255,255,255,.35); outline-offset: -3px; }
+  /* landed fish leap */
+  .fish-leap {
+    position: absolute; left: 50%; top: 58%; width: 55%; z-index: 6;
+    transform: translate(-50%, -50%);
+    animation: fishLeap 1s cubic-bezier(.2,.8,.3,1) forwards;
+    pointer-events: none;
+    filter: drop-shadow(0 6px 8px rgba(0,20,30,.35));
+  }
+  .fish-leap svg { width: 100%; height: auto; display: block; }
+  @keyframes fishLeap {
+    0%   { transform: translate(-50%, 30%) rotate(30deg) scale(.6); opacity: 0; }
+    30%  { transform: translate(-50%, -60%) rotate(-12deg) scale(1); opacity: 1; }
+    60%  { transform: translate(-50%, -78%) rotate(-4deg) scale(1.04); }
+    100% { transform: translate(-50%, -52%) rotate(2deg) scale(1); opacity: 1; }
+  }
+  .drop { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #eaf6fa; z-index: 6; pointer-events: none; animation: dropFall .7s ease-in forwards; }
+  @keyframes dropFall {
+    from { transform: translate(0, 0); opacity: .95; }
+    to { transform: translate(var(--dx), 90px); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fish-stage.pulling, .fish-stage.biting { animation: none; }
+  }
   .stage-label {
     position: absolute;
     top: 8px;
@@ -404,6 +480,7 @@
       <span><span class="legend-dot"></span>河川</span>
       <span><span class="legend-diamond"></span>ダム</span>
     </div>
+    <div class="map-hint">ピンチで拡大 / ドラッグで移動（地図の枠内のみ）</div>
     <div id="infoCard" class="info-card card">
       <div class="badge-row">
         <span id="infoTypeBadge" class="type-badge"></span>
@@ -442,10 +519,24 @@
     <div id="fishStage" class="fish-stage">
       <div id="stageScene" class="stage-scene"></div>
       <div id="stageLabel" class="stage-label"></div>
+      <div class="stage-badges"><span id="timeBadge" class="time-badge"></span></div>
       <div id="fishShadowWrap" class="fish-shadow-wrap"></div>
+      <div id="rodLayer"></div>
+      <div id="fightUi" class="fight-ui">
+        <div class="gauge-row">
+          <span class="gauge-name">テンション</span>
+          <div class="gauge-track"><div class="gauge-zone"></div><div id="tensionFill"></div></div>
+        </div>
+        <div class="gauge-row">
+          <span class="gauge-name">寄せ</span>
+          <div class="gauge-track"><div id="progressFill"></div></div>
+        </div>
+        <div class="fight-hint">長押しで巻く！ 引きが強い時は離してしのげ！</div>
+      </div>
       <div class="stage-text" id="stageText">キャスト中…</div>
+      <button id="muteBtn" class="mute-btn" type="button">🔊</button>
     </div>
-    <p class="sr-note" style="text-align:center;">「アタリ！」の表示が出たら、素早くタップ！</p>
+    <p class="sr-note" style="text-align:center;" id="fishHelpNote">アタリが来たらタップでアワセ→長押しで巻き上げ！</p>
   </section>
 
   <!-- 5. 結果 -->
@@ -1461,6 +1552,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     for (var i = 0; i < screens.length; i++) {
       screens[i].classList.toggle("active", screens[i].id === id);
     }
+    if (id !== "screen-fish" && typeof SFX !== "undefined") {
+      SFX.stopAmbience();
+      stopStageLoop();
+    }
     window.scrollTo(0, 0);
   }
 
@@ -1574,15 +1669,131 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       parts.push('</g>');
     });
 
-    svg.innerHTML = parts.join("");
-    svg.addEventListener("click", onMapClick);
+    svg.innerHTML = '<g id="mapViewport">' + parts.join("") + '</g>';
+    initMapZoom(svg);
   }
 
-  function onMapClick(e) {
-    var target = e.target;
-    var locId = target.getAttribute && target.getAttribute("data-loc-id");
-    if (!locId) return;
-    selectLocation(locId);
+  // ===== 地図のピンチズーム／パン（地図の枠内のみで動作。ページ自体は拡大しない）=====
+  var mapZoom = { s: 1, tx: 0, ty: 0 };
+  function initMapZoom(svg) {
+    var vp = svg.querySelector("#mapViewport");
+    var pointers = new Map();
+    var moved = 0;
+    var lastDist = 0, lastMid = null;
+
+    function apply() {
+      mapZoom.s = Math.max(1, Math.min(6, mapZoom.s));
+      mapZoom.tx = Math.min(0, Math.max(1000 * (1 - mapZoom.s), mapZoom.tx));
+      mapZoom.ty = Math.min(0, Math.max(1000 * (1 - mapZoom.s), mapZoom.ty));
+      vp.setAttribute("transform", "translate(" + mapZoom.tx.toFixed(1) + " " + mapZoom.ty.toFixed(1) + ") scale(" + mapZoom.s.toFixed(3) + ")");
+      // ズーム時にマーカーとラベルが巨大化しないよう逆スケール
+      var k = 1 / Math.pow(mapZoom.s, 0.62);
+      svg.querySelectorAll(".loc-marker-group").forEach(function (g) {
+        var id = g.getAttribute("data-loc-id");
+        var p = markerPositions[id];
+        if (p) g.setAttribute("transform", "translate(" + p[0] + " " + p[1] + ") scale(" + k.toFixed(3) + ") translate(" + (-p[0]) + " " + (-p[1]) + ")");
+      });
+      svg.querySelectorAll(".marker-label").forEach(function (lbl) {
+        var ax = parseFloat(lbl.getAttribute("data-ax")), ay = parseFloat(lbl.getAttribute("data-ay"));
+        if (!isNaN(ax)) lbl.setAttribute("transform", "translate(" + ax + " " + ay + ") scale(" + k.toFixed(3) + ") translate(" + (-ax) + " " + (-ay) + ")");
+      });
+    }
+    mapZoom.apply = apply;
+
+    function toLocal(e) {
+      var r = svg.getBoundingClientRect();
+      var f = 1000 / r.width;
+      return [(e.clientX - r.left) * f, (e.clientY - r.top) * f];
+    }
+
+    svg.addEventListener("pointerdown", function (e) {
+      try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+      pointers.set(e.pointerId, toLocal(e));
+      if (pointers.size === 1) moved = 0;
+      if (pointers.size === 2) {
+        var a = Array.from(pointers.values());
+        lastDist = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]);
+        lastMid = [(a[0][0] + a[1][0]) / 2, (a[0][1] + a[1][1]) / 2];
+      }
+      e.preventDefault();
+    });
+
+    svg.addEventListener("pointermove", function (e) {
+      if (!pointers.has(e.pointerId)) return;
+      var prev = pointers.get(e.pointerId);
+      var cur = toLocal(e);
+      pointers.set(e.pointerId, cur);
+      if (pointers.size === 1) {
+        mapZoom.tx += cur[0] - prev[0];
+        mapZoom.ty += cur[1] - prev[1];
+        moved += Math.hypot(cur[0] - prev[0], cur[1] - prev[1]);
+        apply();
+      } else if (pointers.size === 2) {
+        var a = Array.from(pointers.values());
+        var dist = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]);
+        var mid = [(a[0][0] + a[1][0]) / 2, (a[0][1] + a[1][1]) / 2];
+        var factor = lastDist > 0 ? dist / lastDist : 1;
+        var cx = (mid[0] - mapZoom.tx) / mapZoom.s;
+        var cy = (mid[1] - mapZoom.ty) / mapZoom.s;
+        var ns = Math.max(1, Math.min(6, mapZoom.s * factor));
+        mapZoom.s = ns;
+        mapZoom.tx = mid[0] - cx * ns + (lastMid ? mid[0] - lastMid[0] : 0);
+        mapZoom.ty = mid[1] - cy * ns + (lastMid ? mid[1] - lastMid[1] : 0);
+        moved += 10;
+        lastDist = dist;
+        lastMid = mid;
+        apply();
+      }
+    });
+
+    function endPointer(e) {
+      if (!pointers.has(e.pointerId)) return;
+      var wasSingle = pointers.size === 1;
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) { lastDist = 0; lastMid = null; }
+      // タップ（ほぼ動いていない）ならマーカー選択
+      if (wasSingle && moved < 8 && e.type === "pointerup") {
+        var el = document.elementFromPoint(e.clientX, e.clientY);
+        var hit = el && el.closest ? el.closest("[data-loc-id]") : null;
+        if (hit) selectLocation(hit.getAttribute("data-loc-id"));
+      }
+    }
+    svg.addEventListener("pointerup", endPointer);
+    svg.addEventListener("pointercancel", endPointer);
+
+    // デスクトップ: ホイールで拡大縮小
+    svg.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      var pt = toLocal(e);
+      var factor = Math.pow(1.0015, -e.deltaY);
+      var cx = (pt[0] - mapZoom.tx) / mapZoom.s;
+      var cy = (pt[1] - mapZoom.ty) / mapZoom.s;
+      var ns = Math.max(1, Math.min(6, mapZoom.s * factor));
+      mapZoom.s = ns;
+      mapZoom.tx = pt[0] - cx * ns;
+      mapZoom.ty = pt[1] - cy * ns;
+      apply();
+    }, { passive: false });
+
+    // ダブルタップ/ダブルクリックでズーム切替
+    var lastTapAt = 0, lastTapXY = null;
+    svg.addEventListener("pointerup", function (e) {
+      var now = Date.now();
+      var pt = toLocal(e);
+      if (now - lastTapAt < 320 && lastTapXY && Math.hypot(pt[0] - lastTapXY[0], pt[1] - lastTapXY[1]) < 40 && moved < 8) {
+        var target = mapZoom.s > 1.5 ? 1 : 2.6;
+        var cx = (pt[0] - mapZoom.tx) / mapZoom.s;
+        var cy = (pt[1] - mapZoom.ty) / mapZoom.s;
+        mapZoom.s = target;
+        mapZoom.tx = pt[0] - cx * target;
+        mapZoom.ty = pt[1] - cy * target;
+        apply();
+        lastTapAt = 0;
+      } else {
+        lastTapAt = now;
+        lastTapXY = pt;
+      }
+    });
   }
 
   function selectLocation(locId) {
@@ -1602,8 +1813,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     label.setAttribute("class", "marker-label");
     label.setAttribute("x", (xy[0] + 12).toFixed(1));
     label.setAttribute("y", (xy[1] - 12).toFixed(1));
+    label.setAttribute("data-ax", xy[0].toFixed(1));
+    label.setAttribute("data-ay", xy[1].toFixed(1));
     label.textContent = loc.name;
-    svg.appendChild(label);
+    var vpg = svg.querySelector("#mapViewport") || svg;
+    vpg.appendChild(label);
+    if (mapZoom.apply) mapZoom.apply();
 
     document.getElementById("infoTypeBadge").textContent = loc.type === "river" ? "河川" : "ダム";
     document.getElementById("infoRegionBadge").textContent = loc.region;
@@ -1697,54 +1912,99 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     return '<path d="' + d + '" fill="' + fill + '" opacity="' + opacity + '"></path>';
   }
 
+  // ===== 時間帯（実時刻でマズメ・夜を判定）=====
+  function timeInfo() {
+    var h = new Date().getHours();
+    if (h >= 5 && h < 8)  return { key: "asa",  label: "朝マズメ", mazume: true,  night: false };
+    if (h >= 16 && h < 19) return { key: "yuu", label: "夕マズメ", mazume: true,  night: false };
+    if (h >= 19 || h < 5) return { key: "yoru", label: "夜釣り",   mazume: false, night: true };
+    return { key: "hiru", label: "日中", mazume: false, night: false };
+  }
+
+  var SCENE_PAL = {
+    asa:  { sky: ["#f6d4ae", "#eef2e6"], sun: "#ffd9a0", sunY: 70, ridgeA: "#b9a998", ridgeB: "#8f9c84",
+            waterR: ["#a8c6cc", "#527f8d"], waterD: ["#98b8c2", "#3d6a7e"], glint: "#fff2d8" },
+    hiru: { sky: ["#cfe6ee", "#eef7f2"], sun: "#fff8e6", sunY: 46, ridgeA: "#a9bfae", ridgeB: "#8aa896",
+            waterR: ["#8fc3d4", "#4a94a8"], waterD: ["#7fb4c4", "#39758a"], glint: "#ffffff" },
+    yuu:  { sky: ["#efa96e", "#e9ddc8"], sun: "#ff9d5c", sunY: 96, ridgeA: "#a89484", ridgeB: "#7d8770",
+            waterR: ["#a08fa0", "#4f6478"], waterD: ["#8f8398", "#3c5468"], glint: "#ffd8a8" },
+    yoru: { sky: ["#1e2c44", "#33475c"], sun: "#f2ecd8", sunY: 56, ridgeA: "#3c4a52", ridgeB: "#2c3a44",
+            waterR: ["#31556a", "#132e3e"], waterD: ["#2a4a60", "#0f2836"], glint: "#cfe0ea" }
+  };
+
   function sceneSVG(loc) {
     var isDam = loc.type === "dam";
     var rng = mulberry(seedFromString(loc.id));
-    var skyFrom = isDam ? "#d7e6f2" : "#cfe6ee";
-    var skyTo = isDam ? "#f0f4ec" : "#eef7f2";
-    var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 300" preserveAspectRatio="xMidYMid meet">';
+    var t = state.time || timeInfo();
+    var pal = SCENE_PAL[t.key] || SCENE_PAL.hiru;
+    var water = isDam ? pal.waterD : pal.waterR;
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" preserveAspectRatio="xMidYMid slice">';
     s += '<defs>';
-    s += '<linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + skyFrom + '"/><stop offset="1" stop-color="' + skyTo + '"/></linearGradient>';
-    s += '<linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">' + (isDam ?
-      '<stop offset="0" stop-color="#7fb4c4"/><stop offset="1" stop-color="#39758a"/>' :
-      '<stop offset="0" stop-color="#8fc3d4"/><stop offset="1" stop-color="#4a94a8"/>') + '</linearGradient>';
-    s += '<clipPath id="ukiClip"><circle cx="180" cy="207" r="5"/></clipPath>';
+    s += '<linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + pal.sky[0] + '"/><stop offset="1" stop-color="' + pal.sky[1] + '"/></linearGradient>';
+    s += '<linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + water[0] + '"/><stop offset="1" stop-color="' + water[1] + '"/></linearGradient>';
     s += '</defs>';
-    // 空・太陽・遠山
-    s += '<rect x="0" y="0" width="360" height="140" fill="url(#skyGrad)"></rect>';
-    s += '<circle cx="290" cy="46" r="18" fill="#fff8e6" opacity="0.8"></circle>';
-    s += ridgePath(rng, 96, 18, 0.8, "#a9bfae");
-    s += ridgePath(rng, 116, 22, 0.9, "#8aa896");
-    // 水面
-    if (isDam) {
-      s += '<rect x="0" y="150" width="360" height="150" fill="url(#waterGrad)"></rect>';
-      s += '<rect x="0" y="138" width="360" height="14" fill="#5d7a5f"></rect>';
-      s += '<path d="M 300 150 L 360 150 L 360 262 L 322 262 Z" fill="#c9c9c2" stroke="#a8a89f" stroke-width="2"></path>';
-      for (var i = 0; i < 5; i++) {
-        var rx = 306 + i * 11;
-        s += '<line x1="' + rx + '" y1="150" x2="' + rx + '" y2="140" stroke="#8b8b83" stroke-width="2"></line>';
+    // 空
+    s += '<rect x="0" y="0" width="360" height="200" fill="url(#skyGrad)"></rect>';
+    if (t.night) {
+      for (var st = 0; st < 26; st++) {
+        s += '<circle cx="' + (rng() * 360).toFixed(1) + '" cy="' + (rng() * 120).toFixed(1) + '" r="' + (0.6 + rng() * 0.9).toFixed(1) + '" fill="#e8f0f6" opacity="' + (0.4 + rng() * 0.6).toFixed(2) + '"></circle>';
       }
-      for (var j = 0; j < 3; j++) {
-        var sx = 40 + j * 90, sy = 190 + j * 20;
-        s += '<ellipse cx="' + sx + '" cy="' + sy + '" rx="50" ry="6" fill="#ffffff"><animate attributeName="opacity" values="0.15;0.35;0.15" dur="3s" repeatCount="indefinite"/></ellipse>';
-      }
+      s += '<circle cx="300" cy="' + pal.sunY + '" r="15" fill="' + pal.sun + '" opacity="0.95"></circle>';
+      s += '<circle cx="294" cy="' + (pal.sunY - 4) + '" r="13" fill="' + pal.sky[0] + '" opacity="0.85"></circle>';
     } else {
-      s += '<rect x="0" y="140" width="360" height="160" fill="url(#waterGrad)"></rect>';
-      s += '<polygon points="0,300 0,170 120,150 80,300" fill="#7ea06c"></polygon>';
-      s += '<polygon points="360,300 360,160 250,148 300,300" fill="#6d9060"></polygon>';
-      s += '<ellipse cx="95" cy="230" rx="10" ry="6" fill="#9aa39b"></ellipse>';
-      s += '<ellipse cx="260" cy="255" rx="13" ry="7" fill="#9aa39b"></ellipse>';
-      s += '<ellipse cx="60" cy="272" rx="9" ry="5" fill="#9aa39b"></ellipse>';
-      for (var k = 0; k < 3; k++) {
-        var yy = 190 + k * 30;
-        s += '<path d="M 90 ' + yy + ' Q 180 ' + (yy - 14) + ' 270 ' + yy + '" fill="none" stroke="#ffffff66" stroke-width="2" stroke-dasharray="14 18"><animate attributeName="stroke-dashoffset" from="0" to="-64" dur="2.2s" repeatCount="indefinite"/></path>';
+      s += '<circle cx="292" cy="' + pal.sunY + '" r="' + (t.key === "yuu" ? 24 : 18) + '" fill="' + pal.sun + '" opacity="0.9"></circle>';
+      // 雲（ゆっくり流れる）
+      for (var cl = 0; cl < 2; cl++) {
+        var cy = 34 + cl * 30, dur = 46 + cl * 22;
+        s += '<g opacity="0.7"><ellipse cx="60" cy="' + cy + '" rx="34" ry="9" fill="#ffffff"></ellipse><ellipse cx="88" cy="' + (cy + 4) + '" rx="24" ry="7" fill="#ffffff"></ellipse>' +
+          '<animateTransform attributeName="transform" type="translate" from="-140 0" to="400 0" dur="' + dur + 's" repeatCount="indefinite"/></g>';
+      }
+      // 鳥
+      if (t.key !== "yuu") {
+        s += '<g stroke="#5a6a66" stroke-width="1.6" fill="none" opacity="0.8">' +
+          '<path d="M 0 60 q 5 -5 9 0 q 5 -5 9 0"/><path d="M 24 70 q 4 -4 8 0 q 4 -4 8 0"/>' +
+          '<animateTransform attributeName="transform" type="translate" from="380 20" to="-80 -10" dur="30s" repeatCount="indefinite"/></g>';
       }
     }
-    // ウキ
-    s += '<circle cx="180" cy="207" r="5" fill="#d24a3a"></circle>';
-    s += '<rect x="175" y="207" width="10" height="5" fill="#f2f2ea" clip-path="url(#ukiClip)"></rect>';
-    // 波紋
-    s += '<circle cx="180" cy="210" r="6" fill="none" stroke="#ffffffaa"><animate attributeName="r" values="6;40" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2s" repeatCount="indefinite"/></circle>';
+    // 遠山
+    s += ridgePath(rng, 138, 20, 0.85, pal.ridgeA);
+    s += ridgePath(rng, 162, 24, 0.92, pal.ridgeB);
+    // 水面
+    if (isDam) {
+      s += '<rect x="0" y="190" width="360" height="230" fill="url(#waterGrad)"></rect>';
+      s += '<rect x="0" y="180" width="360" height="12" fill="' + (t.night ? "#223330" : "#5d7a5f") + '"></rect>';
+      s += '<path d="M 298 190 L 360 190 L 360 345 L 320 345 Z" fill="' + (t.night ? "#5a5f60" : "#c9c9c2") + '" stroke="' + (t.night ? "#43484a" : "#a8a89f") + '" stroke-width="2"></path>';
+      for (var i = 0; i < 5; i++) {
+        var rx = 304 + i * 11;
+        s += '<line x1="' + rx + '" y1="190" x2="' + rx + '" y2="180" stroke="' + (t.night ? "#6b7072" : "#8b8b83") + '" stroke-width="2"></line>';
+      }
+      for (var j = 0; j < 3; j++) {
+        var sx = 40 + j * 90, sy = 250 + j * 34;
+        s += '<ellipse cx="' + sx + '" cy="' + sy + '" rx="52" ry="6" fill="' + pal.glint + '"><animate attributeName="opacity" values="0.12;0.3;0.12" dur="' + (2.6 + j * 0.7) + 's" repeatCount="indefinite"/></ellipse>';
+      }
+    } else {
+      s += '<rect x="0" y="190" width="360" height="230" fill="url(#waterGrad)"></rect>';
+      s += '<polygon points="0,420 0,228 122,196 88,420" fill="' + (t.night ? "#2e4438" : "#7ea06c") + '"></polygon>';
+      s += '<polygon points="360,420 360,218 252,193 302,420" fill="' + (t.night ? "#273c31" : "#6d9060") + '"></polygon>';
+      s += '<ellipse cx="98" cy="300" rx="11" ry="6" fill="' + (t.night ? "#4c5a56" : "#9aa39b") + '"></ellipse>';
+      s += '<ellipse cx="262" cy="330" rx="14" ry="7" fill="' + (t.night ? "#4c5a56" : "#9aa39b") + '"></ellipse>';
+      s += '<ellipse cx="66" cy="368" rx="9" ry="5" fill="' + (t.night ? "#44524e" : "#8f988f") + '"></ellipse>';
+      for (var k = 0; k < 3; k++) {
+        var yy = 258 + k * 42;
+        s += '<path d="M 92 ' + yy + ' Q 180 ' + (yy - 16) + ' 268 ' + yy + '" fill="none" stroke="' + pal.glint + '66" stroke-width="2" stroke-dasharray="14 18"><animate attributeName="stroke-dashoffset" from="0" to="-64" dur="2.2s" repeatCount="indefinite"/></path>';
+      }
+      // 手前の草（ゆれる）
+      s += '<g fill="none" stroke="' + (t.night ? "#3c5544" : "#5d8054") + '" stroke-width="3" stroke-linecap="round">';
+      for (var g2 = 0; g2 < 5; g2++) {
+        var gx = 12 + g2 * 14 + rng() * 6, gy = 420, gh = 34 + rng() * 22, lean = 6 + rng() * 8;
+        s += '<path d="M ' + gx + ' ' + gy + ' q ' + lean.toFixed(1) + ' -' + (gh * 0.6).toFixed(1) + ' ' + (lean * 1.7).toFixed(1) + ' -' + gh.toFixed(1) + '">' +
+          '<animate attributeName="d" values="M ' + gx + ' ' + gy + ' q ' + lean.toFixed(1) + ' -' + (gh * 0.6).toFixed(1) + ' ' + (lean * 1.7).toFixed(1) + ' -' + gh.toFixed(1) + ';M ' + gx + ' ' + gy + ' q ' + (lean + 4).toFixed(1) + ' -' + (gh * 0.6).toFixed(1) + ' ' + (lean * 2.3).toFixed(1) + ' -' + (gh - 3).toFixed(1) + ';M ' + gx + ' ' + gy + ' q ' + lean.toFixed(1) + ' -' + (gh * 0.6).toFixed(1) + ' ' + (lean * 1.7).toFixed(1) + ' -' + gh.toFixed(1) + '" dur="' + (2.8 + rng()).toFixed(1) + 's" repeatCount="indefinite"/></path>';
+      }
+      s += '</g>';
+    }
+    // ウキ（JSがtransformで動かす）＋常設の波紋
+    s += '<g id="rippleG" visibility="hidden"><circle cx="180" cy="288" r="6" fill="none" stroke="' + pal.glint + 'aa"><animate attributeName="r" values="6;44" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2s" repeatCount="indefinite"/></circle></g>';
+    s += '<g id="bobberG" visibility="hidden"><line x1="0" y1="-9" x2="0" y2="4" stroke="#8a4a3a" stroke-width="2"/><circle cx="0" cy="0" r="5.5" fill="#d24a3a"/><path d="M -5.5 0 a 5.5 5.5 0 0 0 11 0 Z" fill="#f2f2ea"/></g>';
     s += '</svg>';
     return s;
   }
@@ -1784,43 +2044,433 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
   }
 
-  // ===== 釣り演出 =====
+  // ===== 効果音（Web Audio 合成・外部ファイルなし）=====
+  var SFX = (function () {
+    var ctx = null, master = null, ambGain = null, ambNodes = [];
+    var muted = false;
+    try { muted = localStorage.getItem("hf_muted_v1") === "1"; } catch (e) {}
+    function ensure() {
+      try {
+        if (!ctx) {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return false;
+          ctx = new AC();
+          master = ctx.createGain();
+          master.gain.value = muted ? 0 : 0.55;
+          master.connect(ctx.destination);
+        }
+        if (ctx.state === "suspended") ctx.resume();
+        return true;
+      } catch (e) { return false; }
+    }
+    function noiseBuf(dur) {
+      var b = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+      var d = b.getChannelData(0);
+      var last = 0;
+      for (var i = 0; i < d.length; i++) { // 軽いローパスでピンクノイズ風
+        var w = Math.random() * 2 - 1;
+        last = last * 0.94 + w * 0.06;
+        d[i] = last * 3.2;
+      }
+      return b;
+    }
+    function env(g, t0, a, peak, dec) {
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(peak, t0 + a);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + a + dec);
+    }
+    function blip(freq, type, peak, dec, when, slideTo) {
+      if (!ensure()) return;
+      var t0 = ctx.currentTime + (when || 0);
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t0);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dec);
+      env(g, t0, 0.005, peak, dec);
+      o.connect(g); g.connect(master);
+      o.start(t0); o.stop(t0 + dec + 0.1);
+    }
+    function noise(peak, dec, fq, when, type) {
+      if (!ensure()) return;
+      var t0 = ctx.currentTime + (when || 0);
+      var src = ctx.createBufferSource(); src.buffer = noiseBuf(dec + 0.1);
+      var f = ctx.createBiquadFilter(); f.type = type || "lowpass"; f.frequency.value = fq;
+      var g = ctx.createGain(); env(g, t0, 0.01, peak, dec);
+      src.connect(f); f.connect(g); g.connect(master);
+      src.start(t0); src.stop(t0 + dec + 0.15);
+    }
+    return {
+      ensure: ensure,
+      whoosh: function () { noise(0.25, 0.32, 1800, 0, "bandpass"); },
+      plop: function () { blip(340, "sine", 0.5, 0.16, 0, 90); noise(0.18, 0.12, 900); },
+      bite: function () { blip(140, "sine", 0.6, 0.09, 0, 70); blip(120, "sine", 0.5, 0.09, 0.12, 60); },
+      click: function () { blip(2300, "square", 0.05, 0.018); },
+      snap: function () { blip(900, "sawtooth", 0.4, 0.08, 0, 200); noise(0.3, 0.2, 2400, 0.02, "highpass"); },
+      splash: function () { noise(0.5, 0.5, 1100); noise(0.25, 0.7, 500, 0.08); },
+      jingle: function () {
+        blip(523, "triangle", 0.30, 0.28, 0);
+        blip(659, "triangle", 0.30, 0.28, 0.13);
+        blip(784, "triangle", 0.34, 0.42, 0.26);
+        blip(1047, "triangle", 0.26, 0.6, 0.42);
+      },
+      fail: function () { blip(330, "triangle", 0.25, 0.3, 0); blip(247, "triangle", 0.25, 0.42, 0.18); },
+      ambience: function (type) {
+        if (!ensure()) return;
+        this.stopAmbience();
+        var src = ctx.createBufferSource(); src.buffer = noiseBuf(2.2); src.loop = true;
+        var f = ctx.createBiquadFilter(); f.type = "lowpass";
+        f.frequency.value = type === "river" ? 780 : 430;
+        ambGain = ctx.createGain(); ambGain.gain.value = type === "river" ? 0.11 : 0.055;
+        var lfo = ctx.createOscillator(), lg = ctx.createGain();
+        lfo.frequency.value = type === "river" ? 0.5 : 0.22; lg.gain.value = type === "river" ? 0.03 : 0.015;
+        lfo.connect(lg); lg.connect(ambGain.gain);
+        src.connect(f); f.connect(ambGain); ambGain.connect(master);
+        src.start(); lfo.start();
+        ambNodes = [src, lfo];
+      },
+      stopAmbience: function () {
+        ambNodes.forEach(function (n) { try { n.stop(); } catch (e) {} });
+        ambNodes = [];
+        if (ambGain) { try { ambGain.disconnect(); } catch (e) {} ambGain = null; }
+      },
+      setMuted: function (m) {
+        muted = m;
+        try { localStorage.setItem("hf_muted_v1", m ? "1" : "0"); } catch (e) {}
+        if (master) master.gain.value = m ? 0 : 0.55;
+      },
+      muted: function () { return muted; }
+    };
+  })();
+
+  function buzz(pattern) {
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+  }
+
+  // ===== ロッド＆ライン描画（rAFで毎フレーム更新）=====
+  var rodRefs = null;
+  function buildRodLayer() {
+    var layer = document.getElementById("rodLayer");
+    layer.innerHTML = '<svg viewBox="0 0 360 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">' +
+      '<path id="linePath" d="" fill="none" stroke="#f8f8f4" stroke-opacity="0.75" stroke-width="1.3"/>' +
+      '<path id="rodPath" d="" fill="none" stroke="#5a4632" stroke-width="5.5" stroke-linecap="round"/>' +
+      '<path id="rodHiPath" d="" fill="none" stroke="#8a7050" stroke-width="2" stroke-linecap="round"/>' +
+      '<g id="reelG"><circle cx="322" cy="399" r="9.5" fill="#3a3f44" stroke="#22262a" stroke-width="2"/>' +
+      '<line id="reelHandle" x1="322" y1="399" x2="330" y2="391" stroke="#c9ced2" stroke-width="2.5" stroke-linecap="round"/></g>' +
+      '</svg>';
+    rodRefs = {
+      line: layer.querySelector("#linePath"),
+      rod: layer.querySelector("#rodPath"),
+      rodHi: layer.querySelector("#rodHiPath"),
+      handle: layer.querySelector("#reelHandle")
+    };
+  }
+
+  // bend 0..1（テンションで竿がしなる）、target = ライン先端 [x,y] or null
+  function drawRod(bend, target, reelAngle) {
+    if (!rodRefs) return;
+    var baseX = 336, baseY = 428;
+    var tipX = 224 - bend * 34, tipY = 208 + bend * 52;
+    var ctrlX = 300 - bend * 8, ctrlY = 330 + bend * 20;
+    var d = "M " + baseX + " " + baseY + " Q " + ctrlX + " " + ctrlY + " " + tipX.toFixed(1) + " " + tipY.toFixed(1);
+    rodRefs.rod.setAttribute("d", d);
+    rodRefs.rodHi.setAttribute("d", d);
+    if (target) {
+      var sag = bend > 0.35 ? -4 : 16 - bend * 30;
+      var mx = (tipX + target[0]) / 2, my = Math.min(tipY, target[1]) + sag;
+      rodRefs.line.setAttribute("d", "M " + tipX.toFixed(1) + " " + tipY.toFixed(1) + " Q " + mx.toFixed(1) + " " + my.toFixed(1) + " " + target[0].toFixed(1) + " " + target[1].toFixed(1));
+    } else {
+      rodRefs.line.setAttribute("d", "");
+    }
+    var a = reelAngle || 0;
+    rodRefs.handle.setAttribute("x2", (322 + Math.cos(a) * 8.5).toFixed(1));
+    rodRefs.handle.setAttribute("y2", (399 + Math.sin(a) * 8.5).toFixed(1));
+  }
+
+  // ===== 釣りフェーズ管理 =====
+  var FIGHT_STAMINA = { common: 4.2, uncommon: 5.6, rare: 7.2, legend: 10.5 };
+  var FIGHT_PULL = { common: 0.7, uncommon: 0.85, rare: 1.0, legend: 1.28 };
+
+  var fs = {
+    phase: "idle", raf: null, lastTs: 0,
+    castT: 0, bobX: 224, bobY: 208, idleT: 0,
+    holding: false, tension: 55, progress: 0,
+    pulling: false, nextPullAt: 0, pullEndAt: 0,
+    slackTime: 0, reelAngle: 0, lastClickAt: 0,
+    fightFishId: null, fpX: 180, fpY: 300
+  };
+
+  function sceneEl(id) {
+    var scene = document.getElementById("stageScene");
+    return scene ? scene.querySelector("#" + id) : null;
+  }
+
+  function setStageText(txt, big) {
+    var el = document.getElementById("stageText");
+    el.textContent = txt;
+    el.style.fontSize = big ? "21px" : "";
+    el.style.color = big ? "#fff566" : "";
+  }
+
   function startFishingSequence() {
     var loc = getLocation(state.selectedLocationId);
     document.getElementById("fishLocName").textContent = loc ? loc.name : "";
     showScreen("screen-fish");
     resetFishStage();
+    state.time = timeInfo();
     if (loc) renderStageScene(loc);
     clearFishShadow();
+    buildRodLayer();
 
-    var stage = document.getElementById("fishStage");
-    var stageText = document.getElementById("stageText");
-    stage.classList.remove("biting");
-    stageText.textContent = "キャスト中…";
+    var badge = document.getElementById("timeBadge");
+    badge.textContent = state.time.label;
+    badge.className = "time-badge" + (state.time.mazume ? " mazume" : "");
+    document.getElementById("muteBtn").textContent = SFX.muted() ? "🔇" : "🔊";
+
+    SFX.ensure();
+    if (loc) SFX.ambience(loc.type);
+
     state.biteActive = false;
     state.pendingFishId = undefined;
 
-    var delay = 1000 + Math.random() * 2500; // 1.0〜3.5秒
+    fs.phase = "cast";
+    fs.castT = 0;
+    fs.idleT = 0;
+    fs.tension = 55; fs.progress = 0; fs.holding = false;
+    fs.slackTime = 0; fs.pulling = false;
+    document.getElementById("fightUi").classList.remove("show");
+    setStageText("キャスト！");
+    SFX.whoosh();
+
+    var waitMs = state.time.mazume ? (800 + Math.random() * 1700) : (1200 + Math.random() * 2800);
     clearFishingTimers();
-    state.biteTimer = setTimeout(function () {
-      // v2: 抽選をアタリ発生時に前倒し（確率はv1と同一、タイミングのみ変更）
-      state.pendingFishId = drawFish(state.selectedLocationId, state.selectedLureId);
-      showFishShadow(state.pendingFishId);
-      stage.classList.add("biting");
-      stageText.textContent = "！ アタリ！ タップ！";
-      state.biteActive = true;
-      state.biteTimeoutTimer = setTimeout(function () {
-        if (state.biteActive) {
-          state.biteActive = false;
-          handleBarasi();
+    state.biteTimer = setTimeout(function () { triggerBite(); }, 750 + waitMs);
+    startStageLoop();
+  }
+
+  function triggerBite() {
+    if (fs.phase !== "wait" && fs.phase !== "cast") return;
+    var bouzuRate = state.time && state.time.mazume ? 0.08 : 0.15;
+    state.pendingFishId = drawFish(state.selectedLocationId, state.selectedLureId, bouzuRate);
+    showFishShadow(state.pendingFishId);
+    fs.phase = "bite";
+    var stage = document.getElementById("fishStage");
+    stage.classList.add("biting");
+    setStageText(state.pendingFishId ? "！！ アタリ！ タップでアワセ！" : "！ ウキが動いた！ タップ！", true);
+    SFX.bite();
+    buzz(70);
+    state.biteActive = true;
+    state.biteTimeoutTimer = setTimeout(function () {
+      if (state.biteActive) {
+        state.biteActive = false;
+        endFishing("late");
+      }
+    }, state.biteWindowMs);
+  }
+
+  function hookset() {
+    state.biteActive = false;
+    clearFishingTimers();
+    var stage = document.getElementById("fishStage");
+    stage.classList.remove("biting");
+    spawnSplash();
+    SFX.splash();
+    buzz([30, 40, 40]);
+    if (!state.pendingFishId) {
+      // 藻・ゴミ
+      fs.phase = "junk";
+      clearFishShadow();
+      setStageText("…手応えが軽い…");
+      setTimeout(function () { endFishing("bouzu"); }, 800);
+      return;
+    }
+    // ファイト開始
+    fs.phase = "fight";
+    fs.fightFishId = state.pendingFishId;
+    fs.tension = 55; fs.progress = 0;
+    fs.slackTime = 0; fs.holding = false;
+    fs.pulling = false;
+    fs.nextPullAt = performance.now() + 600 + Math.random() * 800;
+    document.getElementById("fightUi").classList.add("show");
+    setStageText("長押しで巻け！", true);
+  }
+
+  function fightTick(now, dt) {
+    var fish = FISH[fs.fightFishId] || { rarity: "common" };
+    var pull = FIGHT_PULL[fish.rarity] || 0.8;
+    var stage = document.getElementById("fishStage");
+
+    // 魚の引きバースト
+    if (!fs.pulling && now >= fs.nextPullAt) {
+      fs.pulling = true;
+      fs.pullEndAt = now + 320 + Math.random() * 480;
+      stage.classList.add("pulling");
+      buzz(35);
+    }
+    if (fs.pulling && now >= fs.pullEndAt) {
+      fs.pulling = false;
+      fs.nextPullAt = now + 500 + Math.random() * 950;
+      stage.classList.remove("pulling");
+    }
+
+    // テンション物理: 巻く=上昇 / 引き=上昇 / 離す=低下
+    var delta = (fs.holding ? 58 : -46) + (fs.pulling ? 46 * pull : 0);
+    fs.tension = Math.max(0, Math.min(100, fs.tension + delta * dt));
+
+    // リール音
+    if (fs.holding) {
+      fs.reelAngle += dt * 9;
+      if (now - fs.lastClickAt > 95) { SFX.click(); fs.lastClickAt = now; }
+    }
+
+    // 寄せ進行
+    var inGreen = fs.tension >= 35 && fs.tension <= 75;
+    var stamina = FIGHT_STAMINA[fish.rarity] || 5;
+    fs.progress = Math.max(0, Math.min(100, fs.progress + (inGreen ? (100 / stamina) : -7) * dt));
+
+    // たるみ判定
+    if (fs.tension <= 1) fs.slackTime += dt; else fs.slackTime = 0;
+
+    // UI更新
+    var tf = document.getElementById("tensionFill");
+    tf.style.width = Math.max(2, fs.tension) + "%";
+    tf.className = fs.tension > 88 ? "danger" : (fs.tension > 75 || fs.tension < 22 ? "warn" : "");
+    document.getElementById("progressFill").style.width = fs.progress + "%";
+
+    // 魚の暴れ位置（ラインの先端）
+    fs.fpX = 180 + Math.sin(now / 320) * (fs.pulling ? 62 : 34);
+    fs.fpY = 296 + Math.sin(now / 210) * (fs.pulling ? 16 : 7);
+    var wrap = document.getElementById("fishShadowWrap");
+    wrap.style.left = ((fs.fpX - 55) / 360 * 100) + "%";
+    wrap.style.top = ((fs.fpY - 12) / 420 * 100) + "%";
+
+    // 決着
+    if (fs.tension >= 100) { endFishing("break"); return; }
+    if (fs.slackTime > 1.1) { endFishing("off"); return; }
+    if (fs.progress >= 100) { landFish(); return; }
+  }
+
+  function landFish() {
+    fs.phase = "land";
+    var fishId = fs.fightFishId;
+    document.getElementById("fightUi").classList.remove("show");
+    document.getElementById("fishStage").classList.remove("pulling");
+    clearFishShadow();
+    setStageText("ヒット！ランディング成功！", true);
+    SFX.splash();
+    setTimeout(function () { SFX.jingle(); }, 220);
+    buzz([40, 60, 120]);
+    // 魚が水面から跳ねる
+    var stage = document.getElementById("fishStage");
+    var leap = document.createElement("div");
+    leap.className = "fish-leap";
+    leap.innerHTML = renderFish(fishId, { uid: "leap" });
+    stage.appendChild(leap);
+    for (var i = 0; i < 8; i++) {
+      var drop = document.createElement("div");
+      drop.className = "drop";
+      drop.style.left = (42 + Math.random() * 16) + "%";
+      drop.style.top = (52 + Math.random() * 10) + "%";
+      drop.style.setProperty("--dx", ((Math.random() * 2 - 1) * 70).toFixed(0) + "px");
+      stage.appendChild(drop);
+      (function (el) { setTimeout(function () { el.remove(); }, 750); })(drop);
+    }
+    setTimeout(function () {
+      leap.remove();
+      handleHitSuccess(fishId);
+    }, 1150);
+  }
+
+  var FAIL_INFO = {
+    late:  { emoji: "💨", title: "アワセ遅れ！", desc: "アタリへの反応が遅れて、魚は消えた…。次は素早くタップ！", kind: "barasi" },
+    break: { emoji: "💥", title: "ラインブレイク！", desc: "強い引きに巻き続けて糸が切れた！引きが強い時は指を離していなそう。", kind: "barasi" },
+    off:   { emoji: "🫧", title: "バレた…", desc: "糸がたるんで針が外れた。テンションを保ち続けよう。", kind: "barasi" },
+    bouzu: { emoji: "🌿", title: "藻だった…", desc: "アタリに見えたのは流れてきた藻。今日はこんな日もある。", kind: "bouzu" }
+  };
+
+  function endFishing(failKey) {
+    var info = FAIL_INFO[failKey] || FAIL_INFO.late;
+    fs.phase = "done";
+    document.getElementById("fightUi").classList.remove("show");
+    var stage = document.getElementById("fishStage");
+    stage.classList.remove("biting");
+    stage.classList.remove("pulling");
+    clearFishShadow();
+    if (failKey === "break") SFX.snap(); else SFX.fail();
+    if (failKey === "break" || failKey === "off") buzz(120);
+    state.lastResultKind = info.kind;
+    setTimeout(function () {
+      renderResultFail(info.emoji, info.title, info.desc);
+      showScreen("screen-result");
+    }, failKey === "late" ? 250 : 650);
+  }
+
+  // ===== ステージ描画ループ =====
+  function startStageLoop() {
+    stopStageLoop();
+    fs.lastTs = performance.now();
+    function tick(now) {
+      fs.raf = requestAnimationFrame(tick);
+      var dt = Math.min(0.05, (now - fs.lastTs) / 1000);
+      fs.lastTs = now;
+      var bobber = sceneEl("bobberG");
+      var ripple = sceneEl("rippleG");
+
+      if (fs.phase === "cast") {
+        fs.castT += dt;
+        var p = Math.min(1, fs.castT / 0.7);
+        // 竿先(224,208)から着水点(180,288)へ放物線
+        var bx = 224 - (224 - 180) * p;
+        var by = 208 + (288 - 208) * p - Math.sin(p * Math.PI) * 60;
+        if (bobber) {
+          bobber.setAttribute("visibility", "visible");
+          bobber.setAttribute("transform", "translate(" + bx.toFixed(1) + " " + by.toFixed(1) + ")");
         }
-      }, state.biteWindowMs);
-    }, delay);
+        drawRod(0.25 * (1 - p), [bx, by], fs.reelAngle);
+        if (p >= 1) {
+          fs.phase = "wait";
+          SFX.plop();
+          if (ripple) ripple.setAttribute("visibility", "visible");
+          setStageText("アタリを待て…");
+        }
+      } else if (fs.phase === "wait" || fs.phase === "bite") {
+        fs.idleT += dt;
+        var bobDip = fs.phase === "bite" ? 7 + Math.sin(fs.idleT * 30) * 3 : Math.sin(fs.idleT * 2.4) * 2.2;
+        if (bobber) {
+          bobber.setAttribute("visibility", "visible");
+          bobber.setAttribute("transform", "translate(180 " + (288 + bobDip).toFixed(1) + ")");
+        }
+        drawRod(fs.phase === "bite" ? 0.18 : 0.05 + Math.sin(fs.idleT * 1.2) * 0.02, [180, 288 + bobDip], fs.reelAngle);
+      } else if (fs.phase === "fight") {
+        if (bobber) bobber.setAttribute("visibility", "hidden");
+        if (ripple) ripple.setAttribute("visibility", "hidden");
+        fightTick(now, dt);
+        if (fs.phase === "fight") {
+          drawRod(0.15 + fs.tension / 100 * 0.85, [fs.fpX, fs.fpY], fs.reelAngle);
+        }
+      } else if (fs.phase === "land" || fs.phase === "junk" || fs.phase === "done") {
+        drawRod(0.06, null, fs.reelAngle);
+        if (bobber) bobber.setAttribute("visibility", "hidden");
+      }
+    }
+    fs.raf = requestAnimationFrame(tick);
+  }
+
+  function stopStageLoop() {
+    if (fs.raf) { cancelAnimationFrame(fs.raf); fs.raf = null; }
   }
 
   function resetFishStage() {
     clearFishingTimers();
+    stopStageLoop();
     state.biteActive = false;
+    fs.phase = "idle";
+    fs.holding = false;
+    var stage = document.getElementById("fishStage");
+    stage.classList.remove("biting");
+    stage.classList.remove("pulling");
+    stage.classList.remove("reeling-grip");
+    document.getElementById("fightUi").classList.remove("show");
+    var wrap = document.getElementById("fishShadowWrap");
+    wrap.style.left = ""; wrap.style.top = "";
   }
 
   function clearFishingTimers() {
@@ -1828,19 +2478,29 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (state.biteTimeoutTimer) { clearTimeout(state.biteTimeoutTimer); state.biteTimeoutTimer = null; }
   }
 
-  function onFishStageTap() {
-    if (!state.biteActive) return; // キャスト中のタップは無視
-    state.biteActive = false;
-    clearFishingTimers();
-    spawnSplash();
-    var fishId = state.pendingFishId;
-    setTimeout(function () { handleHitSuccess(fishId); }, 350);
+  function onStagePress(e) {
+    if (e.target && e.target.id === "muteBtn") return;
+    SFX.ensure();
+    if (fs.phase === "bite" && state.biteActive) {
+      hookset();
+      return;
+    }
+    if (fs.phase === "fight") {
+      fs.holding = true;
+      document.getElementById("fishStage").classList.add("reeling-grip");
+    }
+  }
+
+  function onStageRelease() {
+    fs.holding = false;
+    var stage = document.getElementById("fishStage");
+    if (stage) stage.classList.remove("reeling-grip");
   }
 
   // ===== 抽選ロジック（SPEC §5、v2ではアタリ発生時に実行） =====
-  function drawFish(locationId, lureId) {
-    // 1. ボウズ判定 15%
-    if (Math.random() < 0.15) {
+  function drawFish(locationId, lureId, bouzuRate) {
+    // 1. ボウズ判定（通常15% / マズメ時8%）
+    if (Math.random() < (bouzuRate != null ? bouzuRate : 0.15)) {
       return null;
     }
     var loc = getLocation(locationId);
@@ -2001,7 +2661,20 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
   });
 
-  document.getElementById("fishStage").addEventListener("click", onFishStageTap);
+  (function () {
+    var stage = document.getElementById("fishStage");
+    stage.addEventListener("pointerdown", onStagePress);
+    stage.addEventListener("pointerup", onStageRelease);
+    stage.addEventListener("pointercancel", onStageRelease);
+    stage.addEventListener("pointerleave", onStageRelease);
+    var mb = document.getElementById("muteBtn");
+    mb.addEventListener("click", function (e) {
+      e.stopPropagation();
+      SFX.setMuted(!SFX.muted());
+      mb.textContent = SFX.muted() ? "🔇" : "🔊";
+    });
+    mb.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+  })();
 
   function currentScreenId() {
     var active = document.querySelector(".screen.active");
@@ -2018,7 +2691,11 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     return {
       pendingFishId: state.pendingFishId,
       lastCaughtFishId: state.lastCaughtFishId,
-      lastResultKind: state.lastResultKind
+      lastResultKind: state.lastResultKind,
+      phase: fs.phase,
+      tension: fs.tension,
+      progress: fs.progress,
+      mapZoom: { s: mapZoom.s, tx: mapZoom.tx, ty: mapZoom.ty }
     };
   };
 })();
