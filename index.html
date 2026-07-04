@@ -125,7 +125,8 @@
     text-align: center;
     gap: 4px;
   }
-  .title-emoji { font-size: 64px; line-height: 1; margin-bottom: 6px; }
+  .title-fish-art { margin: 0 auto 10px; width: 220px; max-width: 70%; }
+  .title-fish-art svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 4px 10px rgba(20,60,50,.25)); }
   .title-hero h1 { font-size: 26px; color: var(--accent-dark); }
   .title-hero .sub { color: var(--sub-ink); font-size: 14px; margin-bottom: 24px; }
   .title-buttons { width: 100%; display: flex; flex-direction: column; gap: 12px; padding: 0 8px; }
@@ -183,6 +184,8 @@
     background: #eef4f2;
     color: var(--sub-ink);
   }
+  .info-fish-art { width: 100%; display: flex; justify-content: center; margin: 4px 0 8px; }
+  .info-fish-art svg { height: 56px; width: auto; display: block; }
 
   /* ---- tackle screen ---- */
   .loc-heading { color: var(--accent-dark); font-size: 18px; }
@@ -208,37 +211,73 @@
 
   /* ---- fishing screen ---- */
   .fish-stage {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
     position: relative;
-    background: linear-gradient(180deg, #bfe3ee 0%, #6fb6c9 60%, #4a94a8 100%);
+    width: 100%;
+    aspect-ratio: 360 / 300;
     border-radius: var(--radius);
     overflow: hidden;
-    min-height: 320px;
     margin-bottom: 16px;
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    background: #cfe6ee;
   }
-  .fish-stage .ripple {
+  .stage-scene { position: absolute; inset: 0; }
+  .stage-scene svg { width: 100%; height: 100%; display: block; }
+  .stage-label {
     position: absolute;
-    width: 40px;
-    height: 40px;
-    border: 3px solid #ffffff99;
+    top: 8px;
+    left: 8px;
+    z-index: 4;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(20,45,40,.38);
+    padding: 3px 9px;
+    border-radius: 999px;
+    text-shadow: 0 1px 2px rgba(0,0,0,.3);
+  }
+  .fish-shadow-wrap {
+    display: none;
+    position: absolute;
+    left: 34.7%;
+    top: 68%;
+    width: 30.6%;
+    z-index: 2;
+    opacity: .38;
+    filter: blur(1.5px);
+    pointer-events: none;
+    animation: fishWiggle 1s ease-in-out infinite alternate;
+  }
+  .fish-shadow-wrap.show { display: block; }
+  .fish-shadow-wrap svg { width: 100%; height: auto; display: block; }
+  @keyframes fishWiggle {
+    from { transform: translateX(-8px); }
+    to { transform: translateX(8px); }
+  }
+  .splash-dot {
+    position: absolute;
+    left: 50%;
+    top: 69%;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    animation: ripple 1.8s ease-out infinite;
+    background: #ffffff;
+    transform: translate(-50%, -50%);
+    animation: splashFly .5s ease-out forwards;
+    pointer-events: none;
+    z-index: 6;
   }
-  @keyframes ripple {
-    0% { width: 20px; height: 20px; opacity: .9; }
-    100% { width: 160px; height: 160px; opacity: 0; }
+  @keyframes splashFly {
+    from { transform: translate(-50%, -50%) translate(0, 0); opacity: 1; }
+    to { transform: translate(-50%, -50%) translate(var(--dx), var(--dy)); opacity: 0; }
   }
-  .fish-stage .rod-emoji { font-size: 48px; z-index: 2; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
   .stage-text {
-    z-index: 3;
-    margin-top: 14px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 12px;
+    z-index: 5;
     font-size: 17px;
     font-weight: 700;
     color: #fff;
@@ -256,7 +295,11 @@
 
   /* ---- result screen ---- */
   .result-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-  .result-emoji { font-size: 84px; line-height: 1; margin-bottom: 8px; }
+  #resultCatch { background: linear-gradient(180deg, #eaf6fa 0%, #f4fbf8 100%); border-radius: 20px; padding: 22px 14px; }
+  .result-fish-wrap { position: relative; width: 100%; display: flex; justify-content: center; margin-bottom: 6px; }
+  .result-fish-glow { position: absolute; inset: -10px; border-radius: 50%; filter: blur(18px); z-index: 0; }
+  .result-fish-art { position: relative; z-index: 1; width: min(320px, 80%); }
+  .result-fish-art svg { width: 100%; height: auto; display: block; }
   .result-name { font-size: 24px; font-weight: 800; }
   .result-reading { font-size: 13px; color: var(--sub-ink); margin-bottom: 8px; }
   .new-badge {
@@ -300,26 +343,26 @@
   .rb-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
   .zukan-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
   .zukan-item {
     background: var(--card-bg);
     border-radius: 14px;
-    padding: 10px 6px;
+    padding: 10px 8px;
     text-align: center;
     border: 2px solid #e2ebe8;
-    min-height: 90px;
+    min-height: 128px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
   }
-  .zukan-item .zi-emoji { font-size: 30px; }
-  .zukan-item .zi-name { font-size: 11px; font-weight: 700; margin-top: 4px; }
-  .zukan-item .zi-rarity { font-size: 9px; color: var(--sub-ink); margin-top: 2px; }
-  .zukan-item.locked { opacity: .55; }
-  .zukan-item.locked .zi-emoji { filter: grayscale(1); }
+  .zukan-item .zi-art { width: 100%; display: flex; justify-content: center; }
+  .zukan-item .zi-art svg { width: 90%; max-height: 68px; height: auto; display: block; }
+  .zukan-item .zi-name { font-size: 12px; font-weight: 700; margin-top: 4px; }
+  .zukan-item .zi-rarity { font-size: 10px; color: var(--sub-ink); margin-top: 2px; }
+  .zukan-item.locked { opacity: .6; }
   .zukan-item.common { border-color: var(--common); }
   .zukan-item.uncommon { border-color: var(--uncommon); }
   .zukan-item.rare { border-color: var(--rare); }
@@ -335,7 +378,7 @@
   <!-- 1. タイトル -->
   <section id="screen-title" class="screen active">
     <div class="title-hero">
-      <div class="title-emoji">🎣🐟</div>
+      <div id="titleFishArt" class="title-fish-art"></div>
       <h1>北海道つりゲーム</h1>
       <div class="sub">実在の河川・ダムで、道産魚を釣り上げよう</div>
       <div class="title-buttons">
@@ -368,6 +411,7 @@
       </div>
       <h3 id="infoName"></h3>
       <p id="infoDesc" class="sr-note"></p>
+      <div id="infoSignatureArt" class="info-fish-art"></div>
       <p class="sr-note">看板魚: <strong id="infoSignature"></strong></p>
       <button class="btn" data-action="go-tackle">ここで釣る</button>
     </div>
@@ -396,8 +440,9 @@
       <h2 style="font-size:16px;margin:0;" id="fishLocName"></h2>
     </div>
     <div id="fishStage" class="fish-stage">
-      <div class="ripple"></div>
-      <div class="rod-emoji">🎣</div>
+      <div id="stageScene" class="stage-scene"></div>
+      <div id="stageLabel" class="stage-label"></div>
+      <div id="fishShadowWrap" class="fish-shadow-wrap"></div>
       <div class="stage-text" id="stageText">キャスト中…</div>
     </div>
     <p class="sr-note" style="text-align:center;">「アタリ！」の表示が出たら、素早くタップ！</p>
@@ -407,7 +452,10 @@
   <section id="screen-result" class="screen">
     <div id="resultCatch" class="result-wrap hidden">
       <div id="resultNewBadge" class="new-badge hidden">NEW!</div>
-      <div class="result-emoji" id="resultEmoji"></div>
+      <div class="result-fish-wrap">
+        <div id="resultFishGlow" class="result-fish-glow"></div>
+        <div id="resultFishArt" class="result-fish-art"></div>
+      </div>
       <div class="result-name" id="resultName"></div>
       <div class="result-reading" id="resultReading"></div>
       <div id="resultRarity" class="rarity-badge"></div>
@@ -444,8 +492,278 @@
 </div>
 
 <script>
+// fishart.js — parametric SVG fish illustration system (fable5)
+// Each species: silhouette params + color layers + pattern layers.
+// viewBox 0 0 240 120, fish faces left.
+
+function mulberry(seed){let t=seed>>>0;return()=>{t+=0x6D2B79F5;let r=Math.imul(t^t>>>15,1|t);r^=r+Math.imul(r^r>>>7,61|r);return((r^r>>>14)>>>0)/4294967296}}
+
+// --- body path builders -------------------------------------------------
+// standard fusiform body; d=half-depth at mid, L body end x, nose x=26, mid-y 62
+function bodyPath(p){
+  const d=p.depth, L=p.len, ph=p.pedH, nose=26, midY=62;
+  const hx=nose+(L-nose)*0.32;            // head/back transition
+  const mx=nose+(L-nose)*0.52;            // deepest point
+  const snout=p.snout||0;                  // 0 pointed, 1 blunt
+  const jawDrop=p.jawDrop||0;              // kype hook
+  return `M ${nose} ${midY-3-snout*2}
+    C ${nose+8} ${midY-d*0.55} ${hx-14} ${midY-d*0.92} ${mx} ${midY-d}
+    C ${mx+34} ${midY-d} ${L-22} ${midY-ph-4} ${L} ${midY-ph}
+    L ${L} ${midY+ph}
+    C ${L-22} ${midY+ph+4} ${mx+34} ${midY+d*1.02} ${mx-6} ${midY+d*1.02}
+    C ${hx-16} ${midY+d*0.98} ${nose+7} ${midY+8+jawDrop} ${nose} ${midY+3+snout*2}
+    Z`;
+}
+// caudal fin
+function tailPath(p){
+  const L=p.len, ph=p.pedH, midY=62, t=p.tail||'fork', ext=p.tailLen||26;
+  if(t==='fork') return `M ${L} ${midY-ph} C ${L+10} ${midY-ph-6} ${L+ext-6} ${midY-ph-16} ${L+ext} ${midY-ph-14} C ${L+ext-9} ${midY-4} ${L+ext-9} ${midY+4} ${L+ext} ${midY+ph+14} C ${L+ext-6} ${midY+ph+16} ${L+10} ${midY+ph+6} ${L} ${midY+ph} Z`;
+  if(t==='trunc') return `M ${L} ${midY-ph} C ${L+12} ${midY-ph-8} ${L+ext} ${midY-ph-10} ${L+ext} ${midY-ph-6} L ${L+ext} ${midY+ph+6} C ${L+ext} ${midY+ph+10} ${L+12} ${midY+ph+8} ${L} ${midY+ph} Z`;
+  /* round */ return `M ${L} ${midY-ph} C ${L+16} ${midY-ph-10} ${L+ext+4} ${midY-8} ${L+ext+4} ${midY} C ${L+ext+4} ${midY+8} ${L+16} ${midY+ph+10} ${L} ${midY+ph} Z`;
+}
+function dorsalPath(p){
+  const L=p.len, d=p.depth, midY=62, x=26+(L-26)*0.47, w=p.dorsalW||26, h=p.dorsalH||16;
+  return `M ${x} ${midY-d+3} C ${x+4} ${midY-d-h} ${x+w*0.7} ${midY-d-h*0.9} ${x+w} ${midY-d-2} C ${x+w*0.6} ${midY-d+2} ${x+w*0.3} ${midY-d+3} ${x} ${midY-d+3} Z`;
+}
+function adiposePath(p){
+  const L=p.len, midY=62, ph=p.pedH, x=L-16;
+  const y=midY-ph-7;
+  return `M ${x} ${y+4} q 5 -7 11 -1 q -5 4 -11 -3 Z`;
+}
+function pectoralPath(p){
+  const x=26+(p.len-26)*0.30, y=62+p.depth*0.42, s=p.finS||1;
+  return `M ${x} ${y} q ${14*s} ${2*s} ${22*s} ${13*s} q ${-13*s} ${5*s} ${-24*s} ${-4*s} Z`;
+}
+function pelvicPath(p){
+  const x=26+(p.len-26)*0.52, y=62+p.depth*0.96;
+  return `M ${x} ${y} q 9 8 16 10 q -10 3 -18 -3 Z`;
+}
+function analPath(p){
+  const x=26+(p.len-26)*0.74, y=62+p.depth*0.72;
+  return `M ${x} ${y} q 6 9 14 11 q -9 2 -17 -3 Z`;
+}
+// patterns --------------------------------------------------------------
+function spots(p,o,rng){ // o:{n,color,rMin,rMax,halo,yMin,yMax,op}
+  let s='';
+  const x0=34, x1=p.len+ (o.onTail? p.tailLen*0.5 : -6);
+  for(let i=0;i<o.n;i++){
+    const x=x0+rng()*(x1-x0);
+    const frac=(x-26)/(p.len-26);
+    const dHere=p.depth*(frac<0.5? 0.55+frac*0.9 : 1.45-frac*0.9);
+    const yr=(o.yMin??-1)+rng()*((o.yMax??0.75)-(o.yMin??-1));
+    const y=62+yr*dHere;
+    const r=o.rMin+rng()*(o.rMax-o.rMin);
+    if(o.halo) s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r+1.6).toFixed(1)}" fill="${o.halo}" opacity="0.85"/>`;
+    s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${o.color}" opacity="${o.op??0.85}"/>`;
+  }
+  return s;
+}
+function parrMarks(p,o){ // o:{n,color,op}
+  let s='';const x0=26+(p.len-26)*0.24, x1=26+(p.len-26)*0.92;
+  for(let i=0;i<o.n;i++){
+    const x=x0+(x1-x0)*i/(o.n-1);
+    const frac=(x-26)/(p.len-26);
+    const dHere=p.depth*(frac<0.5? 0.6+frac*0.8 : 1.4-frac*0.8);
+    s+=`<ellipse cx="${x.toFixed(1)}" cy="62" rx="${(4+p.depth*0.06).toFixed(1)}" ry="${(dHere*0.62).toFixed(1)}" fill="${o.color}" opacity="${o.op??0.5}"/>`;
+  }
+  return s;
+}
+function lateralBand(p,o){ // o:{color,op,w}
+  return `<path d="M 30 62 C ${26+(p.len-26)*0.3} ${62-2} ${26+(p.len-26)*0.7} ${62-1} ${p.len+10} 62 L ${p.len+10} ${62+(o.w||9)} C ${26+(p.len-26)*0.7} ${62+(o.w||9)+1} ${26+(p.len-26)*0.3} ${62+(o.w||9)} 30 ${62+(o.w||9)-2} Z" fill="${o.color}" opacity="${o.op??0.5}"/>`;
+}
+
+// --- main renderer ------------------------------------------------------
+function fishSVG(sp, opts={}){
+  const p=sp.body;
+  const id='f'+sp.id+(opts.uid||'');
+  const rng=mulberry(sp.seed||42);
+  const silhouette=opts.silhouette;
+  const W=240,H=120;
+  let defs=`<linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${sp.back}"/>
+      <stop offset="0.45" stop-color="${sp.side}"/>
+      <stop offset="0.72" stop-color="${sp.belly}"/>
+      <stop offset="1" stop-color="${sp.belly}"/>
+    </linearGradient>
+    <clipPath id="${id}c"><path d="${bodyPath(p)}"/></clipPath>`;
+  const finFill=silhouette?'#26343b':(sp.fin||sp.back);
+  const bodyFill=silhouette?'#26343b':`url(#${id}g)`;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><defs>${defs}</defs>`;
+  // fins behind body
+  s+=`<path d="${tailPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.92}"/>`;
+  if(sp.rays!==false&&!silhouette){ // tail rays
+    s+=`<path d="${tailPath(p)}" fill="none" stroke="${sp.finRay||'#00000022'}" stroke-width="0.8"/>`;
+  }
+  s+=`<path d="${dorsalPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.95}"/>`;
+  if(sp.adipose&&(true)) s+=`<path d="${adiposePath(p)}" fill="${finFill}" opacity="${silhouette?1:0.95}"/>`;
+  s+=`<path d="${pelvicPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.9}"/>`;
+  s+=`<path d="${analPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.9}"/>`;
+  // body
+  s+=`<path d="${bodyPath(p)}" fill="${bodyFill}" stroke="${silhouette?'#26343b':sp.outline||'#00000033'}" stroke-width="1"/>`;
+  // pattern layers clipped to body
+  if(!silhouette){
+    s+=`<g clip-path="url(#${id}c)">`;
+    // back shading
+    s+=`<path d="M 20 ${62-p.depth} L ${p.len+8} ${62-p.pedH-4} L ${p.len+8} 30 L 20 30 Z" fill="${sp.back}" opacity="0.35"/>`;
+    for(const layer of (sp.layers||[])){
+      if(layer.t==='band') s+=lateralBand(p,layer);
+      if(layer.t==='parr') s+=parrMarks(p,layer);
+      if(layer.t==='spots') s+=spots(p,layer,rng);
+      if(layer.t==='scales'){ // subtle scale arcs
+        let sc='';for(let i=0;i<layer.n;i++){const x=40+rng()*(p.len-50),y=62-p.depth*0.8+rng()*p.depth*1.6;
+          sc+=`<path d="M ${x.toFixed(1)} ${y.toFixed(1)} a 4 4 0 0 1 6 0" fill="none" stroke="${layer.color}" stroke-width="0.7" opacity="${layer.op??0.35}"/>`;}
+        s+=sc;
+      }
+    }
+    // gill cover
+    const gx=26+(p.len-26)*0.26;
+    s+=`<path d="M ${gx} ${62-p.depth*0.78} C ${gx+9} ${62-p.depth*0.25} ${gx+9} ${62+p.depth*0.3} ${gx-3} ${62+p.depth*0.8}" fill="none" stroke="#00000030" stroke-width="1.6"/>`;
+    // belly sheen
+    s+=`<ellipse cx="${26+(p.len-26)*0.45}" cy="${62+p.depth*0.55}" rx="${(p.len-26)*0.35}" ry="${p.depth*0.3}" fill="#ffffff" opacity="0.18"/>`;
+    s+=`</g>`;
+    // pectoral on top of body
+    s+=`<path d="${pectoralPath(p)}" fill="${finFill}" opacity="0.92"/>`;
+    // eye
+    const ex=26+(p.len-26)*0.13, ey=62-p.depth*0.22;
+    s+=`<circle cx="${ex}" cy="${ey}" r="${p.eye||4.4}" fill="#1c2226"/><circle cx="${ex}" cy="${ey}" r="${(p.eye||4.4)*0.85}" fill="#3a4a52"/><circle cx="${ex}" cy="${ey}" r="${(p.eye||4.4)*0.45}" fill="#10151a"/><circle cx="${ex-1.2}" cy="${ey-1.4}" r="1.1" fill="#ffffffcc"/>`;
+    // mouth
+    s+=`<path d="M ${26.5} ${62+2} q 7 ${4+(p.jawDrop||0)} 13 ${3+(p.jawDrop||0)*0.6}" fill="none" stroke="#00000055" stroke-width="1.4"/>`;
+    if(sp.barbels){
+      s+=`<path d="M 33 ${62+7} q -2 6 -6 8 M 39 ${62+8} q -1 6 -5 9" fill="none" stroke="${sp.side}" stroke-width="1.6" stroke-linecap="round"/>`;
+    }
+  } else {
+    s+=`<path d="${pectoralPath(p)}" fill="#26343b"/>`;
+  }
+  s+=`</svg>`;
+  return s;
+}
+
+// --- special: lamprey ----------------------------------------------------
+function lampreySVG(sp,opts={}){
+  const sil=opts.silhouette, id='f'+sp.id+(opts.uid||'');
+  const body=`M 22 58 C 60 50 150 49 206 56 C 214 58 214 66 206 67 C 150 73 60 72 22 66 C 17 64 17 60 22 58 Z`;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120"><defs>
+    <linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${sp.back}"/><stop offset="0.6" stop-color="${sp.side}"/><stop offset="1" stop-color="${sp.belly}"/>
+    </linearGradient><clipPath id="${id}c"><path d="${body}"/></clipPath></defs>`;
+  const fill=sil?'#26343b':`url(#${id}g)`;
+  // low dorsal ridge fins
+  s+=`<path d="M 120 52 C 140 46 165 46 185 50 L 185 56 C 165 52 140 52 120 56 Z" fill="${sil?'#26343b':sp.fin}" opacity="0.9"/>`;
+  s+=`<path d="M 190 52 C 205 46 216 50 224 60 C 216 70 205 74 190 68 Z" fill="${sil?'#26343b':sp.fin}" opacity="0.95"/>`;
+  s+=`<path d="${body}" fill="${fill}" stroke="${sil?'#26343b':'#00000033'}" stroke-width="1"/>`;
+  if(!sil){
+    s+=`<g clip-path="url(#${id}c)"><path d="M 18 50 L 220 46 L 220 58 L 18 58 Z" fill="${sp.back}" opacity="0.4"/></g>`;
+    // oral sucker
+    s+=`<ellipse cx="24" cy="62" rx="5" ry="6.5" fill="#5b4048"/><ellipse cx="24" cy="62" rx="3" ry="4.4" fill="#2e2126"/>`;
+    // eye + 7 gill pores
+    s+=`<circle cx="38" cy="57" r="3.2" fill="#141a1e"/><circle cx="37" cy="56" r="1" fill="#fff" opacity="0.7"/>`;
+    for(let i=0;i<7;i++) s+=`<circle cx="${48+i*5.5}" cy="61.5" r="1.4" fill="#1d262b" opacity="0.85"/>`;
+  }
+  s+=`</svg>`;
+  return s;
+}
+
+// --- special: sculpin (kajika) -------------------------------------------
+function sculpinSVG(sp,opts={}){
+  const sil=opts.silhouette, id='f'+sp.id+(opts.uid||'');
+  const rng=mulberry(sp.seed||7);
+  const body=`M 24 56 C 34 42 62 38 88 42 C 130 40 176 50 200 58 C 206 60 206 64 200 66 C 176 72 130 78 88 76 C 60 80 34 76 24 68 C 19 64 20 60 24 56 Z`;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120"><defs>
+   <linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sp.back}"/><stop offset="0.6" stop-color="${sp.side}"/><stop offset="1" stop-color="${sp.belly}"/></linearGradient>
+   <clipPath id="${id}c"><path d="${body}"/></clipPath></defs>`;
+  const fin=sil?'#26343b':sp.fin;
+  // long spiny dorsal
+  s+=`<path d="M 86 42 L 92 28 L 100 40 L 110 27 L 118 39 L 128 28 L 136 40 L 148 31 L 154 42 L 170 36 L 176 46 L 86 46 Z" fill="${fin}" opacity="0.9"/>`;
+  // tail round
+  s+=`<path d="M 198 56 C 212 48 224 50 230 62 C 224 74 212 76 198 66 Z" fill="${fin}"/>`;
+  s+=`<path d="${body}" fill="${sil?'#26343b':`url(#${id}g)`}" stroke="${sil?'#26343b':'#00000033'}" stroke-width="1"/>`;
+  if(!sil){
+    s+=`<g clip-path="url(#${id}c)">`;
+    // mottling
+    for(let i=0;i<26;i++){const x=30+rng()*180,y=42+rng()*34,r=2+rng()*5;
+      s+=`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${r.toFixed(1)}" ry="${(r*0.7).toFixed(1)}" fill="${sp.mottle}" opacity="${0.25+rng()*0.3}"/>`;}
+    s+=`</g>`;
+    // huge fan pectoral
+    s+=`<path d="M 74 62 Q 96 60 106 84 Q 84 92 66 76 Z" fill="${fin}" opacity="0.95"/>
+        <path d="M 74 62 L 104 82 M 74 62 L 96 86 M 74 62 L 86 88" stroke="#00000030" stroke-width="1" fill="none"/>`;
+    // wide mouth + eyes on top
+    s+=`<circle cx="46" cy="47" r="4.6" fill="#151b1f"/><circle cx="45" cy="45.6" r="1.3" fill="#fff" opacity="0.75"/>`;
+    s+=`<path d="M 24 60 q 14 8 30 8" fill="none" stroke="#00000060" stroke-width="2"/>`;
+  }
+  s+=`</svg>`;
+  return s;
+}
+
+// --- species table --------------------------------------------------------
+const SPECIES_ART={
+ sake:{id:'sake',seed:11,back:'#3f5a52',side:'#9fb3ac',belly:'#e8ede9',fin:'#42544e',adipose:true,
+   body:{len:186,depth:24,pedH:7,tail:'fork',tailLen:28,dorsalW:28,dorsalH:14,jawDrop:5,eye:4.6},
+   layers:[{t:'spots',n:14,color:'#2c3a36',rMin:0.9,rMax:1.8,yMin:-1,yMax:-0.1,op:0.7}]},
+ sakuramasu:{id:'sakuramasu',seed:22,back:'#4a6a75',side:'#c2ccc9',belly:'#f2f4f1',fin:'#5b6f75',adipose:true,
+   body:{len:180,depth:25,pedH:7,tail:'fork',tailLen:26,dorsalW:27,dorsalH:14,eye:4.6},
+   layers:[{t:'band',color:'#e88ca0',op:0.5,w:10},{t:'parr',n:9,color:'#3c5661',op:0.5},
+     {t:'spots',n:10,color:'#2f434c',rMin:0.8,rMax:1.6,yMin:-1,yMax:-0.3,op:0.65}]},
+ amemasu:{id:'amemasu',seed:33,back:'#4c5c46',side:'#7f8f75',belly:'#e6e9dd',fin:'#5a6a52',adipose:true,
+   body:{len:184,depth:24,pedH:7,tail:'fork',tailLen:26,dorsalW:27,dorsalH:13,eye:4.4},
+   layers:[{t:'spots',n:26,color:'#f2f3ea',rMin:1.6,rMax:2.8,yMin:-1,yMax:0.55,op:0.9}]},
+ oshorokoma:{id:'oshorokoma',seed:44,back:'#54513c',side:'#8d8264',belly:'#f0e3c8',fin:'#c96f3a',adipose:true,
+   body:{len:168,depth:23,pedH:6.5,tail:'fork',tailLen:24,dorsalW:25,dorsalH:12,eye:4.4},
+   layers:[{t:'spots',n:16,color:'#e2634a',rMin:1.5,rMax:2.4,yMin:-0.5,yMax:0.6,op:0.95},
+     {t:'spots',n:12,color:'#efe6c4',rMin:1.2,rMax:2,yMin:-1,yMax:-0.2,op:0.8},{t:'parr',n:8,color:'#4a4734',op:0.35}]},
+ nijimasu:{id:'nijimasu',seed:55,back:'#48604f',side:'#b9c4b4',belly:'#eef0e8',fin:'#5f7263',adipose:true,
+   body:{len:182,depth:26,pedH:7,tail:'fork',tailLen:26,dorsalW:28,dorsalH:14,eye:4.5},
+   layers:[{t:'band',color:'#d97f96',op:0.65,w:9},
+     {t:'spots',n:44,color:'#25332c',rMin:0.7,rMax:1.5,yMin:-1,yMax:0.7,op:0.8}]},
+ brown:{id:'brown',seed:66,back:'#5c4a2e',side:'#a98f57',belly:'#efe1b8',fin:'#6d5836',adipose:true,
+   body:{len:184,depth:26,pedH:7.2,tail:'trunc',tailLen:24,dorsalW:28,dorsalH:14,eye:4.6},
+   layers:[{t:'spots',n:18,color:'#31281a',rMin:1.6,rMax:2.6,yMin:-1,yMax:0.4,op:0.9},
+     {t:'spots',n:8,color:'#c8432f',rMin:1.4,rMax:2,halo:'#efe6cb',yMin:-0.2,yMax:0.6,op:0.95}]},
+ ito:{id:'ito',seed:77,back:'#5a4a44',side:'#a8867a',belly:'#e7d5c9',fin:'#8c4f42',adipose:true,
+   body:{len:200,depth:21,pedH:8,tail:'trunc',tailLen:26,dorsalW:26,dorsalH:12,snout:1,eye:4.2},
+   layers:[{t:'band',color:'#b8574a',op:0.35,w:12},
+     {t:'spots',n:46,color:'#2e2622',rMin:0.6,rMax:1.3,yMin:-1,yMax:0.5,op:0.85}]},
+ wakasagi:{id:'wakasagi',seed:88,back:'#7c8894',side:'#c9d2d8',belly:'#f4f6f7',fin:'#9aa6ae',adipose:true,
+   body:{len:150,depth:13,pedH:5,tail:'fork',tailLen:20,dorsalW:20,dorsalH:10,eye:4.2},
+   layers:[{t:'band',color:'#aab6bf',op:0.6,w:5}]},
+ ugui:{id:'ugui',seed:99,back:'#55604a',side:'#a4a58c',belly:'#eeeadb',fin:'#77755c',
+   body:{len:172,depth:22,pedH:6.5,tail:'fork',tailLen:24,dorsalW:24,dorsalH:13,eye:4.3},
+   layers:[{t:'band',color:'#d4593c',op:0.75,w:6},{t:'band',color:'#3d4a3a',op:0.4,w:3},
+     {t:'scales',n:60,color:'#3a4433',op:0.3}]},
+ fukudojo:{id:'fukudojo',seed:110,back:'#6b5a40',side:'#9c8763',belly:'#e3d5b4',fin:'#7c6b4d',barbels:true,
+   body:{len:190,depth:14,pedH:6,tail:'round',tailLen:22,dorsalW:20,dorsalH:9,snout:1,eye:3.4},
+   layers:[{t:'spots',n:34,color:'#4a3d2a',rMin:1.2,rMax:2.4,yMin:-1,yMax:0.7,op:0.55}]},
+ koi:{id:'koi',seed:121,back:'#4a4f42',side:'#8f8a68',belly:'#e9e0c2',fin:'#5d6151',barbels:true,
+   body:{len:176,depth:31,pedH:8,tail:'fork',tailLen:24,dorsalW:44,dorsalH:13,snout:1,eye:4.6},
+   layers:[{t:'scales',n:110,color:'#33382c',op:0.4}]},
+ funa:{id:'funa',seed:132,back:'#57584a',side:'#a3a084',belly:'#efe9d2',fin:'#6a6a57',
+   body:{len:160,depth:32,pedH:7.5,tail:'fork',tailLen:22,dorsalW:40,dorsalH:14,snout:1,eye:4.5},
+   layers:[{t:'scales',n:80,color:'#3c3e30',op:0.35}]},
+ ayu:{id:'ayu',seed:143,back:'#5c6a4e',side:'#bcc4a8',belly:'#f2f2e4',fin:'#d9a13c',adipose:true,
+   body:{len:170,depth:20,pedH:6,tail:'fork',tailLen:24,dorsalW:24,dorsalH:15,eye:4.3},
+   layers:[{t:'spots',n:1,color:'#e8c33f',rMin:6,rMax:6,yMin:-0.45,yMax:-0.45,op:0.9},
+     {t:'band',color:'#88906e',op:0.35,w:7}]},
+ shishamo:{id:'shishamo',seed:154,back:'#8a8f80',side:'#cfd2c4',belly:'#f5f5ec',fin:'#a0a494',adipose:true,
+   body:{len:172,depth:13,pedH:5,tail:'fork',tailLen:22,dorsalW:20,dorsalH:10,eye:3.9},
+   layers:[{t:'band',color:'#b2b6a6',op:0.55,w:5},{t:'spots',n:16,color:'#6e7466',rMin:0.5,rMax:1,yMin:-1,yMax:-0.3,op:0.6}]},
+ kawayatsume:{id:'kawayatsume',seed:165,back:'#4c5648',side:'#7e8468',belly:'#cfcdb0',fin:'#5f6852',special:'lamprey'},
+ kajika:{id:'kajika',seed:176,back:'#5d5546',side:'#8d8069',belly:'#d9cfb6',fin:'#6d6250',mottle:'#3f3626',special:'sculpin'},
+};
+
+function renderFish(id,opts={}){
+  const sp=SPECIES_ART[id];
+  if(!sp) return '';
+  if(sp.special==='lamprey') return lampreySVG(sp,opts);
+  if(sp.special==='sculpin') return sculpinSVG(sp,opts);
+  return fishSVG(sp,opts);
+}
+
+if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
+</script>
+<script>
 (function () {
   "use strict";
+
+  const GEO = {"main":[[141.5791,45.1769],[141.5696,45.1993],[141.5716,45.2354],[141.6123,45.2775],[141.6206,45.2965],[141.6122,45.3129],[141.6547,45.3503],[141.658,45.3682],[141.6366,45.4013],[141.6457,45.4507],[141.6836,45.4209],[141.6821,45.4043],[141.686,45.4109],[141.7072,45.3973],[141.7296,45.399],[141.7444,45.404],[141.7468,45.4147],[141.796,45.4077],[141.8577,45.4348],[141.8792,45.4623],[141.8798,45.4956],[141.8931,45.5119],[141.9432,45.5225],[141.9603,45.5128],[141.9728,45.4814],[142.0239,45.4487],[142.0509,45.4033],[142.1696,45.3411],[142.389,45.1375],[142.4757,45.0681],[142.5051,45.0611],[142.4998,45.0544],[142.5086,45.041],[142.5356,45.0289],[142.5445,44.988],[142.5853,44.9617],[142.5796,44.9561],[142.5907,44.9407],[142.5888,44.9199],[142.6355,44.8849],[142.66,44.8417],[142.6804,44.8311],[142.7313,44.7689],[142.7762,44.7321],[142.9292,44.6281],[142.9968,44.5579],[143.0453,44.5309],[143.0629,44.5329],[143.063,44.5216],[143.0925,44.5032],[143.2255,44.4403],[143.2398,44.4199],[143.3489,44.3715],[143.3664,44.3523],[143.3581,44.3541],[143.3673,44.3365],[143.4169,44.3088],[143.5597,44.2533],[143.7853,44.1811],[143.9004,44.154],[144.077,44.1247],[144.1018,44.1298],[144.1231,44.1167],[144.1899,44.1047],[144.2468,44.1131],[144.2578,44.0865],[144.2525,44.0625],[144.2618,44.0581],[144.2558,44.0406],[144.2888,44.0213],[144.282,44.0105],[144.2985,43.9843],[144.407,43.9451],[144.6218,43.9179],[144.7953,43.932],[144.8354,43.9523],[144.8498,43.9746],[144.9087,44.0041],[144.9366,44.0439],[144.944,44.0397],[144.9785,44.0691],[144.9933,44.0698],[145.0159,44.1004],[145.192,44.1956],[145.2309,44.2532],[145.2809,44.2901],[145.2931,44.3107],[145.3043,44.3113],[145.3331,44.3459],[145.3458,44.3393],[145.3498,44.2962],[145.3668,44.2592],[145.3492,44.2439],[145.3488,44.2245],[145.3306,44.1934],[145.2563,44.1256],[145.2416,44.0915],[145.2397,44.0587],[145.1447,43.9699],[145.0954,43.8926],[145.0997,43.8615],[145.0914,43.8365],[145.0623,43.8075],[145.0684,43.7532],[145.1465,43.6465],[145.3415,43.5865],[145.3504,43.5666],[145.3452,43.5587],[145.2909,43.552],[145.3018,43.5547],[145.2813,43.5627],[145.3044,43.5599],[145.3398,43.5723],[145.3391,43.5811],[145.314,43.5817],[145.3325,43.5881],[145.3264,43.5927],[145.3092,43.6001],[145.2803,43.5921],[145.2874,43.602],[145.2451,43.5931],[145.2666,43.6101],[145.1968,43.6251],[145.1966,43.6005],[145.2208,43.5865],[145.2151,43.5778],[145.2468,43.522],[145.2753,43.4097],[145.3086,43.3597],[145.3893,43.2984],[145.3856,43.2924],[145.4081,43.2933],[145.4921,43.2669],[145.5324,43.3145],[145.5505,43.3172],[145.5509,43.3248],[145.5872,43.3411],[145.5833,43.3468],[145.6236,43.3638],[145.6507,43.3914],[145.7214,43.3839],[145.7341,43.3942],[145.7514,43.3904],[145.757,43.3997],[145.7852,43.3871],[145.8174,43.3861],[145.8086,43.379],[145.813,43.3703],[145.7559,43.338],[145.7391,43.3396],[145.7292,43.3293],[145.7085,43.3359],[145.6774,43.3204],[145.6791,43.3126],[145.6465,43.3223],[145.6218,43.3166],[145.5899,43.2783],[145.5703,43.2842],[145.5496,43.2279],[145.5576,43.2203],[145.5288,43.2047],[145.5303,43.1869],[145.5066,43.1843],[145.5242,43.1746],[145.5218,43.1661],[145.4968,43.1593],[145.5041,43.1736],[145.4869,43.1873],[145.4061,43.1862],[145.3431,43.1795],[145.319,43.1683],[145.2826,43.1699],[145.203,43.1367],[145.1715,43.151],[145.1466,43.1453],[145.1151,43.1233],[145.1103,43.1036],[145.1182,43.0813],[145.0887,43.0672],[145.0877,43.0468],[145.0318,43.0297],[145.0241,42.9997],[144.9744,42.9822],[144.9282,42.9908],[144.9242,42.9815],[144.9061,42.9899],[144.8767,42.9868],[144.8526,43.014],[144.8337,43.0145],[144.8358,43.0323],[144.8542,43.0497],[144.8001,43.0591],[144.7468,43.0245],[144.7227,42.9801],[144.7854,42.939],[144.7747,42.9336],[144.6761,42.9397],[144.6322,42.9515],[144.4515,42.9445],[144.3654,42.9718],[144.3718,42.9867],[144.3624,42.9879],[144.3596,42.9997],[144.2701,43.0032],[144.1689,42.9847],[144.049,42.9416],[143.9196,42.8748],[143.5977,42.6415],[143.4576,42.5032],[143.3891,42.4158],[143.3247,42.3101],[143.3412,42.3026],[143.3247,42.3089],[143.3258,42.2889],[143.3103,42.2615],[143.3211,42.2099],[143.3357,42.2027],[143.3361,42.1906],[143.3089,42.0811],[143.3124,42.0552],[143.2596,42.0032],[143.2428,41.953],[143.2502,41.9255],[143.1643,41.9831],[143.1364,42.0266],[143.0113,42.0814],[142.9649,42.1192],[142.8178,42.1415],[142.7621,42.1747],[142.6734,42.1919],[142.5856,42.2435],[142.4846,42.2713],[142.4465,42.3041],[142.3718,42.3249],[142.2778,42.3772],[142.1958,42.4474],[142.1535,42.4638],[142.0293,42.4846],[142.0097,42.5055],[141.8718,42.5903],[141.8181,42.6016],[141.8108,42.6112],[141.8015,42.6023],[141.7996,42.6131],[141.7468,42.6229],[141.6313,42.6286],[141.696,42.6581],[141.6308,42.6371],[141.6257,42.6449],[141.6177,42.6243],[141.4968,42.604],[141.3508,42.543],[141.208,42.4554],[141.1593,42.4423],[141.125,42.4199],[141.0186,42.3281],[141.0097,42.3058],[140.9968,42.3025],[140.9483,42.3179],[140.931,42.3365],[140.9512,42.3481],[140.9816,42.3244],[140.9873,42.3329],[140.9808,42.3437],[141.0081,42.3483],[140.977,42.3494],[140.9826,42.3592],[140.9175,42.3698],[140.9001,42.4199],[140.8718,42.4609],[140.8389,42.4707],[140.8019,42.4994],[140.7808,42.5],[140.7865,42.5186],[140.7722,42.5224],[140.7744,42.5369],[140.7096,42.5839],[140.6427,42.5865],[140.5836,42.5676],[140.5349,42.589],[140.4769,42.5891],[140.4116,42.5435],[140.349,42.4732],[140.2932,42.3717],[140.2765,42.3112],[140.2765,42.2818],[140.2927,42.2475],[140.3986,42.2165],[140.5459,42.1154],[140.5885,42.1093],[140.6597,42.1294],[140.6904,42.127],[140.7069,42.1391],[140.7603,42.1171],[140.7739,42.0865],[140.8019,42.0775],[140.8039,42.0574],[140.8208,42.0363],[140.9081,41.9846],[140.9588,41.918],[141.0118,41.8943],[141.0739,41.888],[141.1482,41.8554],[141.1471,41.8322],[141.1825,41.8185],[141.1864,41.8025],[141.1579,41.7858],[141.1125,41.7869],[141.0538,41.7272],[140.9678,41.7109],[140.8986,41.7485],[140.7747,41.7753],[140.7337,41.7673],[140.7191,41.7532],[140.7229,41.7459],[140.7019,41.7414],[140.6929,41.7637],[140.7023,41.7852],[140.7152,41.7673],[140.7271,41.7811],[140.7172,41.8067],[140.69,41.8205],[140.6411,41.8175],[140.6189,41.7982],[140.6021,41.7432],[140.5506,41.7215],[140.5269,41.701],[140.4807,41.7015],[140.445,41.6855],[140.4293,41.5865],[140.4391,41.5547],[140.409,41.5173],[140.3646,41.516],[140.2593,41.4817],[140.2163,41.4113],[140.1995,41.3986],[140.1453,41.4291],[140.1198,41.4305],[140.0891,41.4184],[140.0285,41.4624],[139.9861,41.5517],[139.9839,41.6065],[140.009,41.6916],[140.0725,41.7735],[140.0718,41.8057],[140.1046,41.8045],[140.1218,41.8218],[140.1265,41.8559],[140.1197,41.8668],[140.1112,41.8637],[140.13,41.8714],[140.1392,41.8951],[140.1275,41.9666],[140.1328,41.9759],[140.1198,42.0043],[140.1055,42.007],[140.0999,42.029],[140.0834,42.0371],[140.0568,42.0834],[140.026,42.1133],[139.9902,42.1289],[139.9227,42.1335],[139.8959,42.1841],[139.8818,42.1932],[139.8812,42.2076],[139.8642,42.2195],[139.8151,42.2218],[139.7751,42.2601],[139.7857,42.2741],[139.7668,42.3112],[139.7818,42.3539],[139.8002,42.3605],[139.8292,42.3935],[139.8524,42.463],[139.843,42.4995],[139.8468,42.5274],[139.8234,42.6138],[139.8691,42.6665],[139.897,42.6797],[139.9257,42.689],[140.046,42.6947],[140.0649,42.707],[140.0743,42.7282],[140.142,42.7532],[140.1863,42.8278],[140.2349,42.7971],[140.2468,42.7688],[140.3055,42.7787],[140.3057,42.8288],[140.344,42.8562],[140.3905,42.9232],[140.5224,42.9917],[140.5263,43.0321],[140.5067,43.0373],[140.4954,43.0642],[140.4646,43.0865],[140.4302,43.143],[140.3607,43.1807],[140.326,43.2217],[140.3366,43.2552],[140.3283,43.2595],[140.3408,43.2661],[140.3369,43.2827],[140.3454,43.2837],[140.36,43.3157],[140.3466,43.3345],[140.4248,43.3297],[140.4604,43.346],[140.4711,43.3655],[140.4628,43.3724],[140.4968,43.3735],[140.5144,43.3576],[140.5286,43.359],[140.5805,43.3113],[140.6069,43.2967],[140.6301,43.2983],[140.6455,43.2859],[140.6367,43.2764],[140.6411,43.267],[140.7184,43.2505],[140.7403,43.2344],[140.777,43.2258],[140.7763,43.2041],[140.7921,43.1954],[140.8487,43.1993],[140.8616,43.2186],[140.8729,43.2063],[140.914,43.2117],[140.9271,43.2279],[141.0167,43.2396],[141.0209,43.2247],[141.002,43.2047],[141.0112,43.1924],[141.1617,43.1449],[141.2886,43.1981],[141.4239,43.3289],[141.4286,43.4199],[141.3586,43.5195],[141.3862,43.5865],[141.3835,43.6048],[141.3515,43.6449],[141.3299,43.7253],[141.3879,43.8072],[141.4574,43.8365],[141.4968,43.8388],[141.5215,43.8599],[141.5379,43.8527],[141.562,43.8601],[141.6255,43.9199],[141.6321,43.9601],[141.6477,43.9448],[141.6383,43.9541],[141.6628,44.0376],[141.6486,44.315],[141.6745,44.3273],[141.7102,44.3923],[141.7468,44.4328],[141.7572,44.4575],[141.7679,44.5547],[141.7874,44.5865],[141.7925,44.6437],[141.7783,44.7532],[141.7234,44.9199],[141.5791,45.1769]],"islands":[[[148.3427,45.2912],[148.3427,45.2995],[148.3547,45.3087],[148.3925,45.3201],[148.4096,45.3321],[148.4212,45.3306],[148.4183,45.3369],[148.4259,45.3482],[148.4442,45.3532],[148.4512,45.3628],[148.4591,45.3615],[148.455,45.3691],[148.4594,45.3765],[148.4766,45.3802],[148.4815,45.3887],[148.4725,45.3999],[148.4876,45.4199],[148.5106,45.4309],[148.5191,45.4454],[148.56,45.4609],[148.5775,45.4883],[148.6111,45.4935],[148.6397,45.5083],[148.641,45.5233],[148.6536,45.5375],[148.7226,45.5447],[148.754,45.5571],[148.8396,45.5521],[148.8413,45.5447],[148.8718,45.5354],[148.8954,45.5131],[148.8883,45.4843],[148.8367,45.4624],[148.8311,45.4541],[148.8317,45.4277],[148.8553,45.4199],[148.8773,45.3929],[148.8528,45.3563],[148.8428,45.3523],[148.8482,45.3456],[148.8435,45.3396],[148.8072,45.3351],[148.7813,45.3245],[148.7456,45.3379],[148.6294,45.3328],[148.6096,45.3209],[148.5664,45.3107],[148.5165,45.2786],[148.5064,45.2791],[148.511,45.2737],[148.5012,45.2721],[148.5041,45.2632],[148.4944,45.2561],[148.4788,45.262],[148.4589,45.2502],[148.4388,45.2525],[148.4058,45.2313],[148.3046,45.2165],[148.2796,45.2023],[148.2793,45.1951],[148.273,45.1971],[148.2652,45.1847],[148.2592,45.191],[148.2468,45.1874],[148.2163,45.1699],[148.2182,45.1649],[148.1964,45.1496],[148.1686,45.1469],[148.1605,45.1373],[148.1479,45.138],[148.0907,45.1065],[148.0558,45.0681],[148.042,45.0652],[148.0065,45.0268],[147.9946,45.024],[147.9967,45.0161],[147.9899,45.0145],[147.9885,45.0065],[147.9411,44.9878],[147.9076,44.9613],[147.899,44.9605],[147.8972,44.9687],[147.8856,44.9631],[147.8526,44.9657],[147.7852,44.9483],[147.7468,44.9655],[147.7298,44.9804],[147.7277,45.0032],[147.7047,45.0061],[147.6635,44.9976],[147.6259,44.9718],[147.6145,44.9499],[147.6139,44.9403],[147.6519,44.9252],[147.6529,44.9199],[147.6181,44.8905],[147.5863,44.8425],[147.5524,44.817],[147.5156,44.8119],[147.4991,44.801],[147.4968,44.7879],[147.4889,44.782],[147.4409,44.7729],[147.435,44.7652],[147.4249,44.7658],[147.3875,44.7464],[147.37,44.7234],[147.3491,44.7208],[147.3472,44.7135],[147.3365,44.7155],[147.3024,44.6683],[147.2871,44.6623],[147.2672,44.6387],[147.2608,44.6144],[147.252,44.6067],[147.255,44.6017],[147.244,44.5962],[147.2058,44.5675],[147.1906,44.5699],[147.1446,44.5592],[147.1061,44.5695],[147.0812,44.5597],[147.0297,44.5191],[146.9968,44.4725],[146.9937,44.4545],[146.9714,44.4351],[146.9527,44.4265],[146.9144,44.4307],[146.8718,44.4413],[146.861,44.4544],[146.861,44.4667],[146.8718,44.4815],[146.8723,44.4955],[146.8915,44.518],[146.9256,44.5261],[146.9547,44.5536],[146.9334,44.5865],[146.9342,44.6102],[146.9453,44.63],[146.9525,44.6319],[146.9652,44.5935],[146.985,44.5784],[146.9968,44.5787],[147.0259,44.5991],[147.0317,44.6161],[147.0334,44.6382],[147.0039,44.6555],[147.0092,44.6603],[147.0484,44.6609],[147.0493,44.6549],[147.0609,44.6563],[147.0603,44.6488],[147.0789,44.638],[147.0951,44.6389],[147.1255,44.6495],[147.1817,44.6894],[147.2004,44.7392],[147.1933,44.7648],[147.1295,44.7695],[147.1094,44.7885],[147.1041,44.8183],[147.1409,44.8297],[147.1704,44.8191],[147.2009,44.7979],[147.2371,44.8069],[147.2468,44.8127],[147.2671,44.8681],[147.3762,44.9089],[147.476,44.9852],[147.5028,44.9894],[147.5089,44.993],[147.5037,44.9966],[147.518,44.9986],[147.5131,45.0326],[147.5229,45.0416],[147.5269,45.0713],[147.5335,45.0711],[147.5324,45.0901],[147.5267,45.0998],[147.5001,45.1123],[147.5099,45.1173],[147.5371,45.1063],[147.5703,45.107],[147.5766,45.1022],[147.5721,45.0973],[147.5867,45.0857],[147.6362,45.0765],[147.6574,45.0817],[147.6902,45.0947],[147.699,45.1053],[147.6938,45.1435],[147.7053,45.151],[147.7062,45.1687],[147.7292,45.1763],[147.7396,45.1955],[147.7673,45.1949],[147.7742,45.2078],[147.8026,45.2097],[147.8206,45.2186],[147.8456,45.2085],[147.8718,45.2257],[147.8695,45.2334],[147.8856,45.2582],[147.8687,45.2639],[147.8734,45.2962],[147.8591,45.3177],[147.8581,45.3524],[147.8512,45.3649],[147.8734,45.3985],[147.8905,45.4078],[147.9094,45.4293],[147.9252,45.4379],[147.9649,45.4219],[147.9668,45.3961],[147.9773,45.3893],[147.9713,45.3853],[147.9775,45.3681],[148.006,45.3346],[147.9973,45.3337],[147.9975,45.325],[148.0076,45.3112],[148.0091,45.2923],[148.0196,45.2913],[148.0202,45.2797],[148.0281,45.2819],[148.0311,45.2723],[148.0407,45.2673],[148.1194,45.2576],[148.1705,45.2595],[148.2667,45.2721],[148.3427,45.2912]],[[145.7473,44.0647],[145.7437,44.1038],[145.7904,44.1507],[145.832,44.1784],[145.8845,44.2463],[145.9442,44.2791],[145.9924,44.3247],[146.011,44.3715],[146.0073,44.3817],[146.0528,44.4199],[146.0803,44.4723],[146.129,44.5091],[146.1743,44.5158],[146.1704,44.5105],[146.226,44.4831],[146.249,44.4559],[146.25,44.4467],[146.2797,44.4434],[146.2809,44.4351],[146.3149,44.4293],[146.3332,44.4189],[146.4968,44.4255],[146.5294,44.4319],[146.5776,44.4558],[146.5537,44.4302],[146.5348,44.3804],[146.5178,44.3677],[146.5016,44.3656],[146.4908,44.3545],[146.4506,44.3783],[146.4345,44.3767],[146.3811,44.3527],[146.3684,44.3365],[146.3678,44.3193],[146.3469,44.3181],[146.342,44.3087],[146.3281,44.3031],[146.3303,44.2975],[146.3063,44.2899],[146.2995,44.2778],[146.1325,44.2667],[146.1156,44.2652],[146.0693,44.2347],[146.0531,44.2129],[146.0492,44.2017],[146.0549,44.1948],[146.0449,44.1909],[146.0458,44.1839],[145.9891,44.1728],[145.966,44.1534],[145.9478,44.1538],[145.9148,44.1291],[145.8995,44.105],[145.9032,44.0957],[145.8921,44.0962],[145.8815,44.0865],[145.8806,44.0747],[145.8718,44.0707],[145.8637,44.0532],[145.8654,44.0303],[145.8785,44.0213],[145.8556,44.0217],[145.8551,44.0306],[145.8422,44.0329],[145.8144,44.0173],[145.8064,43.9933],[145.7908,43.9791],[145.788,43.9623],[145.793,43.959],[145.7811,43.9326],[145.7184,43.9124],[145.6762,43.9051],[145.6538,43.9095],[145.6411,43.9036],[145.6259,43.8842],[145.619,43.8855],[145.6056,43.8689],[145.5933,43.8707],[145.5771,43.8455],[145.5693,43.7532],[145.5544,43.6699],[145.5448,43.6583],[145.538,43.6587],[145.5362,43.6759],[145.5498,43.7249],[145.5465,43.7317],[145.4968,43.7337],[145.4349,43.7189],[145.4188,43.7532],[145.4269,43.7741],[145.4242,43.7862],[145.4111,43.8191],[145.3995,43.8291],[145.4028,43.8365],[145.4474,43.8562],[145.4657,43.8909],[145.4841,43.9043],[145.5304,43.9205],[145.5374,43.932],[145.561,43.9453],[145.5901,43.9532],[145.5977,43.9727],[145.6461,43.9936],[145.6512,44.0051],[145.6743,44.0116],[145.6805,44.0173],[145.6758,44.0273],[145.7312,44.0454],[145.7473,44.0647]],[[146.6455,43.7027],[146.6413,43.7091],[146.6502,43.7145],[146.6344,43.7195],[146.6218,43.7337],[146.6198,43.7495],[146.6261,43.7575],[146.6077,43.7532],[146.6162,43.7437],[146.6128,43.7354],[146.5946,43.7356],[146.5962,43.7475],[146.5864,43.7443],[146.5912,43.7591],[146.6079,43.7697],[146.585,43.8021],[146.5863,43.8083],[146.6663,43.8293],[146.6995,43.8319],[146.7089,43.8247],[146.7123,43.8312],[146.7272,43.8324],[146.7487,43.8191],[146.7483,43.8291],[146.7223,43.8365],[146.7221,43.8424],[146.7738,43.8759],[146.786,43.8747],[146.8006,43.86],[146.7882,43.8785],[146.8058,43.872],[146.814,43.8785],[146.8203,43.8668],[146.8278,43.8737],[146.82,43.8815],[146.8258,43.89],[146.845,43.8898],[146.8528,43.8843],[146.8511,43.8772],[146.8622,43.8773],[146.8947,43.8484],[146.9146,43.8484],[146.9115,43.8413],[146.9212,43.8386],[146.903,43.8286],[146.9073,43.8117],[146.9028,43.8142],[146.8992,43.8067],[146.8821,43.815],[146.8599,43.8069],[146.8406,43.8097],[146.8269,43.8009],[146.8287,43.7961],[146.8514,43.7879],[146.8391,43.7831],[146.8115,43.7919],[146.808,43.7812],[146.7995,43.7865],[146.7886,43.7809],[146.7901,43.7721],[146.795,43.7722],[146.7884,43.7596],[146.7716,43.7669],[146.7737,43.7605],[146.7607,43.7498],[146.7512,43.7575],[146.754,43.7517],[146.7468,43.7479],[146.7291,43.7469],[146.7331,43.7375],[146.7269,43.7347],[146.6974,43.7466],[146.6818,43.7308],[146.6899,43.7229],[146.6777,43.7159],[146.6762,43.7082],[146.6455,43.7027]],[[141.1497,45.2255],[141.1557,45.2346],[141.1989,45.2602],[141.2327,45.2472],[141.2278,45.2385],[141.2351,45.2347],[141.2651,45.2311],[141.2736,45.2352],[141.3181,45.1985],[141.3293,45.1497],[141.295,45.1254],[141.281,45.1079],[141.2757,45.1117],[141.2395,45.0986],[141.2291,45.1004],[141.168,45.1373],[141.1418,45.1634],[141.14,45.1832],[141.1285,45.1863],[141.1405,45.1899],[141.1335,45.2135],[141.1497,45.2255]],[[141.0317,45.2746],[141.0163,45.285],[141.0254,45.291],[141.0236,45.3101],[141.0036,45.3303],[140.9835,45.3843],[140.9906,45.3867],[140.9864,45.3991],[140.9915,45.4073],[140.9836,45.4159],[140.994,45.4199],[140.994,45.4275],[140.9671,45.4394],[140.9773,45.4477],[140.9679,45.4646],[140.9751,45.4576],[140.9887,45.4424],[141.0094,45.4343],[141.0364,45.4417],[141.0335,45.4619],[141.0517,45.4494],[141.0677,45.424],[141.0569,45.4075],[141.0599,45.3549],[141.0503,45.3421],[141.0572,45.3183],[141.0457,45.3002],[141.044,45.2753],[141.0317,45.2746]]],"ishikari":[[[143.0659,43.6995],[142.983,43.7398],[142.944,43.7493],[142.928,43.7586],[142.8997,43.7984],[142.8845,43.8096],[142.8652,43.8173],[142.7892,43.8303],[142.7091,43.869],[142.668,43.9007],[142.6439,43.9049],[142.6193,43.9027],[142.5244,43.8771],[142.4834,43.856],[142.3735,43.7728],[142.3526,43.7638],[142.315,43.7726],[142.2925,43.7654],[142.2141,43.724],[142.1728,43.7106],[142.084,43.6964],[142.0547,43.7],[142.0425,43.6964],[142.0176,43.6765],[141.9813,43.6709],[141.9599,43.6612],[141.9028,43.6207],[141.8922,43.6096],[141.8868,43.5943],[141.8853,43.5692],[141.901,43.5104],[141.899,43.4897],[141.8933,43.48],[141.8799,43.478],[141.8718,43.4705],[141.8689,43.4337],[141.8423,43.4172],[141.8258,43.3868],[141.7892,43.3736],[141.762,43.3464],[141.7283,43.3415],[141.6594,43.2959],[141.6522,43.278],[141.6576,43.2208],[141.6293,43.1804],[141.6108,43.1422],[141.5973,43.1273],[141.5611,43.1162],[141.5186,43.1226],[141.4776,43.1381],[141.4117,43.175],[141.398,43.2023],[141.37,43.2181],[141.3576,43.2379]]]};
 
   // ===== データ（fable5作成の仕様書に厳密準拠） =====
   var FISH = {
@@ -1037,133 +1355,29 @@
   }
 };
 
-  var COASTLINE = [
-  {
-    "name": "宗谷岬",
-    "lon": 141.94,
-    "lat": 45.52
-  },
-  {
-    "name": "浜頓別",
-    "lon": 142.35,
-    "lat": 45.1
-  },
-  {
-    "name": "枝幸",
-    "lon": 142.58,
-    "lat": 44.94
-  },
-  {
-    "name": "雄武",
-    "lon": 142.97,
-    "lat": 44.58
-  },
-  {
-    "name": "紋別",
-    "lon": 143.35,
-    "lat": 44.35
-  },
-  {
-    "name": "網走",
-    "lon": 144.27,
-    "lat": 44.02
-  },
-  {
-    "name": "知床岬",
-    "lon": 145.33,
-    "lat": 44.33
-  },
-  {
-    "name": "羅臼",
-    "lon": 145.19,
-    "lat": 44.02
-  },
-  {
-    "name": "納沙布岬",
-    "lon": 145.82,
-    "lat": 43.38
-  },
-  {
-    "name": "厚岸",
-    "lon": 144.85,
-    "lat": 42.95
-  },
-  {
-    "name": "釧路",
-    "lon": 144.38,
-    "lat": 42.98
-  },
-  {
-    "name": "襟裳岬",
-    "lon": 143.25,
-    "lat": 41.92
-  },
-  {
-    "name": "苫小牧",
-    "lon": 141.6,
-    "lat": 42.63
-  },
-  {
-    "name": "室蘭",
-    "lon": 141,
-    "lat": 42.32
-  },
-  {
-    "name": "函館",
-    "lon": 140.73,
-    "lat": 41.77
-  },
-  {
-    "name": "白神岬",
-    "lon": 140.12,
-    "lat": 41.42
-  },
-  {
-    "name": "江差",
-    "lon": 140.13,
-    "lat": 41.87
-  },
-  {
-    "name": "瀬棚",
-    "lon": 139.85,
-    "lat": 42.33
-  },
-  {
-    "name": "寿都",
-    "lon": 140.22,
-    "lat": 42.8
-  },
-  {
-    "name": "積丹岬",
-    "lon": 140.42,
-    "lat": 43.35
-  },
-  {
-    "name": "小樽",
-    "lon": 141,
-    "lat": 43.19
-  },
-  {
-    "name": "石狩",
-    "lon": 141.32,
-    "lat": 43.3
-  },
-  {
-    "name": "留萌",
-    "lon": 141.63,
-    "lat": 43.94
-  },
-  {
-    "name": "羽幌",
-    "lon": 141.7,
-    "lat": 44.36
-  },
-  {
-    "name": "天塩",
-    "lon": 141.75,
-    "lat": 44.88
-  }
-];
+  // ===== 地図: 湖・河川ウェイポイント（SPEC2 §1、実在の経由地。改変禁止） =====
+  var LAKES = [
+    { name: "サロマ湖", cx: 143.75, cy: 44.11, rx: 0.17, ry: 0.045, rot: -20 },
+    { name: "屈斜路湖", cx: 144.33, cy: 43.61, rx: 0.075, ry: 0.075, rot: 0 },
+    { name: "支笏湖", cx: 141.33, cy: 42.75, rx: 0.065, ry: 0.05, rot: 0 },
+    { name: "洞爺湖", cx: 140.85, cy: 42.60, rx: 0.055, ry: 0.05, rot: 0 },
+    { name: "阿寒湖", cx: 144.09, cy: 43.45, rx: 0.04, ry: 0.03, rot: 0 },
+    { name: "網走湖", cx: 144.17, cy: 43.97, rx: 0.03, ry: 0.05, rot: 0 }
+  ];
+
+  var RIVER_WAYPOINTS = {
+    teshio: [[142.88,43.96],[142.60,44.06],[142.45,44.18],[142.46,44.36],[142.35,44.48],[142.26,44.72],[142.07,44.80],[141.90,44.86],[141.75,44.88]],
+    tokachi: [[142.85,43.45],[142.90,43.28],[143.03,43.10],[143.20,42.92],[143.35,42.83],[143.50,42.70],[143.67,42.60]],
+    kushiro: [[144.33,43.60],[144.45,43.47],[144.60,43.30],[144.55,43.18],[144.43,43.10],[144.40,43.02],[144.37,42.98]],
+    abashiri: [[144.05,43.55],[144.02,43.70],[144.11,43.82],[144.15,43.93],[144.17,43.99],[144.25,44.01]],
+    yubetsu: [[143.12,43.80],[143.35,43.97],[143.52,44.05],[143.58,44.13],[143.62,44.21]],
+    shiribetsu: [[141.05,42.75],[140.95,42.79],[140.88,42.87],[140.76,42.90],[140.66,42.84],[140.52,42.80],[140.42,42.84],[140.37,42.89]],
+    saru: [[142.60,42.92],[142.44,42.86],[142.32,42.73],[142.20,42.65],[142.13,42.60],[142.06,42.50]],
+    toyohira: [[141.17,42.90],[141.16,42.97],[141.25,43.02],[141.35,43.05],[141.40,43.09],[141.46,43.13]],
+    toshibetsu: [[140.35,42.30],[140.28,42.40],[140.10,42.43],[139.98,42.42],[139.87,42.44]],
+    mukawa: [[142.42,42.98],[142.30,42.88],[142.13,42.76],[142.02,42.65],[141.93,42.56]],
+    tokoro: [[143.50,43.60],[143.62,43.68],[143.75,43.74],[143.89,43.80],[143.92,43.95],[143.90,44.11]]
+  };
 
   var RODS = [
     { id: "lure_rod", name: "ルアーロッド", emoji: "🎣", desc: "万能。トラウト・サケ狙い", lures: ["spoon", "minnow", "spinner"] },
@@ -1180,6 +1394,12 @@
   };
 
   var RARITY_LABEL = { common: "コモン", uncommon: "アンコモン", rare: "レア", legend: "レジェンド" };
+  var RARITY_GLOW = {
+    common: "radial-gradient(circle, #8b98a066 0%, transparent 70%)",
+    uncommon: "radial-gradient(circle, #3f9d6377 0%, transparent 70%)",
+    rare: "radial-gradient(circle, #3b74c477 0%, transparent 70%)",
+    legend: "radial-gradient(circle, #c99a2eaa 0%, transparent 70%)"
+  };
   var STORAGE_KEY = "hokkaido_fishing_zukan_v1";
 
   // ===== 投影（経度緯度 → SVG座標）SPEC §2 =====
@@ -1196,6 +1416,7 @@
     selectedLureId: null,
     lastCaughtFishId: null,
     lastResultKind: null, // 'catch' | 'bouzu' | 'barasi'
+    pendingFishId: undefined, // v2: アタリ発生時に抽選済みの魚id（null=ボウズ）
     biteTimer: null,
     biteTimeoutTimer: null,
     biteActive: false,
@@ -1250,20 +1471,97 @@
     return null;
   }
 
-  // ===== 地図描画 =====
+  // ===== 地図: 河川ポリライン上への最近傍点計算 =====
+  function nearestPointOnSegment(px, py, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay;
+    var lenSq = dx * dx + dy * dy;
+    var t = lenSq > 0 ? ((px - ax) * dx + (py - ay) * dy) / lenSq : 0;
+    t = Math.max(0, Math.min(1, t));
+    return [ax + t * dx, ay + t * dy];
+  }
+
+  function nearestPointOnPolyline(px, py, projectedPts) {
+    var best = projectedPts[0], bestD = Infinity;
+    for (var i = 0; i < projectedPts.length - 1; i++) {
+      var cp = nearestPointOnSegment(px, py, projectedPts[i][0], projectedPts[i][1], projectedPts[i + 1][0], projectedPts[i + 1][1]);
+      var dx = cp[0] - px, dy = cp[1] - py;
+      var dd = dx * dx + dy * dy;
+      if (dd < bestD) { bestD = dd; best = cp; }
+    }
+    return best;
+  }
+
+  var markerPositions = {}; // loc.id -> 投影済みSVG座標 [x,y]
+
+  // ===== 地図描画（SPEC2 §1: 実海岸線・湖・河川12本） =====
   function buildMap() {
     var svg = document.getElementById("hokkaidoSvg");
     var parts = [];
-    parts.push('<rect x="0" y="0" width="1000" height="1000" fill="var(--sea)"></rect>');
 
-    var pts = COASTLINE.map(function (p) {
-      var xy = project(p.lon, p.lat);
-      return xy[0].toFixed(1) + "," + xy[1].toFixed(1);
-    }).join(" ");
-    parts.push('<polygon points="' + pts + '" fill="#dfe9d8" stroke="#8fae86" stroke-width="2.5"></polygon>');
+    // 1. 海（上から下への微グラデ）
+    parts.push('<defs><linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#bcd9e6"/><stop offset="1" stop-color="#cfe8f2"/></linearGradient></defs>');
+    parts.push('<rect x="0" y="0" width="1000" height="1000" fill="url(#seaGrad)"></rect>');
 
+    // 2. グラティキュール（1度ごと、極細線）
+    for (var lon = 140; lon <= 146; lon++) {
+      var ga = project(lon, 41.2), gb = project(lon, 45.7);
+      parts.push('<line x1="' + ga[0].toFixed(1) + '" y1="' + ga[1].toFixed(1) + '" x2="' + gb[0].toFixed(1) + '" y2="' + gb[1].toFixed(1) + '" stroke="#ffffff55" stroke-width="1"></line>');
+    }
+    for (var lat = 42; lat <= 45; lat++) {
+      var gc = project(139.3, lat), gd = project(146.0, lat);
+      parts.push('<line x1="' + gc[0].toFixed(1) + '" y1="' + gc[1].toFixed(1) + '" x2="' + gd[0].toFixed(1) + '" y2="' + gd[1].toFixed(1) + '" stroke="#ffffff55" stroke-width="1"></line>');
+    }
+
+    // 3. 陸（実海岸線 GEO.main + 離島 GEO.islands）。白いアウターグローの上に陸本体。
+    function landPolygon(points) {
+      var pts = points.map(function (p) {
+        var xy = project(p[0], p[1]);
+        return xy[0].toFixed(1) + "," + xy[1].toFixed(1);
+      }).join(" ");
+      parts.push('<polygon points="' + pts + '" fill="none" stroke="#ffffff66" stroke-width="4"></polygon>');
+      parts.push('<polygon points="' + pts + '" fill="#e3ead9" stroke="#94ac8a" stroke-width="1.5"></polygon>');
+    }
+    landPolygon(GEO.main);
+    GEO.islands.forEach(landPolygon);
+
+    // 4. 湖（実在位置の近似形・ガーニッシュ）
+    var kx = 1000 / 6.7, ky = 1000 / 4.5;
+    LAKES.forEach(function (lk) {
+      var c = project(lk.cx, lk.cy);
+      var rx = (lk.rx * kx).toFixed(1), ry = (lk.ry * ky).toFixed(1);
+      var rot = lk.rot ? ' transform="rotate(' + lk.rot + ' ' + c[0].toFixed(1) + ' ' + c[1].toFixed(1) + ')"' : '';
+      parts.push('<ellipse cx="' + c[0].toFixed(1) + '" cy="' + c[1].toFixed(1) + '" rx="' + rx + '" ry="' + ry + '" fill="#a9cede" stroke="#8db8cc"' + rot + '></ellipse>');
+    });
+
+    // 5. 河川12本（石狩川はGEO.ishikariの実ポリライン、他11本は実流路ウェイポイント）
+    var riverProjPoints = {};
+    function drawRiver(id, segments) {
+      var lastProj = null;
+      segments.forEach(function (seg) {
+        var proj = seg.map(function (p) { return project(p[0], p[1]); });
+        lastProj = proj;
+        var d = proj.map(function (p, i) { return (i === 0 ? "M " : "L ") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ");
+        parts.push('<path d="' + d + '" fill="none" stroke="#4a90c2" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"></path>');
+      });
+      riverProjPoints[id] = lastProj;
+    }
+    drawRiver("ishikari", GEO.ishikari);
+    Object.keys(RIVER_WAYPOINTS).forEach(function (id) {
+      drawRiver(id, [RIVER_WAYPOINTS[id]]);
+    });
+
+    // 6. マーカー（河川はそのポリライン上の最近傍点へスナップ、ダムはv1座標のまま）
+    markerPositions = {};
     LOCATIONS.forEach(function (loc) {
-      var xy = project(loc.lon, loc.lat);
+      var xy;
+      if (loc.type === "river" && riverProjPoints[loc.id]) {
+        var target = project(loc.lon, loc.lat);
+        xy = nearestPointOnPolyline(target[0], target[1], riverProjPoints[loc.id]);
+      } else {
+        xy = project(loc.lon, loc.lat);
+      }
+      markerPositions[loc.id] = xy;
       var x = xy[0].toFixed(1), y = xy[1].toFixed(1);
       var isDam = loc.type === "dam";
       parts.push('<g class="loc-marker-group" data-loc-id="' + loc.id + '">');
@@ -1299,7 +1597,7 @@
     });
     var existingLabels = svg.querySelectorAll(".marker-label");
     existingLabels.forEach(function (l) { l.remove(); });
-    var xy = project(loc.lon, loc.lat);
+    var xy = markerPositions[locId] || project(loc.lon, loc.lat);
     var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
     label.setAttribute("class", "marker-label");
     label.setAttribute("x", (xy[0] + 12).toFixed(1));
@@ -1312,7 +1610,8 @@
     document.getElementById("infoName").textContent = loc.name;
     document.getElementById("infoDesc").textContent = loc.desc;
     var sigFish = FISH[loc.signature];
-    document.getElementById("infoSignature").textContent = sigFish ? (sigFish.emoji + " " + sigFish.name) : loc.signature;
+    document.getElementById("infoSignatureArt").innerHTML = renderFish(loc.signature, { uid: "card" });
+    document.getElementById("infoSignature").textContent = sigFish ? sigFish.name : loc.signature;
     document.getElementById("infoCard").classList.add("show");
   }
 
@@ -1378,21 +1677,135 @@
     document.getElementById("startFishingBtn").disabled = false;
   }
 
+  // ===== 情景シーン（SPEC2 §2） =====
+  function seedFromString(s) {
+    var h = 0;
+    for (var i = 0; i < s.length; i++) h += s.charCodeAt(i);
+    return h;
+  }
+
+  function ridgePath(rng, yBase, yVar, opacity, fill) {
+    var pts = [];
+    for (var i = 0; i <= 8; i++) {
+      pts.push([i * 45, yBase + (rng() * 2 - 1) * yVar]);
+    }
+    var d = "M 0 150 L " + pts[0][0] + " " + pts[0][1].toFixed(1) + " ";
+    for (var j = 1; j < pts.length; j++) {
+      d += "L " + pts[j][0] + " " + pts[j][1].toFixed(1) + " ";
+    }
+    d += "L 360 150 Z";
+    return '<path d="' + d + '" fill="' + fill + '" opacity="' + opacity + '"></path>';
+  }
+
+  function sceneSVG(loc) {
+    var isDam = loc.type === "dam";
+    var rng = mulberry(seedFromString(loc.id));
+    var skyFrom = isDam ? "#d7e6f2" : "#cfe6ee";
+    var skyTo = isDam ? "#f0f4ec" : "#eef7f2";
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 300" preserveAspectRatio="xMidYMid meet">';
+    s += '<defs>';
+    s += '<linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + skyFrom + '"/><stop offset="1" stop-color="' + skyTo + '"/></linearGradient>';
+    s += '<linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">' + (isDam ?
+      '<stop offset="0" stop-color="#7fb4c4"/><stop offset="1" stop-color="#39758a"/>' :
+      '<stop offset="0" stop-color="#8fc3d4"/><stop offset="1" stop-color="#4a94a8"/>') + '</linearGradient>';
+    s += '<clipPath id="ukiClip"><circle cx="180" cy="207" r="5"/></clipPath>';
+    s += '</defs>';
+    // 空・太陽・遠山
+    s += '<rect x="0" y="0" width="360" height="140" fill="url(#skyGrad)"></rect>';
+    s += '<circle cx="290" cy="46" r="18" fill="#fff8e6" opacity="0.8"></circle>';
+    s += ridgePath(rng, 96, 18, 0.8, "#a9bfae");
+    s += ridgePath(rng, 116, 22, 0.9, "#8aa896");
+    // 水面
+    if (isDam) {
+      s += '<rect x="0" y="150" width="360" height="150" fill="url(#waterGrad)"></rect>';
+      s += '<rect x="0" y="138" width="360" height="14" fill="#5d7a5f"></rect>';
+      s += '<path d="M 300 150 L 360 150 L 360 262 L 322 262 Z" fill="#c9c9c2" stroke="#a8a89f" stroke-width="2"></path>';
+      for (var i = 0; i < 5; i++) {
+        var rx = 306 + i * 11;
+        s += '<line x1="' + rx + '" y1="150" x2="' + rx + '" y2="140" stroke="#8b8b83" stroke-width="2"></line>';
+      }
+      for (var j = 0; j < 3; j++) {
+        var sx = 40 + j * 90, sy = 190 + j * 20;
+        s += '<ellipse cx="' + sx + '" cy="' + sy + '" rx="50" ry="6" fill="#ffffff"><animate attributeName="opacity" values="0.15;0.35;0.15" dur="3s" repeatCount="indefinite"/></ellipse>';
+      }
+    } else {
+      s += '<rect x="0" y="140" width="360" height="160" fill="url(#waterGrad)"></rect>';
+      s += '<polygon points="0,300 0,170 120,150 80,300" fill="#7ea06c"></polygon>';
+      s += '<polygon points="360,300 360,160 250,148 300,300" fill="#6d9060"></polygon>';
+      s += '<ellipse cx="95" cy="230" rx="10" ry="6" fill="#9aa39b"></ellipse>';
+      s += '<ellipse cx="260" cy="255" rx="13" ry="7" fill="#9aa39b"></ellipse>';
+      s += '<ellipse cx="60" cy="272" rx="9" ry="5" fill="#9aa39b"></ellipse>';
+      for (var k = 0; k < 3; k++) {
+        var yy = 190 + k * 30;
+        s += '<path d="M 90 ' + yy + ' Q 180 ' + (yy - 14) + ' 270 ' + yy + '" fill="none" stroke="#ffffff66" stroke-width="2" stroke-dasharray="14 18"><animate attributeName="stroke-dashoffset" from="0" to="-64" dur="2.2s" repeatCount="indefinite"/></path>';
+      }
+    }
+    // ウキ
+    s += '<circle cx="180" cy="207" r="5" fill="#d24a3a"></circle>';
+    s += '<rect x="175" y="207" width="10" height="5" fill="#f2f2ea" clip-path="url(#ukiClip)"></rect>';
+    // 波紋
+    s += '<circle cx="180" cy="210" r="6" fill="none" stroke="#ffffffaa"><animate attributeName="r" values="6;40" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2s" repeatCount="indefinite"/></circle>';
+    s += '</svg>';
+    return s;
+  }
+
+  function renderStageScene(loc) {
+    document.getElementById("stageScene").innerHTML = sceneSVG(loc);
+    document.getElementById("stageLabel").textContent = loc.name + " [" + (loc.type === "river" ? "河川" : "ダム") + "]";
+  }
+
+  function showFishShadow(fishId) {
+    var wrap = document.getElementById("fishShadowWrap");
+    if (!fishId) {
+      wrap.innerHTML = "";
+      wrap.classList.remove("show");
+      return;
+    }
+    wrap.innerHTML = renderFish(fishId, { silhouette: true, uid: "sh" });
+    wrap.classList.add("show");
+  }
+
+  function clearFishShadow() {
+    var wrap = document.getElementById("fishShadowWrap");
+    wrap.innerHTML = "";
+    wrap.classList.remove("show");
+  }
+
+  function spawnSplash() {
+    var stage = document.getElementById("fishStage");
+    for (var i = 0; i < 6; i++) {
+      var dot = document.createElement("div");
+      dot.className = "splash-dot";
+      var angle = (i / 6) * Math.PI * 2;
+      dot.style.setProperty("--dx", (Math.cos(angle) * 32).toFixed(1) + "px");
+      dot.style.setProperty("--dy", (Math.sin(angle) * 32).toFixed(1) + "px");
+      stage.appendChild(dot);
+      (function (el) { setTimeout(function () { el.remove(); }, 550); })(dot);
+    }
+  }
+
   // ===== 釣り演出 =====
   function startFishingSequence() {
-    document.getElementById("fishLocName").textContent = (getLocation(state.selectedLocationId) || {}).name || "";
+    var loc = getLocation(state.selectedLocationId);
+    document.getElementById("fishLocName").textContent = loc ? loc.name : "";
     showScreen("screen-fish");
     resetFishStage();
+    if (loc) renderStageScene(loc);
+    clearFishShadow();
 
     var stage = document.getElementById("fishStage");
     var stageText = document.getElementById("stageText");
     stage.classList.remove("biting");
     stageText.textContent = "キャスト中…";
     state.biteActive = false;
+    state.pendingFishId = undefined;
 
     var delay = 1000 + Math.random() * 2500; // 1.0〜3.5秒
     clearFishingTimers();
     state.biteTimer = setTimeout(function () {
+      // v2: 抽選をアタリ発生時に前倒し（確率はv1と同一、タイミングのみ変更）
+      state.pendingFishId = drawFish(state.selectedLocationId, state.selectedLureId);
+      showFishShadow(state.pendingFishId);
       stage.classList.add("biting");
       stageText.textContent = "！ アタリ！ タップ！";
       state.biteActive = true;
@@ -1419,10 +1832,12 @@
     if (!state.biteActive) return; // キャスト中のタップは無視
     state.biteActive = false;
     clearFishingTimers();
-    handleHitSuccess();
+    spawnSplash();
+    var fishId = state.pendingFishId;
+    setTimeout(function () { handleHitSuccess(fishId); }, 350);
   }
 
-  // ===== 抽選ロジック（SPEC §5） =====
+  // ===== 抽選ロジック（SPEC §5、v2ではアタリ発生時に実行） =====
   function drawFish(locationId, lureId) {
     // 1. ボウズ判定 15%
     if (Math.random() < 0.15) {
@@ -1452,8 +1867,7 @@
     return weighted[weighted.length - 1].id;
   }
 
-  function handleHitSuccess() {
-    var fishId = drawFish(state.selectedLocationId, state.selectedLureId);
+  function handleHitSuccess(fishId) {
     if (!fishId) {
       handleBouzu();
       return;
@@ -1482,7 +1896,8 @@
     document.getElementById("resultFail").classList.add("hidden");
     var fish = FISH[fishId];
     document.getElementById("resultNewBadge").classList.toggle("hidden", !isNew);
-    document.getElementById("resultEmoji").textContent = fish.emoji;
+    document.getElementById("resultFishArt").innerHTML = renderFish(fishId, { uid: "r" });
+    document.getElementById("resultFishGlow").style.background = RARITY_GLOW[fish.rarity] || "";
     document.getElementById("resultName").textContent = fish.name;
     document.getElementById("resultReading").textContent = fish.reading;
     var rarityEl = document.getElementById("resultRarity");
@@ -1528,12 +1943,12 @@
       item.className = "zukan-item " + fish.rarity + (caught ? "" : " locked");
       if (caught) {
         item.innerHTML =
-          '<div class="zi-emoji">' + fish.emoji + '</div>' +
+          '<div class="zi-art">' + renderFish(id, { uid: "z" + id }) + '</div>' +
           '<div class="zi-name">' + fish.name + '</div>' +
           '<div class="zi-rarity">' + RARITY_LABEL[fish.rarity] + '</div>';
       } else {
         item.innerHTML =
-          '<div class="zi-emoji">❔</div>' +
+          '<div class="zi-art">' + renderFish(id, { silhouette: true, uid: "zs" + id }) + '</div>' +
           '<div class="zi-name">？？？</div>' +
           '<div class="zi-rarity">未捕獲</div>';
       }
@@ -1594,8 +2009,18 @@
   }
 
   // ===== 初期化 =====
+  document.getElementById("titleFishArt").innerHTML = renderFish("ito", { uid: "t" });
   buildMap();
   showScreen("screen-title");
+
+  // デバッグ用（動作検証のみに使用。ゲーム挙動には影響しない）
+  window.__debugState = function () {
+    return {
+      pendingFishId: state.pendingFishId,
+      lastCaughtFishId: state.lastCaughtFishId,
+      lastResultKind: state.lastResultKind
+    };
+  };
 })();
 </script>
 </body>
