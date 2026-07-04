@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>北海道つりゲーム</title>
+<style>
+  :root {
+    --sea: #cfe8f2;
+    --land: #dfe9d8;
+    --land-line: #8fae86;
+    --river-color: #2e7ab8;
+    --dam-color: #b8622e;
+    --bg: #f4f8f6;
+    --card-bg: #ffffff;
+    --ink: #1f2d2a;
+    --sub-ink: #5a6d68;
+    --accent: #1c7f79;
+    --accent-dark: #135b56;
+    --danger: #b3492f;
+    --common: #8b98a0;
+    --uncommon: #3f9d63;
+    --rare: #3b74c4;
+    --legend: #c99a2e;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    overflow-x: hidden;
+    width: 100%;
+  }
+  body {
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  #app {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .screen { display: none; flex-direction: column; flex: 1; padding: 16px 16px 28px; animation: fadeIn .25s ease; }
+  .screen.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  h1, h2, h3 { margin: 0 0 6px; }
+  p { margin: 0 0 10px; line-height: 1.6; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    min-height: 44px;
+  }
+  .btn-back {
+    background: var(--card-bg);
+    border: 1px solid #d8e2df;
+    border-radius: 12px;
+    padding: 10px 14px;
+    min-height: 44px;
+    font-size: 15px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .btn-back:active { background: #ecf3f1; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 18px;
+    min-height: 48px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: transform .08s ease, background .15s ease;
+    box-shadow: 0 3px 0 var(--accent-dark);
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--accent-dark); }
+  .btn.secondary {
+    background: var(--card-bg);
+    color: var(--accent-dark);
+    border: 2px solid var(--accent);
+    box-shadow: none;
+  }
+  .btn.secondary:active { background: #eaf5f3; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; transform: none; }
+  .btn-row { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 1px 4px rgba(20, 40, 35, .08);
+    margin-bottom: 12px;
+  }
+
+  /* ---- title screen ---- */
+  .title-hero {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 4px;
+  }
+  .title-emoji { font-size: 64px; line-height: 1; margin-bottom: 6px; }
+  .title-hero h1 { font-size: 26px; color: var(--accent-dark); }
+  .title-hero .sub { color: var(--sub-ink); font-size: 14px; margin-bottom: 24px; }
+  .title-buttons { width: 100%; display: flex; flex-direction: column; gap: 12px; padding: 0 8px; }
+  .footer-note {
+    text-align: center;
+    font-size: 11px;
+    color: var(--sub-ink);
+    padding-top: 18px;
+    line-height: 1.6;
+  }
+
+  /* ---- map screen ---- */
+  .map-wrap {
+    position: relative;
+    width: 100%;
+    background: var(--sea);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(20,40,35,.08);
+  }
+  .map-wrap svg { display: block; width: 100%; height: auto; }
+  .legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--sub-ink);
+    margin: 10px 0;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--river-color); display: inline-block; }
+  .legend-diamond { width: 12px; height: 12px; background: var(--dam-color); display: inline-block; transform: rotate(45deg); }
+
+  .marker-dot { fill: var(--river-color); stroke: #fff; stroke-width: 1.5; cursor: pointer; }
+  .marker-dam { fill: var(--dam-color); stroke: #fff; stroke-width: 1.5; cursor: pointer; }
+  .marker-hit { fill: transparent; cursor: pointer; }
+  .marker-selected { stroke: #ffd23f; stroke-width: 3; }
+  .marker-label {
+    font-size: 15px;
+    fill: var(--ink);
+    paint-order: stroke;
+    stroke: #ffffffcc;
+    stroke-width: 3px;
+    pointer-events: none;
+    font-weight: 700;
+  }
+
+  .info-card { display: none; }
+  .info-card.show { display: block; }
+  .info-card .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .type-badge {
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #eef4f2;
+    color: var(--sub-ink);
+  }
+
+  /* ---- tackle screen ---- */
+  .loc-heading { color: var(--accent-dark); font-size: 18px; }
+  .choice-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .choice-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card-bg);
+    border: 2px solid #e2ebe8;
+    border-radius: 14px;
+    padding: 12px 14px;
+    min-height: 48px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .choice-item .ci-emoji { font-size: 26px; width: 34px; text-align: center; }
+  .choice-item .ci-text { flex: 1; }
+  .choice-item .ci-name { font-weight: 700; font-size: 15px; }
+  .choice-item .ci-desc { font-size: 12px; color: var(--sub-ink); margin-top: 2px; }
+  .choice-item.selected { border-color: var(--accent); background: #eefaf6; }
+  .section-label { font-size: 13px; color: var(--sub-ink); font-weight: 700; margin: 10px 0 6px; }
+
+  /* ---- fishing screen ---- */
+  .fish-stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    position: relative;
+    background: linear-gradient(180deg, #bfe3ee 0%, #6fb6c9 60%, #4a94a8 100%);
+    border-radius: var(--radius);
+    overflow: hidden;
+    min-height: 320px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fish-stage .ripple {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border: 3px solid #ffffff99;
+    border-radius: 50%;
+    animation: ripple 1.8s ease-out infinite;
+  }
+  @keyframes ripple {
+    0% { width: 20px; height: 20px; opacity: .9; }
+    100% { width: 160px; height: 160px; opacity: 0; }
+  }
+  .fish-stage .rod-emoji { font-size: 48px; z-index: 2; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+  .stage-text {
+    z-index: 3;
+    margin-top: 14px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,.4);
+    text-align: center;
+    padding: 0 10px;
+  }
+  .fish-stage.biting { animation: shake .35s ease-in-out infinite; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  .fish-stage.biting .stage-text { font-size: 21px; color: #fff566; }
+
+  /* ---- result screen ---- */
+  .result-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .result-emoji { font-size: 84px; line-height: 1; margin-bottom: 8px; }
+  .result-name { font-size: 24px; font-weight: 800; }
+  .result-reading { font-size: 13px; color: var(--sub-ink); margin-bottom: 8px; }
+  .new-badge {
+    display: inline-block;
+    background: #ffd23f;
+    color: #6b4f00;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
+  .rarity-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+  .rarity-common { background: var(--common); }
+  .rarity-uncommon { background: var(--uncommon); }
+  .rarity-rare { background: var(--rare); }
+  .rarity-legend { background: var(--legend); }
+  .result-desc { font-size: 14px; color: var(--sub-ink); max-width: 340px; margin-bottom: 18px; }
+  .result-fail-emoji { font-size: 64px; margin-bottom: 8px; }
+  .result-fail-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+  .result-fail-desc { font-size: 14px; color: var(--sub-ink); margin-bottom: 20px; }
+
+  /* ---- zukan screen ---- */
+  .zukan-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .zukan-count { font-size: 20px; font-weight: 800; color: var(--accent-dark); }
+  .rarity-breakdown { display: flex; gap: 10px; font-size: 11px; color: var(--sub-ink); flex-wrap: wrap; }
+  .rarity-breakdown span { display: inline-flex; align-items: center; gap: 4px; }
+  .rb-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .zukan-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .zukan-item {
+    background: var(--card-bg);
+    border-radius: 14px;
+    padding: 10px 6px;
+    text-align: center;
+    border: 2px solid #e2ebe8;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .zukan-item .zi-emoji { font-size: 30px; }
+  .zukan-item .zi-name { font-size: 11px; font-weight: 700; margin-top: 4px; }
+  .zukan-item .zi-rarity { font-size: 9px; color: var(--sub-ink); margin-top: 2px; }
+  .zukan-item.locked { opacity: .55; }
+  .zukan-item.locked .zi-emoji { filter: grayscale(1); }
+  .zukan-item.common { border-color: var(--common); }
+  .zukan-item.uncommon { border-color: var(--uncommon); }
+  .zukan-item.rare { border-color: var(--rare); }
+  .zukan-item.legend { border-color: var(--legend); box-shadow: 0 0 0 1px var(--legend) inset; }
+
+  .hidden { display: none !important; }
+  .sr-note { font-size: 12px; color: var(--sub-ink); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 1. タイトル -->
+  <section id="screen-title" class="screen active">
+    <div class="title-hero">
+      <div class="title-emoji">🎣🐟</div>
+      <h1>北海道つりゲーム</h1>
+      <div class="sub">実在の河川・ダムで、道産魚を釣り上げよう</div>
+      <div class="title-buttons">
+        <button class="btn" data-action="start">▶ 釣りを始める</button>
+        <button class="btn secondary" data-action="zukan">📖 図鑑</button>
+      </div>
+    </div>
+    <div class="footer-note">
+      本作の河川・ダムと生息魚データは、国土交通省「河川水辺の国勢調査（河川環境データベース）」を参考にゲーム用に再構成したものです。魚のサイズ等は扱わず種類のみを対象とし、亜種・型は同一種として扱っています。
+    </div>
+  </section>
+
+  <!-- 2. 地図選択 -->
+  <section id="screen-map" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-action="back-to-title">← 戻る</button>
+      <h2 style="font-size:16px;margin:0;">釣り場を選ぶ</h2>
+    </div>
+    <div class="map-wrap">
+      <svg id="hokkaidoSvg" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="北海道地図"></svg>
+    </div>
+    <div class="legend">
+      <span><span class="legend-dot"></span>河川</span>
+      <span><span class="legend-diamond"></span>ダム</span>
+    </div>
+    <div id="infoCard" class="info-card card">
+      <div class="badge-row">
+        <span id="infoTypeBadge" class="type-badge"></span>
+        <span id="infoRegionBadge" class="type-badge"></span>
+      </div>
+      <h3 id="infoName"></h3>
+      <p id="infoDesc" class="sr-note"></p>
+      <p class="sr-note">看板魚: <strong id="infoSignature"></strong></p>
+      <button class="btn" data-action="go-tackle">ここで釣る</button>
+    </div>
+  </section>
+
+  <!-- 3. タックル選択 -->
+  <section id="screen-tackle" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-action="back-to-map">← 戻る</button>
+      <h2 class="loc-heading" id="tackleLocName" style="font-size:16px;margin:0;"></h2>
+    </div>
+    <div class="section-label">① 竿を選ぶ</div>
+    <div id="rodList" class="choice-list"></div>
+    <div id="lureSection" class="hidden">
+      <div class="section-label">② ルアー／エサを選ぶ</div>
+      <div id="lureList" class="choice-list"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="startFishingBtn" data-action="start-fishing" disabled>🎣 釣り開始</button>
+    </div>
+  </section>
+
+  <!-- 4. 釣り（キャスト & アタリ） -->
+  <section id="screen-fish" class="screen">
+    <div class="topbar">
+      <h2 style="font-size:16px;margin:0;" id="fishLocName"></h2>
+    </div>
+    <div id="fishStage" class="fish-stage">
+      <div class="ripple"></div>
+      <div class="rod-emoji">🎣</div>
+      <div class="stage-text" id="stageText">キャスト中…</div>
+    </div>
+    <p class="sr-note" style="text-align:center;">「アタリ！」の表示が出たら、素早くタップ！</p>
+  </section>
+
+  <!-- 5. 結果 -->
+  <section id="screen-result" class="screen">
+    <div id="resultCatch" class="result-wrap hidden">
+      <div id="resultNewBadge" class="new-badge hidden">NEW!</div>
+      <div class="result-emoji" id="resultEmoji"></div>
+      <div class="result-name" id="resultName"></div>
+      <div class="result-reading" id="resultReading"></div>
+      <div id="resultRarity" class="rarity-badge"></div>
+      <div class="result-desc" id="resultDesc"></div>
+      <div class="btn-row" style="width:100%;">
+        <button class="btn" data-action="retry-same">もう一度ここで釣る</button>
+        <button class="btn secondary" data-action="change-place">場所を変える</button>
+        <button class="btn secondary" data-action="zukan">図鑑を見る</button>
+      </div>
+    </div>
+    <div id="resultFail" class="result-wrap hidden">
+      <div class="result-fail-emoji" id="failEmoji">💨</div>
+      <div class="result-fail-title" id="failTitle"></div>
+      <div class="result-fail-desc" id="failDesc"></div>
+      <div class="btn-row" style="width:100%;">
+        <button class="btn" data-action="retry-same">もう一度</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. 図鑑 -->
+  <section id="screen-zukan" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-action="back-any">← 戻る</button>
+      <h2 style="font-size:16px;margin:0;">図鑑</h2>
+    </div>
+    <div class="zukan-summary">
+      <div class="zukan-count" id="zukanCount">0 / 16</div>
+      <div class="rarity-breakdown" id="rarityBreakdown"></div>
+    </div>
+    <div class="zukan-grid" id="zukanGrid"></div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ===== データ（fable5作成の仕様書に厳密準拠） =====
+  var FISH = {
+  "sake": {
+    "name": "サケ",
+    "reading": "しろざけ",
+    "emoji": "🐟",
+    "rarity": "common",
+    "desc": "秋に生まれた川へ戻る北海道の代表魚。ふ化放流が盛ん。"
+  },
+  "sakuramasu": {
+    "name": "サクラマス",
+    "reading": "さくらます",
+    "emoji": "🌸",
+    "rarity": "uncommon",
+    "desc": "降海型がサクラマス、川に残る型がヤマメ。同じ魚。"
+  },
+  "amemasu": {
+    "name": "アメマス",
+    "reading": "あめます",
+    "emoji": "🐟",
+    "rarity": "common",
+    "desc": "白い斑点のイワナの仲間。川残留型はエゾイワナ。"
+  },
+  "oshorokoma": {
+    "name": "オショロコマ",
+    "reading": "おしょろこま",
+    "emoji": "🐟",
+    "rarity": "uncommon",
+    "desc": "冷たい源流域にすむ北海道の在来イワナ。"
+  },
+  "nijimasu": {
+    "name": "ニジマス",
+    "reading": "にじます",
+    "emoji": "🌈",
+    "rarity": "common",
+    "desc": "北米原産だが道内河川・湖に広く定着。"
+  },
+  "brown": {
+    "name": "ブラウントラウト",
+    "reading": "ぶらうんとらうと",
+    "emoji": "🐟",
+    "rarity": "uncommon",
+    "desc": "欧州原産。支笏湖・尻別川などで大型化。"
+  },
+  "ito": {
+    "name": "イトウ",
+    "reading": "いとう",
+    "emoji": "🐉",
+    "rarity": "legend",
+    "desc": "日本最大の淡水魚。天塩川・釧路川水系にすむ「幻の魚」。"
+  },
+  "wakasagi": {
+    "name": "ワカサギ",
+    "reading": "わかさぎ",
+    "emoji": "🐟",
+    "rarity": "common",
+    "desc": "ダム湖の氷上釣りで人気。天ぷらが定番。"
+  },
+  "ugui": {
+    "name": "ウグイ",
+    "reading": "うぐい",
+    "emoji": "🐟",
+    "rarity": "common",
+    "desc": "川に最も普通の魚。エゾウグイ・マルタも近い仲間。"
+  },
+  "fukudojo": {
+    "name": "フクドジョウ",
+    "reading": "ふくどじょう",
+    "emoji": "🐟",
+    "rarity": "uncommon",
+    "desc": "北海道在来のドジョウの仲間。川底にすむ。"
+  },
+  "kajika": {
+    "name": "カジカ",
+    "reading": "かじか",
+    "emoji": "🐟",
+    "rarity": "uncommon",
+    "desc": "川底の肉食魚。卵の大きさで型が分かれるが同じ仲間。"
+  },
+  "koi": {
+    "name": "コイ",
+    "reading": "こい",
+    "emoji": "🐟",
+    "rarity": "common",
+    "desc": "下流やダム湖の止水域にすむ大型魚。"
+  },
+  "funa": {
+    "name": "フナ",
+    "reading": "ふな",
+    "emoji": "🐟",
+    "rarity": "common",
+    "desc": "ギンブナなど。止水域にごく普通。"
+  },
+  "kawayatsume": {
+    "name": "カワヤツメ",
+    "reading": "かわやつめ",
+    "emoji": "🐟",
+    "rarity": "rare",
+    "desc": "目が並んで見えるヤツメウナギの仲間。食用・薬用に。"
+  },
+  "ayu": {
+    "name": "アユ",
+    "reading": "あゆ",
+    "emoji": "🐟",
+    "rarity": "rare",
+    "desc": "清流の指標魚。後志利別川など道南の限られた川に。"
+  },
+  "shishamo": {
+    "name": "シシャモ",
+    "reading": "ししゃも",
+    "emoji": "🐟",
+    "rarity": "rare",
+    "desc": "本物のシシャモは鵡川など北海道太平洋岸だけの固有種。"
+  }
+};
+
+  var LOCATIONS = [
+  {
+    "id": "ishikari",
+    "name": "石狩川",
+    "type": "river",
+    "region": "道央",
+    "lon": 141.32,
+    "lat": 43.3,
+    "signature": "sake",
+    "desc": "北海道一の大河。多様な魚がすむ。",
+    "fish": {
+      "sake": 30,
+      "amemasu": 22,
+      "ugui": 30,
+      "sakuramasu": 12,
+      "nijimasu": 14,
+      "funa": 16,
+      "koi": 14,
+      "kawayatsume": 4,
+      "ito": 1
+    }
+  },
+  {
+    "id": "teshio",
+    "name": "天塩川",
+    "type": "river",
+    "region": "道北",
+    "lon": 141.75,
+    "lat": 44.88,
+    "signature": "ito",
+    "desc": "手つかずの流れが残るイトウの聖地。",
+    "fish": {
+      "ito": 2,
+      "amemasu": 24,
+      "ugui": 28,
+      "sakuramasu": 14,
+      "oshorokoma": 8,
+      "fukudojo": 10,
+      "sake": 18,
+      "kawayatsume": 4
+    }
+  },
+  {
+    "id": "tokachi",
+    "name": "十勝川",
+    "type": "river",
+    "region": "十勝",
+    "lon": 143.5,
+    "lat": 42.62,
+    "signature": "sake",
+    "desc": "十勝平野を貫く大河。サケ遡上で有名。",
+    "fish": {
+      "sake": 28,
+      "amemasu": 20,
+      "nijimasu": 16,
+      "ugui": 28,
+      "sakuramasu": 12,
+      "funa": 14,
+      "kawayatsume": 4,
+      "ito": 1
+    }
+  },
+  {
+    "id": "kushiro",
+    "name": "釧路川",
+    "type": "river",
+    "region": "道東",
+    "lon": 144.38,
+    "lat": 42.98,
+    "signature": "ito",
+    "desc": "釧路湿原を蛇行するイトウの川。",
+    "fish": {
+      "ito": 3,
+      "amemasu": 22,
+      "nijimasu": 14,
+      "ugui": 26,
+      "sake": 16,
+      "funa": 12,
+      "kawayatsume": 5
+    }
+  },
+  {
+    "id": "abashiri",
+    "name": "網走川",
+    "type": "river",
+    "region": "オホーツク",
+    "lon": 144.27,
+    "lat": 44.02,
+    "signature": "wakasagi",
+    "desc": "網走湖につながり、ワカサギやサクラマスが豊富。",
+    "fish": {
+      "amemasu": 20,
+      "sakuramasu": 16,
+      "ugui": 26,
+      "wakasagi": 18,
+      "sake": 16,
+      "funa": 14
+    }
+  },
+  {
+    "id": "yubetsu",
+    "name": "湧別川",
+    "type": "river",
+    "region": "オホーツク",
+    "lon": 143.6,
+    "lat": 44.25,
+    "signature": "sakuramasu",
+    "desc": "サクラマスの遡上で知られる清流。",
+    "fish": {
+      "sakuramasu": 22,
+      "amemasu": 22,
+      "ugui": 24,
+      "sake": 16,
+      "nijimasu": 12,
+      "oshorokoma": 8
+    }
+  },
+  {
+    "id": "shiribetsu",
+    "name": "尻別川",
+    "type": "river",
+    "region": "後志",
+    "lon": 140.5,
+    "lat": 42.83,
+    "signature": "amemasu",
+    "desc": "羊蹄山の伏流水を集める名アメマス河川。",
+    "fish": {
+      "amemasu": 30,
+      "nijimasu": 18,
+      "sakuramasu": 16,
+      "ugui": 22,
+      "brown": 8,
+      "sake": 12,
+      "ayu": 3
+    }
+  },
+  {
+    "id": "saru",
+    "name": "沙流川",
+    "type": "river",
+    "region": "日高",
+    "lon": 142.05,
+    "lat": 42.5,
+    "signature": "sakuramasu",
+    "desc": "日高山脈からの清流。ヤマメ・アメマスが濃い。",
+    "fish": {
+      "sakuramasu": 22,
+      "amemasu": 22,
+      "ugui": 24,
+      "kajika": 12,
+      "sake": 14,
+      "nijimasu": 12
+    }
+  },
+  {
+    "id": "toyohira",
+    "name": "豊平川",
+    "type": "river",
+    "region": "札幌",
+    "lon": 141.35,
+    "lat": 43.05,
+    "signature": "sake",
+    "desc": "札幌市街を流れ、サケの遡上（カムバックサーモン）で有名。",
+    "fish": {
+      "sake": 22,
+      "sakuramasu": 18,
+      "amemasu": 18,
+      "ugui": 26,
+      "nijimasu": 12,
+      "fukudojo": 10
+    }
+  },
+  {
+    "id": "toshibetsu",
+    "name": "後志利別川",
+    "type": "river",
+    "region": "檜山",
+    "lon": 140,
+    "lat": 42.4,
+    "signature": "ayu",
+    "desc": "「清流日本一」に何度も選ばれた道南のアユの川。",
+    "fish": {
+      "ayu": 8,
+      "amemasu": 22,
+      "sakuramasu": 18,
+      "ugui": 24,
+      "kajika": 12,
+      "sake": 12
+    }
+  },
+  {
+    "id": "mukawa",
+    "name": "鵡川",
+    "type": "river",
+    "region": "胆振",
+    "lon": 141.9,
+    "lat": 42.55,
+    "signature": "shishamo",
+    "desc": "本物のシシャモが遡上する数少ない川。",
+    "fish": {
+      "shishamo": 8,
+      "sakuramasu": 16,
+      "amemasu": 20,
+      "ugui": 24,
+      "sake": 18,
+      "kajika": 10
+    }
+  },
+  {
+    "id": "tokoro",
+    "name": "常呂川",
+    "type": "river",
+    "region": "オホーツク",
+    "lon": 144,
+    "lat": 44.1,
+    "signature": "amemasu",
+    "desc": "オホーツクに注ぐ、アメマス・サケの川。",
+    "fish": {
+      "amemasu": 24,
+      "ugui": 26,
+      "sakuramasu": 14,
+      "sake": 18,
+      "nijimasu": 12,
+      "funa": 12
+    }
+  },
+  {
+    "id": "kanayama",
+    "name": "金山ダム",
+    "type": "dam",
+    "region": "空知",
+    "lon": 142.4,
+    "lat": 43.35,
+    "signature": "wakasagi",
+    "desc": "かなやま湖。ワカサギの氷上釣りで人気。",
+    "fish": {
+      "wakasagi": 26,
+      "amemasu": 18,
+      "nijimasu": 16,
+      "ugui": 22,
+      "koi": 14,
+      "funa": 16,
+      "sakuramasu": 8
+    }
+  },
+  {
+    "id": "taisetsu",
+    "name": "大雪ダム",
+    "type": "dam",
+    "region": "上川",
+    "lon": 143.06,
+    "lat": 43.66,
+    "signature": "oshorokoma",
+    "desc": "石狩川源流・大雪湖。冷水性のイワナ類がすむ。",
+    "fish": {
+      "oshorokoma": 16,
+      "amemasu": 22,
+      "nijimasu": 16,
+      "ugui": 22,
+      "sakuramasu": 10
+    }
+  },
+  {
+    "id": "hoheikyo",
+    "name": "豊平峡ダム",
+    "type": "dam",
+    "region": "札幌",
+    "lon": 141.15,
+    "lat": 42.93,
+    "signature": "amemasu",
+    "desc": "定山渓の奥、豊平川上流のダム湖。",
+    "fish": {
+      "amemasu": 24,
+      "nijimasu": 18,
+      "ugui": 24,
+      "sakuramasu": 12,
+      "oshorokoma": 8
+    }
+  },
+  {
+    "id": "tokachi_dam",
+    "name": "十勝ダム",
+    "type": "dam",
+    "region": "十勝",
+    "lon": 142.9,
+    "lat": 43.28,
+    "signature": "nijimasu",
+    "desc": "東大雪の懐、十勝川源流のダム湖。",
+    "fish": {
+      "amemasu": 22,
+      "nijimasu": 20,
+      "ugui": 24,
+      "sakuramasu": 10,
+      "koi": 10
+    }
+  },
+  {
+    "id": "iwaonai",
+    "name": "岩尾内ダム",
+    "type": "dam",
+    "region": "上川",
+    "lon": 142.7,
+    "lat": 44.15,
+    "signature": "ito",
+    "desc": "天塩川水系・岩尾内湖。イトウがすむダム湖。",
+    "fish": {
+      "ito": 2,
+      "amemasu": 22,
+      "nijimasu": 16,
+      "wakasagi": 16,
+      "ugui": 22,
+      "funa": 14
+    }
+  },
+  {
+    "id": "nibutani",
+    "name": "二風谷ダム",
+    "type": "dam",
+    "region": "日高",
+    "lon": 142.15,
+    "lat": 42.65,
+    "signature": "koi",
+    "desc": "沙流川のダム湖。止水にコイ・フナも。",
+    "fish": {
+      "amemasu": 18,
+      "ugui": 26,
+      "nijimasu": 14,
+      "koi": 18,
+      "funa": 18,
+      "sakuramasu": 8
+    }
+  },
+  {
+    "id": "katsurazawa",
+    "name": "桂沢ダム",
+    "type": "dam",
+    "region": "空知",
+    "lon": 142.05,
+    "lat": 43.25,
+    "signature": "wakasagi",
+    "desc": "桂沢湖。ワカサギとコイ・フナの止水。",
+    "fish": {
+      "wakasagi": 24,
+      "koi": 16,
+      "funa": 18,
+      "ugui": 24,
+      "amemasu": 14,
+      "nijimasu": 12
+    }
+  },
+  {
+    "id": "chubetsu",
+    "name": "忠別ダム",
+    "type": "dam",
+    "region": "上川",
+    "lon": 142.85,
+    "lat": 43.6,
+    "signature": "oshorokoma",
+    "desc": "旭岳のふもと、忠別川のダム湖。",
+    "fish": {
+      "oshorokoma": 14,
+      "amemasu": 22,
+      "nijimasu": 16,
+      "ugui": 22,
+      "sakuramasu": 10
+    }
+  },
+  {
+    "id": "sanru",
+    "name": "サンルダム",
+    "type": "dam",
+    "region": "上川",
+    "lon": 142.4,
+    "lat": 44.35,
+    "signature": "ito",
+    "desc": "天塩川水系・名寄川のダム。イトウ生息域。",
+    "fish": {
+      "ito": 2,
+      "amemasu": 22,
+      "sakuramasu": 14,
+      "nijimasu": 14,
+      "ugui": 22
+    }
+  },
+  {
+    "id": "izarigawa",
+    "name": "漁川ダム",
+    "type": "dam",
+    "region": "石狩",
+    "lon": 141.6,
+    "lat": 42.85,
+    "signature": "wakasagi",
+    "desc": "恵庭・えにわ湖。ワカサギとニジマスの湖。",
+    "fish": {
+      "wakasagi": 24,
+      "nijimasu": 16,
+      "amemasu": 16,
+      "ugui": 22,
+      "koi": 12,
+      "funa": 14
+    }
+  }
+];
+
+  var LURE_MULTIPLIERS = {
+  "spoon": {
+    "amemasu": 1.6,
+    "nijimasu": 1.6,
+    "sakuramasu": 1.4,
+    "brown": 1.5,
+    "ugui": 0.7,
+    "funa": 0.4,
+    "koi": 0.4,
+    "kajika": 0.5,
+    "wakasagi": 0.5,
+    "shishamo": 0.6,
+    "fukudojo": 0.4
+  },
+  "minnow": {
+    "ito": 3,
+    "sake": 1.8,
+    "brown": 1.8,
+    "nijimasu": 1.4,
+    "amemasu": 1.4,
+    "sakuramasu": 1.3,
+    "oshorokoma": 0.8,
+    "ugui": 0.6,
+    "funa": 0.4,
+    "koi": 0.5,
+    "wakasagi": 0.3,
+    "kajika": 0.4,
+    "fukudojo": 0.3
+  },
+  "spinner": {
+    "nijimasu": 1.7,
+    "sakuramasu": 1.6,
+    "oshorokoma": 1.7,
+    "amemasu": 1.3,
+    "ugui": 0.8,
+    "funa": 0.5,
+    "koi": 0.5,
+    "wakasagi": 0.5,
+    "kajika": 0.6
+  },
+  "fly": {
+    "sakuramasu": 1.7,
+    "oshorokoma": 1.8,
+    "amemasu": 1.3,
+    "ayu": 2,
+    "ugui": 1.1,
+    "kajika": 0.8,
+    "wakasagi": 0.8,
+    "ito": 0.4,
+    "sake": 0.4,
+    "koi": 0.3,
+    "funa": 0.6
+  },
+  "bait": {
+    "sake": 1.8,
+    "ugui": 1.6,
+    "funa": 1.7,
+    "koi": 1.7,
+    "kajika": 1.8,
+    "wakasagi": 1.6,
+    "fukudojo": 1.8,
+    "kawayatsume": 1.6,
+    "shishamo": 1.5,
+    "amemasu": 1.2,
+    "ito": 0.5,
+    "nijimasu": 0.7,
+    "oshorokoma": 0.9
+  }
+};
+
+  var COASTLINE = [
+  {
+    "name": "宗谷岬",
+    "lon": 141.94,
+    "lat": 45.52
+  },
+  {
+    "name": "浜頓別",
+    "lon": 142.35,
+    "lat": 45.1
+  },
+  {
+    "name": "枝幸",
+    "lon": 142.58,
+    "lat": 44.94
+  },
+  {
+    "name": "雄武",
+    "lon": 142.97,
+    "lat": 44.58
+  },
+  {
+    "name": "紋別",
+    "lon": 143.35,
+    "lat": 44.35
+  },
+  {
+    "name": "網走",
+    "lon": 144.27,
+    "lat": 44.02
+  },
+  {
+    "name": "知床岬",
+    "lon": 145.33,
+    "lat": 44.33
+  },
+  {
+    "name": "羅臼",
+    "lon": 145.19,
+    "lat": 44.02
+  },
+  {
+    "name": "納沙布岬",
+    "lon": 145.82,
+    "lat": 43.38
+  },
+  {
+    "name": "厚岸",
+    "lon": 144.85,
+    "lat": 42.95
+  },
+  {
+    "name": "釧路",
+    "lon": 144.38,
+    "lat": 42.98
+  },
+  {
+    "name": "襟裳岬",
+    "lon": 143.25,
+    "lat": 41.92
+  },
+  {
+    "name": "苫小牧",
+    "lon": 141.6,
+    "lat": 42.63
+  },
+  {
+    "name": "室蘭",
+    "lon": 141,
+    "lat": 42.32
+  },
+  {
+    "name": "函館",
+    "lon": 140.73,
+    "lat": 41.77
+  },
+  {
+    "name": "白神岬",
+    "lon": 140.12,
+    "lat": 41.42
+  },
+  {
+    "name": "江差",
+    "lon": 140.13,
+    "lat": 41.87
+  },
+  {
+    "name": "瀬棚",
+    "lon": 139.85,
+    "lat": 42.33
+  },
+  {
+    "name": "寿都",
+    "lon": 140.22,
+    "lat": 42.8
+  },
+  {
+    "name": "積丹岬",
+    "lon": 140.42,
+    "lat": 43.35
+  },
+  {
+    "name": "小樽",
+    "lon": 141,
+    "lat": 43.19
+  },
+  {
+    "name": "石狩",
+    "lon": 141.32,
+    "lat": 43.3
+  },
+  {
+    "name": "留萌",
+    "lon": 141.63,
+    "lat": 43.94
+  },
+  {
+    "name": "羽幌",
+    "lon": 141.7,
+    "lat": 44.36
+  },
+  {
+    "name": "天塩",
+    "lon": 141.75,
+    "lat": 44.88
+  }
+];
+
+  var RODS = [
+    { id: "lure_rod", name: "ルアーロッド", emoji: "🎣", desc: "万能。トラウト・サケ狙い", lures: ["spoon", "minnow", "spinner"] },
+    { id: "fly_rod", name: "フライロッド", emoji: "🪶", desc: "毛鉤で渓流魚", lures: ["fly"] },
+    { id: "bait_rod", name: "のべ竿", emoji: "🪱", desc: "エサでなんでも", lures: ["bait"] }
+  ];
+
+  var LURES = {
+    spoon:   { name: "スプーン", emoji: "🥄", desc: "金属の輝きでトラウトを誘う定番。" },
+    minnow:  { name: "ミノー", emoji: "🐠", desc: "小魚型。大型のイトウ・サケ・ブラウンに強い。" },
+    spinner: { name: "スピナー", emoji: "🌀", desc: "回転ブレードで渓流のニジマス・オショロコマに。" },
+    fly:     { name: "フライ", emoji: "🪶", desc: "毛鉤。ヤマメ・オショロコマ・アユ向き。" },
+    bait:    { name: "エサ（イクラ／ミミズ）", emoji: "🪱", desc: "イクラやミミズ。雑魚から底物までなんでも。" }
+  };
+
+  var RARITY_LABEL = { common: "コモン", uncommon: "アンコモン", rare: "レア", legend: "レジェンド" };
+  var STORAGE_KEY = "hokkaido_fishing_zukan_v1";
+
+  // ===== 投影（経度緯度 → SVG座標）SPEC §2 =====
+  function project(lon, lat) {
+    var x = (lon - 139.3) / (146.0 - 139.3) * 1000;
+    var y = (45.7 - lat) / (45.7 - 41.2) * 1000;
+    return [x, y];
+  }
+
+  // ===== 状態 =====
+  var state = {
+    selectedLocationId: null,
+    selectedRodId: null,
+    selectedLureId: null,
+    lastCaughtFishId: null,
+    lastResultKind: null, // 'catch' | 'bouzu' | 'barasi'
+    biteTimer: null,
+    biteTimeoutTimer: null,
+    biteActive: false,
+    biteWindowMs: 1300,
+    prevScreenBeforeZukan: "screen-title"
+  };
+
+  function loadZukan() {
+    try {
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && parsed.caught && typeof parsed.caught === "object") {
+        return parsed.caught;
+      }
+      return {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveZukan(caught) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, caught: caught }));
+    } catch (e) {
+      /* localStorageが使えない環境でも無視して継続 */
+    }
+  }
+
+  var zukan = loadZukan();
+
+  function markCaught(fishId) {
+    var isNew = !zukan[fishId];
+    zukan[fishId] = true;
+    saveZukan(zukan);
+    return isNew;
+  }
+
+  // ===== 画面切替 =====
+  function showScreen(id) {
+    var screens = document.querySelectorAll(".screen");
+    for (var i = 0; i < screens.length; i++) {
+      screens[i].classList.toggle("active", screens[i].id === id);
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function getLocation(id) {
+    for (var i = 0; i < LOCATIONS.length; i++) {
+      if (LOCATIONS[i].id === id) return LOCATIONS[i];
+    }
+    return null;
+  }
+
+  // ===== 地図描画 =====
+  function buildMap() {
+    var svg = document.getElementById("hokkaidoSvg");
+    var parts = [];
+    parts.push('<rect x="0" y="0" width="1000" height="1000" fill="var(--sea)"></rect>');
+
+    var pts = COASTLINE.map(function (p) {
+      var xy = project(p.lon, p.lat);
+      return xy[0].toFixed(1) + "," + xy[1].toFixed(1);
+    }).join(" ");
+    parts.push('<polygon points="' + pts + '" fill="#dfe9d8" stroke="#8fae86" stroke-width="2.5"></polygon>');
+
+    LOCATIONS.forEach(function (loc) {
+      var xy = project(loc.lon, loc.lat);
+      var x = xy[0].toFixed(1), y = xy[1].toFixed(1);
+      var isDam = loc.type === "dam";
+      parts.push('<g class="loc-marker-group" data-loc-id="' + loc.id + '">');
+      if (isDam) {
+        parts.push('<rect class="marker-dam" data-loc-id="' + loc.id + '" x="' + (xy[0] - 8) + '" y="' + (xy[1] - 8) + '" width="16" height="16" transform="rotate(45 ' + x + ' ' + y + ')"></rect>');
+      } else {
+        parts.push('<circle class="marker-dot" data-loc-id="' + loc.id + '" cx="' + x + '" cy="' + y + '" r="9"></circle>');
+      }
+      parts.push('<circle class="marker-hit" data-loc-id="' + loc.id + '" cx="' + x + '" cy="' + y + '" r="18"></circle>');
+      parts.push('</g>');
+    });
+
+    svg.innerHTML = parts.join("");
+    svg.addEventListener("click", onMapClick);
+  }
+
+  function onMapClick(e) {
+    var target = e.target;
+    var locId = target.getAttribute && target.getAttribute("data-loc-id");
+    if (!locId) return;
+    selectLocation(locId);
+  }
+
+  function selectLocation(locId) {
+    state.selectedLocationId = locId;
+    var loc = getLocation(locId);
+    if (!loc) return;
+
+    var svg = document.getElementById("hokkaidoSvg");
+    var dots = svg.querySelectorAll(".marker-dot, .marker-dam");
+    dots.forEach(function (d) {
+      d.classList.toggle("marker-selected", d.getAttribute("data-loc-id") === locId);
+    });
+    var existingLabels = svg.querySelectorAll(".marker-label");
+    existingLabels.forEach(function (l) { l.remove(); });
+    var xy = project(loc.lon, loc.lat);
+    var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("class", "marker-label");
+    label.setAttribute("x", (xy[0] + 12).toFixed(1));
+    label.setAttribute("y", (xy[1] - 12).toFixed(1));
+    label.textContent = loc.name;
+    svg.appendChild(label);
+
+    document.getElementById("infoTypeBadge").textContent = loc.type === "river" ? "河川" : "ダム";
+    document.getElementById("infoRegionBadge").textContent = loc.region;
+    document.getElementById("infoName").textContent = loc.name;
+    document.getElementById("infoDesc").textContent = loc.desc;
+    var sigFish = FISH[loc.signature];
+    document.getElementById("infoSignature").textContent = sigFish ? (sigFish.emoji + " " + sigFish.name) : loc.signature;
+    document.getElementById("infoCard").classList.add("show");
+  }
+
+  // ===== タックル選択画面 =====
+  function renderTackleScreen() {
+    var loc = getLocation(state.selectedLocationId);
+    document.getElementById("tackleLocName").textContent = loc ? loc.name + "で釣る" : "";
+    state.selectedRodId = null;
+    state.selectedLureId = null;
+    document.getElementById("lureSection").classList.add("hidden");
+    document.getElementById("lureList").innerHTML = "";
+    document.getElementById("startFishingBtn").disabled = true;
+
+    var rodList = document.getElementById("rodList");
+    rodList.innerHTML = "";
+    RODS.forEach(function (rod) {
+      var item = document.createElement("div");
+      item.className = "choice-item";
+      item.setAttribute("data-rod-id", rod.id);
+      item.innerHTML =
+        '<div class="ci-emoji">' + rod.emoji + '</div>' +
+        '<div class="ci-text"><div class="ci-name">' + rod.name + '</div><div class="ci-desc">' + rod.desc + '</div></div>';
+      item.addEventListener("click", function () { selectRod(rod.id); });
+      rodList.appendChild(item);
+    });
+  }
+
+  function selectRod(rodId) {
+    state.selectedRodId = rodId;
+    state.selectedLureId = null;
+    var rodList = document.getElementById("rodList");
+    var items = rodList.querySelectorAll(".choice-item");
+    items.forEach(function (it) {
+      it.classList.toggle("selected", it.getAttribute("data-rod-id") === rodId);
+    });
+
+    var rod = RODS.filter(function (r) { return r.id === rodId; })[0];
+    var lureSection = document.getElementById("lureSection");
+    var lureList = document.getElementById("lureList");
+    lureList.innerHTML = "";
+    rod.lures.forEach(function (lureId) {
+      var lure = LURES[lureId];
+      var item = document.createElement("div");
+      item.className = "choice-item";
+      item.setAttribute("data-lure-id", lureId);
+      item.innerHTML =
+        '<div class="ci-emoji">' + lure.emoji + '</div>' +
+        '<div class="ci-text"><div class="ci-name">' + lure.name + '</div><div class="ci-desc">' + lure.desc + '</div></div>';
+      item.addEventListener("click", function () { selectLure(lureId); });
+      lureList.appendChild(item);
+    });
+    lureSection.classList.remove("hidden");
+    document.getElementById("startFishingBtn").disabled = true;
+  }
+
+  function selectLure(lureId) {
+    state.selectedLureId = lureId;
+    var lureList = document.getElementById("lureList");
+    var items = lureList.querySelectorAll(".choice-item");
+    items.forEach(function (it) {
+      it.classList.toggle("selected", it.getAttribute("data-lure-id") === lureId);
+    });
+    document.getElementById("startFishingBtn").disabled = false;
+  }
+
+  // ===== 釣り演出 =====
+  function startFishingSequence() {
+    document.getElementById("fishLocName").textContent = (getLocation(state.selectedLocationId) || {}).name || "";
+    showScreen("screen-fish");
+    resetFishStage();
+
+    var stage = document.getElementById("fishStage");
+    var stageText = document.getElementById("stageText");
+    stage.classList.remove("biting");
+    stageText.textContent = "キャスト中…";
+    state.biteActive = false;
+
+    var delay = 1000 + Math.random() * 2500; // 1.0〜3.5秒
+    clearFishingTimers();
+    state.biteTimer = setTimeout(function () {
+      stage.classList.add("biting");
+      stageText.textContent = "！ アタリ！ タップ！";
+      state.biteActive = true;
+      state.biteTimeoutTimer = setTimeout(function () {
+        if (state.biteActive) {
+          state.biteActive = false;
+          handleBarasi();
+        }
+      }, state.biteWindowMs);
+    }, delay);
+  }
+
+  function resetFishStage() {
+    clearFishingTimers();
+    state.biteActive = false;
+  }
+
+  function clearFishingTimers() {
+    if (state.biteTimer) { clearTimeout(state.biteTimer); state.biteTimer = null; }
+    if (state.biteTimeoutTimer) { clearTimeout(state.biteTimeoutTimer); state.biteTimeoutTimer = null; }
+  }
+
+  function onFishStageTap() {
+    if (!state.biteActive) return; // キャスト中のタップは無視
+    state.biteActive = false;
+    clearFishingTimers();
+    handleHitSuccess();
+  }
+
+  // ===== 抽選ロジック（SPEC §5） =====
+  function drawFish(locationId, lureId) {
+    // 1. ボウズ判定 15%
+    if (Math.random() < 0.15) {
+      return null;
+    }
+    var loc = getLocation(locationId);
+    var multipliers = LURE_MULTIPLIERS[lureId] || {};
+    var pool = loc.fish;
+    var weighted = [];
+    var total = 0;
+    Object.keys(pool).forEach(function (fid) {
+      var base = pool[fid];
+      var mult = multipliers[fid] !== undefined ? multipliers[fid] : 1.0;
+      var w = base * mult;
+      if (w > 0) {
+        total += w;
+        weighted.push({ id: fid, w: w });
+      }
+    });
+    if (total <= 0 || weighted.length === 0) return null;
+    var r = Math.random() * total;
+    var acc = 0;
+    for (var i = 0; i < weighted.length; i++) {
+      acc += weighted[i].w;
+      if (r < acc) return weighted[i].id;
+    }
+    return weighted[weighted.length - 1].id;
+  }
+
+  function handleHitSuccess() {
+    var fishId = drawFish(state.selectedLocationId, state.selectedLureId);
+    if (!fishId) {
+      handleBouzu();
+      return;
+    }
+    var isNew = markCaught(fishId);
+    state.lastCaughtFishId = fishId;
+    state.lastResultKind = "catch";
+    renderResultCatch(fishId, isNew);
+    showScreen("screen-result");
+  }
+
+  function handleBouzu() {
+    state.lastResultKind = "bouzu";
+    renderResultFail("😶", "ボウズ…", "今日はアタリはあったけど、魚は姿を見せてくれなかった。");
+    showScreen("screen-result");
+  }
+
+  function handleBarasi() {
+    state.lastResultKind = "barasi";
+    renderResultFail("💨", "バラシ！逃げられた…", "アタリへの反応が少し遅れたみたい。もう一度チャレンジ！");
+    showScreen("screen-result");
+  }
+
+  function renderResultCatch(fishId, isNew) {
+    document.getElementById("resultCatch").classList.remove("hidden");
+    document.getElementById("resultFail").classList.add("hidden");
+    var fish = FISH[fishId];
+    document.getElementById("resultNewBadge").classList.toggle("hidden", !isNew);
+    document.getElementById("resultEmoji").textContent = fish.emoji;
+    document.getElementById("resultName").textContent = fish.name;
+    document.getElementById("resultReading").textContent = fish.reading;
+    var rarityEl = document.getElementById("resultRarity");
+    rarityEl.textContent = RARITY_LABEL[fish.rarity] || fish.rarity;
+    rarityEl.className = "rarity-badge rarity-" + fish.rarity;
+    document.getElementById("resultDesc").textContent = fish.desc;
+  }
+
+  function renderResultFail(emoji, title, desc) {
+    document.getElementById("resultCatch").classList.add("hidden");
+    document.getElementById("resultFail").classList.remove("hidden");
+    document.getElementById("failEmoji").textContent = emoji;
+    document.getElementById("failTitle").textContent = title;
+    document.getElementById("failDesc").textContent = desc;
+  }
+
+  // ===== 図鑑画面 =====
+  function renderZukan() {
+    var fishIds = Object.keys(FISH);
+    var caughtCount = fishIds.filter(function (id) { return !!zukan[id]; }).length;
+    document.getElementById("zukanCount").textContent = caughtCount + " / " + fishIds.length;
+
+    var rarityOrder = ["common", "uncommon", "rare", "legend"];
+    var rarityTotals = { common: 0, uncommon: 0, rare: 0, legend: 0 };
+    var rarityCaught = { common: 0, uncommon: 0, rare: 0, legend: 0 };
+    fishIds.forEach(function (id) {
+      var r = FISH[id].rarity;
+      rarityTotals[r]++;
+      if (zukan[id]) rarityCaught[r]++;
+    });
+    var breakdown = document.getElementById("rarityBreakdown");
+    breakdown.innerHTML = rarityOrder.map(function (r) {
+      return '<span><span class="rb-dot" style="background:var(--' + r + ')"></span>' +
+        RARITY_LABEL[r] + " " + rarityCaught[r] + "/" + rarityTotals[r] + "</span>";
+    }).join("");
+
+    var grid = document.getElementById("zukanGrid");
+    grid.innerHTML = "";
+    fishIds.forEach(function (id) {
+      var fish = FISH[id];
+      var caught = !!zukan[id];
+      var item = document.createElement("div");
+      item.className = "zukan-item " + fish.rarity + (caught ? "" : " locked");
+      if (caught) {
+        item.innerHTML =
+          '<div class="zi-emoji">' + fish.emoji + '</div>' +
+          '<div class="zi-name">' + fish.name + '</div>' +
+          '<div class="zi-rarity">' + RARITY_LABEL[fish.rarity] + '</div>';
+      } else {
+        item.innerHTML =
+          '<div class="zi-emoji">❔</div>' +
+          '<div class="zi-name">？？？</div>' +
+          '<div class="zi-rarity">未捕獲</div>';
+      }
+      grid.appendChild(item);
+    });
+  }
+
+  // ===== イベント配線 =====
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest ? e.target.closest("[data-action]") : null;
+    if (!el) return;
+    var action = el.getAttribute("data-action");
+    switch (action) {
+      case "start":
+        showScreen("screen-map");
+        break;
+      case "zukan":
+        state.prevScreenBeforeZukan = currentScreenId();
+        renderZukan();
+        showScreen("screen-zukan");
+        break;
+      case "back-to-title":
+        showScreen("screen-title");
+        break;
+      case "back-to-map":
+        showScreen("screen-map");
+        break;
+      case "back-any":
+        showScreen(state.prevScreenBeforeZukan || "screen-title");
+        break;
+      case "go-tackle":
+        if (state.selectedLocationId) {
+          renderTackleScreen();
+          showScreen("screen-tackle");
+        }
+        break;
+      case "start-fishing":
+        if (state.selectedRodId && state.selectedLureId) {
+          startFishingSequence();
+        }
+        break;
+      case "retry-same":
+        startFishingSequence();
+        break;
+      case "change-place":
+        showScreen("screen-map");
+        break;
+      default:
+        break;
+    }
+  });
+
+  document.getElementById("fishStage").addEventListener("click", onFishStageTap);
+
+  function currentScreenId() {
+    var active = document.querySelector(".screen.active");
+    return active ? active.id : "screen-title";
+  }
+
+  // ===== 初期化 =====
+  buildMap();
+  showScreen("screen-title");
+})();
+</script>
+</body>
+</html>

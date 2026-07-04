@@ -1,0 +1,721 @@
+{
+  "fish": {
+    "sake": {
+      "name": "サケ",
+      "reading": "しろざけ",
+      "emoji": "🐟",
+      "rarity": "common",
+      "desc": "秋に生まれた川へ戻る北海道の代表魚。ふ化放流が盛ん。"
+    },
+    "sakuramasu": {
+      "name": "サクラマス",
+      "reading": "さくらます",
+      "emoji": "🌸",
+      "rarity": "uncommon",
+      "desc": "降海型がサクラマス、川に残る型がヤマメ。同じ魚。"
+    },
+    "amemasu": {
+      "name": "アメマス",
+      "reading": "あめます",
+      "emoji": "🐟",
+      "rarity": "common",
+      "desc": "白い斑点のイワナの仲間。川残留型はエゾイワナ。"
+    },
+    "oshorokoma": {
+      "name": "オショロコマ",
+      "reading": "おしょろこま",
+      "emoji": "🐟",
+      "rarity": "uncommon",
+      "desc": "冷たい源流域にすむ北海道の在来イワナ。"
+    },
+    "nijimasu": {
+      "name": "ニジマス",
+      "reading": "にじます",
+      "emoji": "🌈",
+      "rarity": "common",
+      "desc": "北米原産だが道内河川・湖に広く定着。"
+    },
+    "brown": {
+      "name": "ブラウントラウト",
+      "reading": "ぶらうんとらうと",
+      "emoji": "🐟",
+      "rarity": "uncommon",
+      "desc": "欧州原産。支笏湖・尻別川などで大型化。"
+    },
+    "ito": {
+      "name": "イトウ",
+      "reading": "いとう",
+      "emoji": "🐉",
+      "rarity": "legend",
+      "desc": "日本最大の淡水魚。天塩川・釧路川水系にすむ「幻の魚」。"
+    },
+    "wakasagi": {
+      "name": "ワカサギ",
+      "reading": "わかさぎ",
+      "emoji": "🐟",
+      "rarity": "common",
+      "desc": "ダム湖の氷上釣りで人気。天ぷらが定番。"
+    },
+    "ugui": {
+      "name": "ウグイ",
+      "reading": "うぐい",
+      "emoji": "🐟",
+      "rarity": "common",
+      "desc": "川に最も普通の魚。エゾウグイ・マルタも近い仲間。"
+    },
+    "fukudojo": {
+      "name": "フクドジョウ",
+      "reading": "ふくどじょう",
+      "emoji": "🐟",
+      "rarity": "uncommon",
+      "desc": "北海道在来のドジョウの仲間。川底にすむ。"
+    },
+    "kajika": {
+      "name": "カジカ",
+      "reading": "かじか",
+      "emoji": "🐟",
+      "rarity": "uncommon",
+      "desc": "川底の肉食魚。卵の大きさで型が分かれるが同じ仲間。"
+    },
+    "koi": {
+      "name": "コイ",
+      "reading": "こい",
+      "emoji": "🐟",
+      "rarity": "common",
+      "desc": "下流やダム湖の止水域にすむ大型魚。"
+    },
+    "funa": {
+      "name": "フナ",
+      "reading": "ふな",
+      "emoji": "🐟",
+      "rarity": "common",
+      "desc": "ギンブナなど。止水域にごく普通。"
+    },
+    "kawayatsume": {
+      "name": "カワヤツメ",
+      "reading": "かわやつめ",
+      "emoji": "🐟",
+      "rarity": "rare",
+      "desc": "目が並んで見えるヤツメウナギの仲間。食用・薬用に。"
+    },
+    "ayu": {
+      "name": "アユ",
+      "reading": "あゆ",
+      "emoji": "🐟",
+      "rarity": "rare",
+      "desc": "清流の指標魚。後志利別川など道南の限られた川に。"
+    },
+    "shishamo": {
+      "name": "シシャモ",
+      "reading": "ししゃも",
+      "emoji": "🐟",
+      "rarity": "rare",
+      "desc": "本物のシシャモは鵡川など北海道太平洋岸だけの固有種。"
+    }
+  },
+  "locations": [
+    {
+      "id": "ishikari",
+      "name": "石狩川",
+      "type": "river",
+      "region": "道央",
+      "lon": 141.32,
+      "lat": 43.3,
+      "signature": "sake",
+      "desc": "北海道一の大河。多様な魚がすむ。",
+      "fish": {
+        "sake": 30,
+        "amemasu": 22,
+        "ugui": 30,
+        "sakuramasu": 12,
+        "nijimasu": 14,
+        "funa": 16,
+        "koi": 14,
+        "kawayatsume": 4,
+        "ito": 1
+      }
+    },
+    {
+      "id": "teshio",
+      "name": "天塩川",
+      "type": "river",
+      "region": "道北",
+      "lon": 141.75,
+      "lat": 44.88,
+      "signature": "ito",
+      "desc": "手つかずの流れが残るイトウの聖地。",
+      "fish": {
+        "ito": 2,
+        "amemasu": 24,
+        "ugui": 28,
+        "sakuramasu": 14,
+        "oshorokoma": 8,
+        "fukudojo": 10,
+        "sake": 18,
+        "kawayatsume": 4
+      }
+    },
+    {
+      "id": "tokachi",
+      "name": "十勝川",
+      "type": "river",
+      "region": "十勝",
+      "lon": 143.5,
+      "lat": 42.62,
+      "signature": "sake",
+      "desc": "十勝平野を貫く大河。サケ遡上で有名。",
+      "fish": {
+        "sake": 28,
+        "amemasu": 20,
+        "nijimasu": 16,
+        "ugui": 28,
+        "sakuramasu": 12,
+        "funa": 14,
+        "kawayatsume": 4,
+        "ito": 1
+      }
+    },
+    {
+      "id": "kushiro",
+      "name": "釧路川",
+      "type": "river",
+      "region": "道東",
+      "lon": 144.38,
+      "lat": 42.98,
+      "signature": "ito",
+      "desc": "釧路湿原を蛇行するイトウの川。",
+      "fish": {
+        "ito": 3,
+        "amemasu": 22,
+        "nijimasu": 14,
+        "ugui": 26,
+        "sake": 16,
+        "funa": 12,
+        "kawayatsume": 5
+      }
+    },
+    {
+      "id": "abashiri",
+      "name": "網走川",
+      "type": "river",
+      "region": "オホーツク",
+      "lon": 144.27,
+      "lat": 44.02,
+      "signature": "wakasagi",
+      "desc": "網走湖につながり、ワカサギやサクラマスが豊富。",
+      "fish": {
+        "amemasu": 20,
+        "sakuramasu": 16,
+        "ugui": 26,
+        "wakasagi": 18,
+        "sake": 16,
+        "funa": 14
+      }
+    },
+    {
+      "id": "yubetsu",
+      "name": "湧別川",
+      "type": "river",
+      "region": "オホーツク",
+      "lon": 143.6,
+      "lat": 44.25,
+      "signature": "sakuramasu",
+      "desc": "サクラマスの遡上で知られる清流。",
+      "fish": {
+        "sakuramasu": 22,
+        "amemasu": 22,
+        "ugui": 24,
+        "sake": 16,
+        "nijimasu": 12,
+        "oshorokoma": 8
+      }
+    },
+    {
+      "id": "shiribetsu",
+      "name": "尻別川",
+      "type": "river",
+      "region": "後志",
+      "lon": 140.5,
+      "lat": 42.83,
+      "signature": "amemasu",
+      "desc": "羊蹄山の伏流水を集める名アメマス河川。",
+      "fish": {
+        "amemasu": 30,
+        "nijimasu": 18,
+        "sakuramasu": 16,
+        "ugui": 22,
+        "brown": 8,
+        "sake": 12,
+        "ayu": 3
+      }
+    },
+    {
+      "id": "saru",
+      "name": "沙流川",
+      "type": "river",
+      "region": "日高",
+      "lon": 142.05,
+      "lat": 42.5,
+      "signature": "sakuramasu",
+      "desc": "日高山脈からの清流。ヤマメ・アメマスが濃い。",
+      "fish": {
+        "sakuramasu": 22,
+        "amemasu": 22,
+        "ugui": 24,
+        "kajika": 12,
+        "sake": 14,
+        "nijimasu": 12
+      }
+    },
+    {
+      "id": "toyohira",
+      "name": "豊平川",
+      "type": "river",
+      "region": "札幌",
+      "lon": 141.35,
+      "lat": 43.05,
+      "signature": "sake",
+      "desc": "札幌市街を流れ、サケの遡上（カムバックサーモン）で有名。",
+      "fish": {
+        "sake": 22,
+        "sakuramasu": 18,
+        "amemasu": 18,
+        "ugui": 26,
+        "nijimasu": 12,
+        "fukudojo": 10
+      }
+    },
+    {
+      "id": "toshibetsu",
+      "name": "後志利別川",
+      "type": "river",
+      "region": "檜山",
+      "lon": 140,
+      "lat": 42.4,
+      "signature": "ayu",
+      "desc": "「清流日本一」に何度も選ばれた道南のアユの川。",
+      "fish": {
+        "ayu": 8,
+        "amemasu": 22,
+        "sakuramasu": 18,
+        "ugui": 24,
+        "kajika": 12,
+        "sake": 12
+      }
+    },
+    {
+      "id": "mukawa",
+      "name": "鵡川",
+      "type": "river",
+      "region": "胆振",
+      "lon": 141.9,
+      "lat": 42.55,
+      "signature": "shishamo",
+      "desc": "本物のシシャモが遡上する数少ない川。",
+      "fish": {
+        "shishamo": 8,
+        "sakuramasu": 16,
+        "amemasu": 20,
+        "ugui": 24,
+        "sake": 18,
+        "kajika": 10
+      }
+    },
+    {
+      "id": "tokoro",
+      "name": "常呂川",
+      "type": "river",
+      "region": "オホーツク",
+      "lon": 144,
+      "lat": 44.1,
+      "signature": "amemasu",
+      "desc": "オホーツクに注ぐ、アメマス・サケの川。",
+      "fish": {
+        "amemasu": 24,
+        "ugui": 26,
+        "sakuramasu": 14,
+        "sake": 18,
+        "nijimasu": 12,
+        "funa": 12
+      }
+    },
+    {
+      "id": "kanayama",
+      "name": "金山ダム",
+      "type": "dam",
+      "region": "空知",
+      "lon": 142.4,
+      "lat": 43.35,
+      "signature": "wakasagi",
+      "desc": "かなやま湖。ワカサギの氷上釣りで人気。",
+      "fish": {
+        "wakasagi": 26,
+        "amemasu": 18,
+        "nijimasu": 16,
+        "ugui": 22,
+        "koi": 14,
+        "funa": 16,
+        "sakuramasu": 8
+      }
+    },
+    {
+      "id": "taisetsu",
+      "name": "大雪ダム",
+      "type": "dam",
+      "region": "上川",
+      "lon": 143.06,
+      "lat": 43.66,
+      "signature": "oshorokoma",
+      "desc": "石狩川源流・大雪湖。冷水性のイワナ類がすむ。",
+      "fish": {
+        "oshorokoma": 16,
+        "amemasu": 22,
+        "nijimasu": 16,
+        "ugui": 22,
+        "sakuramasu": 10
+      }
+    },
+    {
+      "id": "hoheikyo",
+      "name": "豊平峡ダム",
+      "type": "dam",
+      "region": "札幌",
+      "lon": 141.15,
+      "lat": 42.93,
+      "signature": "amemasu",
+      "desc": "定山渓の奥、豊平川上流のダム湖。",
+      "fish": {
+        "amemasu": 24,
+        "nijimasu": 18,
+        "ugui": 24,
+        "sakuramasu": 12,
+        "oshorokoma": 8
+      }
+    },
+    {
+      "id": "tokachi_dam",
+      "name": "十勝ダム",
+      "type": "dam",
+      "region": "十勝",
+      "lon": 142.9,
+      "lat": 43.28,
+      "signature": "nijimasu",
+      "desc": "東大雪の懐、十勝川源流のダム湖。",
+      "fish": {
+        "amemasu": 22,
+        "nijimasu": 20,
+        "ugui": 24,
+        "sakuramasu": 10,
+        "koi": 10
+      }
+    },
+    {
+      "id": "iwaonai",
+      "name": "岩尾内ダム",
+      "type": "dam",
+      "region": "上川",
+      "lon": 142.7,
+      "lat": 44.15,
+      "signature": "ito",
+      "desc": "天塩川水系・岩尾内湖。イトウがすむダム湖。",
+      "fish": {
+        "ito": 2,
+        "amemasu": 22,
+        "nijimasu": 16,
+        "wakasagi": 16,
+        "ugui": 22,
+        "funa": 14
+      }
+    },
+    {
+      "id": "nibutani",
+      "name": "二風谷ダム",
+      "type": "dam",
+      "region": "日高",
+      "lon": 142.15,
+      "lat": 42.65,
+      "signature": "koi",
+      "desc": "沙流川のダム湖。止水にコイ・フナも。",
+      "fish": {
+        "amemasu": 18,
+        "ugui": 26,
+        "nijimasu": 14,
+        "koi": 18,
+        "funa": 18,
+        "sakuramasu": 8
+      }
+    },
+    {
+      "id": "katsurazawa",
+      "name": "桂沢ダム",
+      "type": "dam",
+      "region": "空知",
+      "lon": 142.05,
+      "lat": 43.25,
+      "signature": "wakasagi",
+      "desc": "桂沢湖。ワカサギとコイ・フナの止水。",
+      "fish": {
+        "wakasagi": 24,
+        "koi": 16,
+        "funa": 18,
+        "ugui": 24,
+        "amemasu": 14,
+        "nijimasu": 12
+      }
+    },
+    {
+      "id": "chubetsu",
+      "name": "忠別ダム",
+      "type": "dam",
+      "region": "上川",
+      "lon": 142.85,
+      "lat": 43.6,
+      "signature": "oshorokoma",
+      "desc": "旭岳のふもと、忠別川のダム湖。",
+      "fish": {
+        "oshorokoma": 14,
+        "amemasu": 22,
+        "nijimasu": 16,
+        "ugui": 22,
+        "sakuramasu": 10
+      }
+    },
+    {
+      "id": "sanru",
+      "name": "サンルダム",
+      "type": "dam",
+      "region": "上川",
+      "lon": 142.4,
+      "lat": 44.35,
+      "signature": "ito",
+      "desc": "天塩川水系・名寄川のダム。イトウ生息域。",
+      "fish": {
+        "ito": 2,
+        "amemasu": 22,
+        "sakuramasu": 14,
+        "nijimasu": 14,
+        "ugui": 22
+      }
+    },
+    {
+      "id": "izarigawa",
+      "name": "漁川ダム",
+      "type": "dam",
+      "region": "石狩",
+      "lon": 141.6,
+      "lat": 42.85,
+      "signature": "wakasagi",
+      "desc": "恵庭・えにわ湖。ワカサギとニジマスの湖。",
+      "fish": {
+        "wakasagi": 24,
+        "nijimasu": 16,
+        "amemasu": 16,
+        "ugui": 22,
+        "koi": 12,
+        "funa": 14
+      }
+    }
+  ],
+  "lureMultipliers": {
+    "spoon": {
+      "amemasu": 1.6,
+      "nijimasu": 1.6,
+      "sakuramasu": 1.4,
+      "brown": 1.5,
+      "ugui": 0.7,
+      "funa": 0.4,
+      "koi": 0.4,
+      "kajika": 0.5,
+      "wakasagi": 0.5,
+      "shishamo": 0.6,
+      "fukudojo": 0.4
+    },
+    "minnow": {
+      "ito": 3,
+      "sake": 1.8,
+      "brown": 1.8,
+      "nijimasu": 1.4,
+      "amemasu": 1.4,
+      "sakuramasu": 1.3,
+      "oshorokoma": 0.8,
+      "ugui": 0.6,
+      "funa": 0.4,
+      "koi": 0.5,
+      "wakasagi": 0.3,
+      "kajika": 0.4,
+      "fukudojo": 0.3
+    },
+    "spinner": {
+      "nijimasu": 1.7,
+      "sakuramasu": 1.6,
+      "oshorokoma": 1.7,
+      "amemasu": 1.3,
+      "ugui": 0.8,
+      "funa": 0.5,
+      "koi": 0.5,
+      "wakasagi": 0.5,
+      "kajika": 0.6
+    },
+    "fly": {
+      "sakuramasu": 1.7,
+      "oshorokoma": 1.8,
+      "amemasu": 1.3,
+      "ayu": 2,
+      "ugui": 1.1,
+      "kajika": 0.8,
+      "wakasagi": 0.8,
+      "ito": 0.4,
+      "sake": 0.4,
+      "koi": 0.3,
+      "funa": 0.6
+    },
+    "bait": {
+      "sake": 1.8,
+      "ugui": 1.6,
+      "funa": 1.7,
+      "koi": 1.7,
+      "kajika": 1.8,
+      "wakasagi": 1.6,
+      "fukudojo": 1.8,
+      "kawayatsume": 1.6,
+      "shishamo": 1.5,
+      "amemasu": 1.2,
+      "ito": 0.5,
+      "nijimasu": 0.7,
+      "oshorokoma": 0.9
+    }
+  },
+  "coastline": [
+    {
+      "name": "宗谷岬",
+      "lon": 141.94,
+      "lat": 45.52
+    },
+    {
+      "name": "浜頓別",
+      "lon": 142.35,
+      "lat": 45.1
+    },
+    {
+      "name": "枝幸",
+      "lon": 142.58,
+      "lat": 44.94
+    },
+    {
+      "name": "雄武",
+      "lon": 142.97,
+      "lat": 44.58
+    },
+    {
+      "name": "紋別",
+      "lon": 143.35,
+      "lat": 44.35
+    },
+    {
+      "name": "網走",
+      "lon": 144.27,
+      "lat": 44.02
+    },
+    {
+      "name": "知床岬",
+      "lon": 145.33,
+      "lat": 44.33
+    },
+    {
+      "name": "羅臼",
+      "lon": 145.19,
+      "lat": 44.02
+    },
+    {
+      "name": "納沙布岬",
+      "lon": 145.82,
+      "lat": 43.38
+    },
+    {
+      "name": "厚岸",
+      "lon": 144.85,
+      "lat": 42.95
+    },
+    {
+      "name": "釧路",
+      "lon": 144.38,
+      "lat": 42.98
+    },
+    {
+      "name": "襟裳岬",
+      "lon": 143.25,
+      "lat": 41.92
+    },
+    {
+      "name": "苫小牧",
+      "lon": 141.6,
+      "lat": 42.63
+    },
+    {
+      "name": "室蘭",
+      "lon": 141,
+      "lat": 42.32
+    },
+    {
+      "name": "函館",
+      "lon": 140.73,
+      "lat": 41.77
+    },
+    {
+      "name": "白神岬",
+      "lon": 140.12,
+      "lat": 41.42
+    },
+    {
+      "name": "江差",
+      "lon": 140.13,
+      "lat": 41.87
+    },
+    {
+      "name": "瀬棚",
+      "lon": 139.85,
+      "lat": 42.33
+    },
+    {
+      "name": "寿都",
+      "lon": 140.22,
+      "lat": 42.8
+    },
+    {
+      "name": "積丹岬",
+      "lon": 140.42,
+      "lat": 43.35
+    },
+    {
+      "name": "小樽",
+      "lon": 141,
+      "lat": 43.19
+    },
+    {
+      "name": "石狩",
+      "lon": 141.32,
+      "lat": 43.3
+    },
+    {
+      "name": "留萌",
+      "lon": 141.63,
+      "lat": 43.94
+    },
+    {
+      "name": "羽幌",
+      "lon": 141.7,
+      "lat": 44.36
+    },
+    {
+      "name": "天塩",
+      "lon": 141.75,
+      "lat": 44.88
+    }
+  ],
+  "meta": {
+    "fishCount": 16,
+    "riverCount": 12,
+    "damCount": 10,
+    "note": "国土交通省 河川水辺の国勢調査（河川環境データベース）を参考に、ゲーム用に再構成したデータです。"
+  }
+}
