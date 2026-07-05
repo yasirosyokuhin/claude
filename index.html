@@ -225,10 +225,7 @@
     -webkit-tap-highlight-color: transparent;
     background: #cfe6ee;
   }
-  .stage-scene { position: absolute; inset: 0; }
-  .stage-scene svg { width: 100%; height: 100%; display: block; }
-  #rodLayer { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
-  #rodLayer svg { width: 100%; height: 100%; display: block; }
+  #stageCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .stage-badges { position: absolute; top: 8px; right: 8px; z-index: 4; display: flex; gap: 6px; }
   .time-badge {
     font-size: 11px; font-weight: 700; color: #fff;
@@ -240,40 +237,58 @@
     width: 40px; height: 40px; border-radius: 50%; border: none;
     background: rgba(20,45,40,.4); color: #fff; font-size: 18px; cursor: pointer;
   }
-  /* --- fight gauges --- */
+  /* --- fight HUD (glass panel) --- */
   .fight-ui {
     position: absolute; left: 10px; right: 10px; top: 40px; z-index: 5;
-    display: none; flex-direction: column; gap: 6px; pointer-events: none;
+    display: none; pointer-events: none;
   }
-  .fight-ui.show { display: flex; }
+  .fight-ui.show { display: block; animation: hudIn .25s ease; }
+  @keyframes hudIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  .fight-panel {
+    display: flex; flex-direction: column; gap: 7px;
+    background: linear-gradient(180deg, rgba(8,22,28,.58), rgba(8,22,28,.38));
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 14px;
+    padding: 10px 12px 8px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 4px 14px rgba(0,10,16,.25);
+  }
   .gauge-row { display: flex; align-items: center; gap: 8px; }
   .gauge-name {
-    width: 58px; font-size: 10px; font-weight: 700; color: #fff;
+    width: 58px; font-size: 10px; font-weight: 700; color: #e8f2f0;
     text-shadow: 0 1px 2px rgba(0,0,0,.5); text-align: right; flex: none;
-    white-space: nowrap;
+    white-space: nowrap; letter-spacing: .04em;
   }
   .gauge-track {
-    position: relative; flex: 1; height: 14px; border-radius: 7px;
-    background: rgba(10,25,30,.45); overflow: hidden;
+    position: relative; flex: 1; height: 16px; border-radius: 8px;
+    background: rgba(4,14,18,.72);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.5);
+    overflow: hidden;
   }
   .gauge-zone {
     position: absolute; top: 0; bottom: 0; left: 35%; width: 40%;
-    background: rgba(110,220,140,.28);
-    border-left: 1px solid rgba(180,255,200,.5); border-right: 1px solid rgba(180,255,200,.5);
+    background: linear-gradient(180deg, rgba(110,225,145,.30), rgba(110,225,145,.14));
+    border-left: 1px solid rgba(180,255,200,.55); border-right: 1px solid rgba(180,255,200,.55);
   }
   #tensionFill {
     position: absolute; top: 2px; bottom: 2px; left: 2px; width: 50%;
-    border-radius: 6px; background: #7ede96; transition: background .15s;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #93ecac, #58c97c);
+    box-shadow: 0 0 8px rgba(120,235,160,.55);
+    transition: background .15s, box-shadow .15s;
   }
-  #tensionFill.warn { background: #f0c34e; }
-  #tensionFill.danger { background: #e8604c; }
+  #tensionFill.warn { background: linear-gradient(180deg, #f6d478, #e0a93c); box-shadow: 0 0 8px rgba(240,195,80,.55); }
+  #tensionFill.danger { background: linear-gradient(180deg, #f2907e, #d84a34); box-shadow: 0 0 10px rgba(232,96,76,.7); }
   #progressFill {
     position: absolute; top: 2px; bottom: 2px; left: 2px; width: 0%;
-    border-radius: 6px; background: linear-gradient(90deg, #57b7c9, #7ee0d2);
+    border-radius: 6px;
+    background: linear-gradient(90deg, #4aa8c9, #7ee0d2);
+    box-shadow: 0 0 8px rgba(110,215,205,.5);
   }
   .fight-hint {
-    text-align: center; font-size: 11px; font-weight: 700; color: #fff;
-    text-shadow: 0 1px 3px rgba(0,0,0,.6);
+    text-align: center; font-size: 10.5px; font-weight: 700; color: #d5e5e2;
+    text-shadow: 0 1px 3px rgba(0,0,0,.6); letter-spacing: .02em;
   }
   .fish-stage.pulling { animation: shake .28s ease-in-out infinite; }
   .fish-stage.reeling-grip { outline: 3px solid rgba(255,255,255,.35); outline-offset: -3px; }
@@ -350,16 +365,25 @@
   }
   .stage-text {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 14px;
     z-index: 5;
-    font-size: 17px;
+    width: max-content;
+    max-width: 92%;
+    font-size: 16px;
     font-weight: 700;
     color: #fff;
-    text-shadow: 0 1px 3px rgba(0,0,0,.4);
+    text-shadow: 0 1px 3px rgba(0,0,0,.55);
     text-align: center;
-    padding: 0 10px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(8,22,28,.55), rgba(8,22,28,.35));
+    border: 1px solid rgba(255,255,255,.14);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    pointer-events: none;
+    animation: hudIn .25s ease;
   }
   .fish-stage.biting { animation: shake .35s ease-in-out infinite; }
   @keyframes shake {
@@ -517,21 +541,21 @@
       <h2 style="font-size:16px;margin:0;" id="fishLocName"></h2>
     </div>
     <div id="fishStage" class="fish-stage">
-      <div id="stageScene" class="stage-scene"></div>
+      <canvas id="stageCanvas"></canvas>
       <div id="stageLabel" class="stage-label"></div>
       <div class="stage-badges"><span id="timeBadge" class="time-badge"></span></div>
-      <div id="fishShadowWrap" class="fish-shadow-wrap"></div>
-      <div id="rodLayer"></div>
       <div id="fightUi" class="fight-ui">
-        <div class="gauge-row">
-          <span class="gauge-name">テンション</span>
-          <div class="gauge-track"><div class="gauge-zone"></div><div id="tensionFill"></div></div>
+        <div class="fight-panel">
+          <div class="gauge-row">
+            <span class="gauge-name">テンション</span>
+            <div class="gauge-track"><div class="gauge-zone"></div><div id="tensionFill"></div></div>
+          </div>
+          <div class="gauge-row">
+            <span class="gauge-name">寄せ</span>
+            <div class="gauge-track gauge-track-progress"><div id="progressFill"></div></div>
+          </div>
+          <div class="fight-hint">長押しで巻く！ 引きが強い時は離してしのげ！</div>
         </div>
-        <div class="gauge-row">
-          <span class="gauge-name">寄せ</span>
-          <div class="gauge-track"><div id="progressFill"></div></div>
-        </div>
-        <div class="fight-hint">長押しで巻く！ 引きが強い時は離してしのげ！</div>
       </div>
       <div class="stage-text" id="stageText">キャスト中…</div>
       <button id="muteBtn" class="mute-btn" type="button">🔊</button>
@@ -1899,19 +1923,6 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     return h;
   }
 
-  function ridgePath(rng, yBase, yVar, opacity, fill) {
-    var pts = [];
-    for (var i = 0; i <= 8; i++) {
-      pts.push([i * 45, yBase + (rng() * 2 - 1) * yVar]);
-    }
-    var d = "M 0 150 L " + pts[0][0] + " " + pts[0][1].toFixed(1) + " ";
-    for (var j = 1; j < pts.length; j++) {
-      d += "L " + pts[j][0] + " " + pts[j][1].toFixed(1) + " ";
-    }
-    d += "L 360 150 Z";
-    return '<path d="' + d + '" fill="' + fill + '" opacity="' + opacity + '"></path>';
-  }
-
   // ===== 時間帯（実時刻でマズメ・夜を判定）=====
   function timeInfo() {
     var h = new Date().getHours();
@@ -1921,127 +1932,582 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     return { key: "hiru", label: "日中", mazume: false, night: false };
   }
 
-  var SCENE_PAL = {
-    asa:  { sky: ["#f6d4ae", "#eef2e6"], sun: "#ffd9a0", sunY: 70, ridgeA: "#b9a998", ridgeB: "#8f9c84",
-            waterR: ["#a8c6cc", "#527f8d"], waterD: ["#98b8c2", "#3d6a7e"], glint: "#fff2d8" },
-    hiru: { sky: ["#cfe6ee", "#eef7f2"], sun: "#fff8e6", sunY: 46, ridgeA: "#a9bfae", ridgeB: "#8aa896",
-            waterR: ["#8fc3d4", "#4a94a8"], waterD: ["#7fb4c4", "#39758a"], glint: "#ffffff" },
-    yuu:  { sky: ["#efa96e", "#e9ddc8"], sun: "#ff9d5c", sunY: 96, ridgeA: "#a89484", ridgeB: "#7d8770",
-            waterR: ["#a08fa0", "#4f6478"], waterD: ["#8f8398", "#3c5468"], glint: "#ffd8a8" },
-    yoru: { sky: ["#1e2c44", "#33475c"], sun: "#f2ecd8", sunY: 56, ridgeA: "#3c4a52", ridgeB: "#2c3a44",
-            waterR: ["#31556a", "#132e3e"], waterD: ["#2a4a60", "#0f2836"], glint: "#cfe0ea" }
+  // ===== シーン描画（Canvasレンダラー: 大気遠近・反射・グリッター・粒子）=====
+  var PAL = {
+    asa: { sky:["#f7c48c","#f6e0bd","#ecf1e4"], sun:"#ffe0ae", glow:"255,205,130",
+           r1:["#cdb8a4","#b7a08c"], r2:["#a8a28c","#8f9078"], r3:["#7c8f74","#617a5e"],
+           waterHi:"#e5d3b2", waterMid:"#7fa4ac", waterDeep:"#35606c",
+           glint:"255,236,200", bank:["#8fae74","#55744a"], bankD:["#4a6440","#31482e"],
+           tint:"rgba(255,190,110,0.08)", snow:true, stars:false, lx:292 },
+    hiru:{ sky:["#9ecfe6","#cfe6ee","#eaf5f1"], sun:"#fffbe8", glow:"255,250,220",
+           r1:["#c6d2c6","#aabfaf"], r2:["#9db4a0","#7e9a84"], r3:["#6d8e6e","#4e7452"],
+           waterHi:"#cde2e6", waterMid:"#62a0b4", waterDeep:"#28596e",
+           glint:"255,255,255", bank:["#93b478","#57794a"], bankD:["#4c6a44","#334c30"],
+           tint:"rgba(120,200,230,0.05)", snow:true, stars:false, lx:292 },
+    yuu: { sky:["#e88f52","#eec397","#d8cfc0"], sun:"#ff9648", glow:"255,150,70",
+           r1:["#b49a86","#9a8270"], r2:["#8c8272","#6f6a5c"], r3:["#5f6e58","#425440"],
+           waterHi:"#e2a87e", waterMid:"#75859c", waterDeep:"#2e3f54",
+           glint:"255,190,120", bank:["#7d9464","#48603e"], bankD:["#3e5436","#2a3c26"],
+           tint:"rgba(255,120,50,0.11)", snow:false, stars:false, lx:292 },
+    yoru:{ sky:["#131e36","#20304a","#31465c"], sun:"#f0ead4", glow:"215,220,205",
+           r1:["#3a4a54","#2c3c46"], r2:["#2c3c44","#1e2e38"], r3:["#1a2a2e","#122023"],
+           waterHi:"#3a586a", waterMid:"#1f3d4c", waterDeep:"#0a1f2c",
+           glint:"205,228,240", bank:["#26403a","#16281e"], bankD:["#182c22","#0e1e16"],
+           tint:"rgba(10,30,60,0.22)", snow:false, stars:true, lx:300 }
   };
 
-  function sceneSVG(loc) {
+  var HORIZON = 195;
+  var scene = null;
+  var cv = { el: null, ctx: null, sx: 1, sy: 1, shakeAmp: 0 };
+  var particles = [];
+  var ripples = [];
+  var fishImgCache = {};
+
+  function fishImage(id, sil) {
+    var key = id + (sil ? "_s" : "");
+    if (fishImgCache[key]) return fishImgCache[key];
+    var svg = renderFish(id, { silhouette: !!sil, uid: "cv" + key });
+    var img = new Image();
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    fishImgCache[key] = img;
+    return img;
+  }
+
+  function initCanvas() {
+    cv.el = document.getElementById("stageCanvas");
+    var stageEl = document.getElementById("fishStage");
+    var r = stageEl.getBoundingClientRect();
+    var dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    var w = Math.max(2, Math.round(r.width * dpr));
+    var h = Math.max(2, Math.round(r.height * dpr));
+    if (cv.el.width !== w || cv.el.height !== h) { cv.el.width = w; cv.el.height = h; }
+    cv.ctx = cv.el.getContext("2d");
+    cv.sx = w / 360;
+    cv.sy = h / 420;
+  }
+
+  function hash2(i, j) {
+    var t = (i * 374761393 + j * 668265263) >>> 0;
+    t = (t ^ (t >>> 13)) >>> 0; t = Math.imul(t, 1274126177) >>> 0;
+    return ((t ^ (t >>> 16)) >>> 0) / 4294967296;
+  }
+
+  function ridgePts(rng, yBase, yVar, peaks) {
+    var pts = [];
+    for (var i = 0; i <= peaks; i++) {
+      pts.push([ -20 + (400 / peaks) * i, yBase + (rng() * 2 - 1) * yVar ]);
+    }
+    return pts;
+  }
+
+  function buildScene(loc) {
+    var rng = mulberry(seedFromString(loc.id) * 7 + 3);
     var isDam = loc.type === "dam";
-    var rng = mulberry(seedFromString(loc.id));
-    var t = state.time || timeInfo();
-    var pal = SCENE_PAL[t.key] || SCENE_PAL.hiru;
-    var water = isDam ? pal.waterD : pal.waterR;
-    var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" preserveAspectRatio="xMidYMid slice">';
-    s += '<defs>';
-    s += '<linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + pal.sky[0] + '"/><stop offset="1" stop-color="' + pal.sky[1] + '"/></linearGradient>';
-    s += '<linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + water[0] + '"/><stop offset="1" stop-color="' + water[1] + '"/></linearGradient>';
-    s += '</defs>';
-    // 空
-    s += '<rect x="0" y="0" width="360" height="200" fill="url(#skyGrad)"></rect>';
-    if (t.night) {
-      for (var st = 0; st < 26; st++) {
-        s += '<circle cx="' + (rng() * 360).toFixed(1) + '" cy="' + (rng() * 120).toFixed(1) + '" r="' + (0.6 + rng() * 0.9).toFixed(1) + '" fill="#e8f0f6" opacity="' + (0.4 + rng() * 0.6).toFixed(2) + '"></circle>';
-      }
-      s += '<circle cx="300" cy="' + pal.sunY + '" r="15" fill="' + pal.sun + '" opacity="0.95"></circle>';
-      s += '<circle cx="294" cy="' + (pal.sunY - 4) + '" r="13" fill="' + pal.sky[0] + '" opacity="0.85"></circle>';
-    } else {
-      s += '<circle cx="292" cy="' + pal.sunY + '" r="' + (t.key === "yuu" ? 24 : 18) + '" fill="' + pal.sun + '" opacity="0.9"></circle>';
-      // 雲（ゆっくり流れる）
-      for (var cl = 0; cl < 2; cl++) {
-        var cy = 34 + cl * 30, dur = 46 + cl * 22;
-        s += '<g opacity="0.7"><ellipse cx="60" cy="' + cy + '" rx="34" ry="9" fill="#ffffff"></ellipse><ellipse cx="88" cy="' + (cy + 4) + '" rx="24" ry="7" fill="#ffffff"></ellipse>' +
-          '<animateTransform attributeName="transform" type="translate" from="-140 0" to="400 0" dur="' + dur + 's" repeatCount="indefinite"/></g>';
-      }
-      // 鳥
-      if (t.key !== "yuu") {
-        s += '<g stroke="#5a6a66" stroke-width="1.6" fill="none" opacity="0.8">' +
-          '<path d="M 0 60 q 5 -5 9 0 q 5 -5 9 0"/><path d="M 24 70 q 4 -4 8 0 q 4 -4 8 0"/>' +
-          '<animateTransform attributeName="transform" type="translate" from="380 20" to="-80 -10" dur="30s" repeatCount="indefinite"/></g>';
-      }
-    }
-    // 遠山
-    s += ridgePath(rng, 138, 20, 0.85, pal.ridgeA);
-    s += ridgePath(rng, 162, 24, 0.92, pal.ridgeB);
-    // 水面
+    var sc = {
+      isDam: isDam,
+      ridges: [
+        { pts: ridgePts(rng, 128, 16, 7), snow: true },
+        { pts: ridgePts(rng, 152, 20, 9), snow: false },
+        { pts: ridgePts(rng, 176, 14, 12), snow: false, forest: !isDam }
+      ],
+      stars: [], clouds: [], stones: [], tufts: [], fgTufts: [], buoys: []
+    };
+    for (var st = 0; st < 42; st++) sc.stars.push([rng() * 360, rng() * 118, 0.5 + rng() * 1.1]);
+    for (var c = 0; c < 3; c++) sc.clouds.push({ y: 26 + c * 26 + rng() * 10, sp: 3.4 + c * 2.2 + rng() * 2, off: rng() * 460, s: 0.8 + rng() * 0.5 });
     if (isDam) {
-      s += '<rect x="0" y="190" width="360" height="230" fill="url(#waterGrad)"></rect>';
-      s += '<rect x="0" y="180" width="360" height="12" fill="' + (t.night ? "#223330" : "#5d7a5f") + '"></rect>';
-      s += '<path d="M 298 190 L 360 190 L 360 345 L 320 345 Z" fill="' + (t.night ? "#5a5f60" : "#c9c9c2") + '" stroke="' + (t.night ? "#43484a" : "#a8a89f") + '" stroke-width="2"></path>';
-      for (var i = 0; i < 5; i++) {
-        var rx = 304 + i * 11;
-        s += '<line x1="' + rx + '" y1="190" x2="' + rx + '" y2="180" stroke="' + (t.night ? "#6b7072" : "#8b8b83") + '" stroke-width="2"></line>';
+      for (var b = 0; b < 5; b++) sc.buoys.push({ x: 28 + b * 62 + rng() * 18, ph: rng() * 6 });
+    } else {
+      sc.stones = [
+        { x: 98, y: 302, r: 13 }, { x: 262, y: 332, r: 16 }, { x: 66, y: 368, r: 11 }, { x: 300, y: 396, r: 18 }
+      ];
+      for (var tg = 0; tg < 8; tg++) sc.tufts.push({ x: 6 + tg * 15 + rng() * 8, y: 420, h: 30 + rng() * 26, lean: 5 + rng() * 9, ph: rng() * 6 });
+      for (var tg2 = 0; tg2 < 6; tg2++) sc.tufts.push({ x: 300 + tg2 * 11 + rng() * 6, y: 420, h: 24 + rng() * 20, lean: -(4 + rng() * 8), ph: rng() * 6 });
+    }
+    // 手前フレーミング草（左右下・大きめの暗いシルエット）
+    for (var fg = 0; fg < 7; fg++) sc.fgTufts.push({ x: (fg < 4 ? 2 + fg * 12 : 322 + (fg - 4) * 13) + rng() * 6, h: 46 + rng() * 34, lean: (fg < 4 ? 1 : -1) * (8 + rng() * 10), ph: rng() * 6 });
+    return sc;
+  }
+
+  function ridgeFill(ctx, pts, colTop, colBot, yClose) {
+    var minY = 1000;
+    for (var i = 0; i < pts.length; i++) minY = Math.min(minY, pts[i][1]);
+    var g = ctx.createLinearGradient(0, minY, 0, yClose);
+    g.addColorStop(0, colTop); g.addColorStop(1, colBot);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
+    ctx.lineTo(390, yClose); ctx.lineTo(-30, yClose); ctx.closePath();
+    ctx.fillStyle = g; ctx.fill();
+  }
+
+  function drawRidgeInto(ctx, pal, sc, idx, yClose) {
+    var r = sc.ridges[idx];
+    var cols = idx === 0 ? pal.r1 : idx === 1 ? pal.r2 : pal.r3;
+    ridgeFill(ctx, r.pts, cols[0], cols[1], yClose);
+    if (idx === 0 && pal.snow) {
+      ctx.fillStyle = "rgba(250,252,252,0.85)";
+      for (var i = 1; i < r.pts.length - 1; i++) {
+        var p = r.pts[i];
+        if (p[1] < r.pts[i - 1][1] - 4 && p[1] < r.pts[i + 1][1] - 4) {
+          ctx.beginPath();
+          ctx.moveTo(p[0] - 7, p[1] + 6); ctx.lineTo(p[0], p[1]); ctx.lineTo(p[0] + 7, p[1] + 6);
+          ctx.quadraticCurveTo(p[0], p[1] + 9, p[0] - 7, p[1] + 6);
+          ctx.fill();
+        }
       }
-      for (var j = 0; j < 3; j++) {
-        var sx = 40 + j * 90, sy = 250 + j * 34;
-        s += '<ellipse cx="' + sx + '" cy="' + sy + '" rx="52" ry="6" fill="' + pal.glint + '"><animate attributeName="opacity" values="0.12;0.3;0.12" dur="' + (2.6 + j * 0.7) + 's" repeatCount="indefinite"/></ellipse>';
+    }
+    if (r.forest) {
+      ctx.fillStyle = "rgba(20,40,26,0.5)";
+      for (var f = 0; f < r.pts.length - 1; f++) {
+        var a = r.pts[f], bpt = r.pts[f + 1];
+        for (var k = 0; k < 4; k++) {
+          var tx = a[0] + (bpt[0] - a[0]) * (k / 4) + 2;
+          var ty = a[1] + (bpt[1] - a[1]) * (k / 4);
+          var th = 4 + hash2(f * 7 + k, 11) * 5;
+          ctx.beginPath();
+          ctx.moveTo(tx - 2.4, ty + 2); ctx.lineTo(tx, ty - th); ctx.lineTo(tx + 2.4, ty + 2);
+          ctx.closePath(); ctx.fill();
+        }
+      }
+    }
+  }
+
+  function spawnRipple(x, y, big) {
+    ripples.push({ x: x, y: y, r: big ? 7 : 4, vr: big ? 30 : 18, a: big ? 0.55 : 0.35 });
+    if (ripples.length > 14) ripples.shift();
+  }
+
+  function burst(x, y, n, power, hue) {
+    for (var i = 0; i < n; i++) {
+      var ang = Math.PI * (1.05 + Math.random() * 0.9); // 上向き扇
+      var sp = power * (0.5 + Math.random() * 0.9);
+      particles.push({
+        x: x + (Math.random() * 2 - 1) * 6, y: y,
+        vx: Math.cos(ang) * sp * (Math.random() < 0.5 ? 1 : -1),
+        vy: Math.sin(ang) * sp,
+        life: 0.55 + Math.random() * 0.5, age: 0,
+        r: 1.4 + Math.random() * 2.6, hue: hue || "255,255,255"
+      });
+    }
+    if (particles.length > 90) particles.splice(0, particles.length - 90);
+  }
+
+  function paintScene(now, dt) {
+    if (!cv.ctx || !scene) return;
+    var ctx = cv.ctx;
+    var t = state.time || timeInfo();
+    var pal = PAL[t.key] || PAL.hiru;
+    var sc = scene;
+    var H = HORIZON;
+
+    cv.shakeAmp *= Math.pow(0.0012, dt);
+    var shx = (Math.random() * 2 - 1) * cv.shakeAmp;
+    var shy = (Math.random() * 2 - 1) * cv.shakeAmp * 0.6;
+    ctx.setTransform(cv.sx, 0, 0, cv.sy, shx * cv.sx, shy * cv.sy);
+    ctx.clearRect(-8, -8, 376, 436);
+
+    // 1) 空
+    var skyG = ctx.createLinearGradient(0, 0, 0, H + 4);
+    skyG.addColorStop(0, pal.sky[0]); skyG.addColorStop(0.55, pal.sky[1]); skyG.addColorStop(1, pal.sky[2]);
+    ctx.fillStyle = skyG;
+    ctx.fillRect(-8, -8, 376, H + 12);
+
+    // 星（夜）
+    if (pal.stars) {
+      for (var si = 0; si < sc.stars.length; si++) {
+        var stp = sc.stars[si];
+        var tw = 0.35 + 0.65 * hash2(si, Math.floor(now / 420));
+        ctx.globalAlpha = tw * 0.9;
+        ctx.fillStyle = "#e8f0f6";
+        ctx.beginPath(); ctx.arc(stp[0], stp[1], stp[2] * 0.8, 0, 6.3); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // 太陽／月＋グロー
+    var ly = t.key === "yuu" ? 100 : t.key === "asa" ? 74 : 52;
+    var glowG = ctx.createRadialGradient(pal.lx, ly, 4, pal.lx, ly, 90);
+    glowG.addColorStop(0, "rgba(" + pal.glow + ",0.5)");
+    glowG.addColorStop(1, "rgba(" + pal.glow + ",0)");
+    ctx.fillStyle = glowG;
+    ctx.fillRect(pal.lx - 90, ly - 90, 180, 180);
+    ctx.fillStyle = pal.sun;
+    ctx.beginPath(); ctx.arc(pal.lx, ly, t.key === "yuu" ? 22 : 16, 0, 6.3); ctx.fill();
+    if (t.night) { // 三日月
+      ctx.fillStyle = pal.sky[0];
+      ctx.beginPath(); ctx.arc(pal.lx - 7, ly - 4, 14, 0, 6.3); ctx.fill();
+    }
+
+    // 雲（夜以外）
+    if (!t.night) {
+      for (var ci = 0; ci < sc.clouds.length; ci++) {
+        var cl = sc.clouds[ci];
+        var cx0 = ((cl.off + now / 1000 * cl.sp) % 480) - 90;
+        ctx.fillStyle = "rgba(255,255,255,0.30)";
+        for (var e = 0; e < 4; e++) {
+          ctx.beginPath();
+          ctx.ellipse(cx0 + e * 20 * cl.s, cl.y + (e % 2) * 4, (26 - e * 4) * cl.s, (8 - e) * cl.s + 4, 0, 0, 6.3);
+          ctx.fill();
+        }
+      }
+    }
+
+    // 2) 山なみ（遠→近、麓に霞）
+    drawRidgeInto(ctx, pal, sc, 0, H + 2);
+    var hazeG = ctx.createLinearGradient(0, 138, 0, 172);
+    hazeG.addColorStop(0, "rgba(255,255,255,0)"); hazeG.addColorStop(1, t.night ? "rgba(160,190,205,0.13)" : "rgba(255,255,255,0.30)");
+    ctx.fillStyle = hazeG; ctx.fillRect(-8, 138, 376, 34);
+    drawRidgeInto(ctx, pal, sc, 1, H + 2);
+    drawRidgeInto(ctx, pal, sc, 2, H + 2);
+
+    // 3) 水面ベース
+    var wG = ctx.createLinearGradient(0, H, 0, 420);
+    wG.addColorStop(0, pal.waterHi); wG.addColorStop(0.32, pal.waterMid); wG.addColorStop(1, pal.waterDeep);
+    ctx.fillStyle = wG;
+    ctx.fillRect(-8, H, 376, 420 - H + 8);
+
+    // 4) 山の反射（上下反転・圧縮・揺らぎ）
+    ctx.save();
+    ctx.beginPath(); ctx.rect(-8, H, 376, 110); ctx.clip();
+    ctx.globalAlpha = 0.20;
+    ctx.transform(1, 0, 0, -0.55, 0, H * 1.55);
+    drawRidgeInto(ctx, pal, sc, 1, H + 2);
+    drawRidgeInto(ctx, pal, sc, 2, H + 2);
+    ctx.restore();
+    // 反射を波で崩す横ストリーク
+    for (var w = 0; w < 7; w++) {
+      var wy = H + 5 + w * 13 + Math.sin(now / 900 + w) * 2;
+      ctx.fillStyle = "rgba(" + (t.night ? "10,30,40" : "255,255,255") + "," + (0.05 + 0.02 * (w % 2)) + ")";
+      ctx.fillRect(-8, wy, 376, 2.2 + w * 0.3);
+    }
+
+    // 5) 光のグリッター（光源直下の煌めき）
+    for (var gy = H + 6; gy < H + 116; gy += 6) {
+      var depth = (gy - H) / 110;
+      var halfW = 20 + depth * 66;
+      var row = Math.floor(gy);
+      for (var gs = 0; gs < 2; gs++) {
+        var hx = hash2(row, gs * 31);
+        var flick = hash2(row * 3 + gs, Math.floor(now / 110));
+        if (flick < 0.4) continue;
+        var gxp = pal.lx + (hx - 0.5) * halfW * 1.5;
+        var glen = 2.5 + depth * 7 + flick * 4;
+        ctx.strokeStyle = "rgba(" + pal.glint + "," + (0.5 * flick * (1 - depth * 0.5)) + ")";
+        ctx.lineWidth = 1.1 + depth * 0.8;
+        ctx.beginPath(); ctx.moveTo(gxp - glen / 2, gy); ctx.lineTo(gxp + glen / 2, gy); ctx.stroke();
+      }
+    }
+
+    // 6) うねり（透視: 手前ほど速く広く）
+    var swellN = sc.isDam ? 3 : 4;
+    for (var k = 0; k < swellN; k++) {
+      var span = sc.isDam ? 72 : 52;
+      var yk = H + 14 + k * span + ((now / 1000 * (7 + k * 5)) % span);
+      var amp = 2 + k * 1.5;
+      ctx.beginPath();
+      for (var xx = -8; xx <= 368; xx += 12) {
+        var yyy = yk + Math.sin(xx / 46 + now / 700 + k * 2) * amp;
+        if (xx === -8) ctx.moveTo(xx, yyy); else ctx.lineTo(xx, yyy);
+      }
+      ctx.strokeStyle = "rgba(255,255,255," + (sc.isDam ? 0.05 : 0.08) + ")";
+      ctx.lineWidth = 1.6 + k * 1.1;
+      ctx.stroke();
+      ctx.beginPath();
+      for (var xx2 = -8; xx2 <= 368; xx2 += 12) {
+        var yy2 = yk + 3.5 + Math.sin(xx2 / 46 + now / 700 + k * 2) * amp;
+        if (xx2 === -8) ctx.moveTo(xx2, yy2); else ctx.lineTo(xx2, yy2);
+      }
+      ctx.strokeStyle = "rgba(0,18,28,0.06)";
+      ctx.lineWidth = 1.4 + k;
+      ctx.stroke();
+    }
+
+    // 7) 地形（河川の両岸 or ダム）
+    if (!sc.isDam) {
+      // 左岸
+      var bgL = ctx.createLinearGradient(0, 196, 0, 420);
+      bgL.addColorStop(0, pal.bank[0]); bgL.addColorStop(1, pal.bank[1]);
+      ctx.fillStyle = bgL;
+      ctx.beginPath(); ctx.moveTo(-8, 420); ctx.lineTo(-8, 224); ctx.quadraticCurveTo(60, 212, 122, 196);
+      ctx.lineTo(96, 420); ctx.closePath(); ctx.fill();
+      // 右岸
+      var bgR = ctx.createLinearGradient(0, 193, 0, 420);
+      bgR.addColorStop(0, pal.bank[0]); bgR.addColorStop(1, pal.bank[1]);
+      ctx.fillStyle = bgR;
+      ctx.beginPath(); ctx.moveTo(368, 420); ctx.lineTo(368, 214); ctx.quadraticCurveTo(300, 202, 252, 193);
+      ctx.lineTo(296, 420); ctx.closePath(); ctx.fill();
+      // 波打ち際の白泡
+      ctx.strokeStyle = "rgba(255,255,255,0.34)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(122, 197); ctx.quadraticCurveTo(108, 300, 97, 418); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(252, 194); ctx.quadraticCurveTo(272, 300, 294, 418); ctx.stroke();
+      // 石（立体シェーディング＋水面の接地影）
+      for (var sti = 0; sti < sc.stones.length; sti++) {
+        var stn = sc.stones[sti];
+        ctx.fillStyle = "rgba(0,20,26,0.22)";
+        ctx.beginPath(); ctx.ellipse(stn.x, stn.y + stn.r * 0.44, stn.r * 1.12, stn.r * 0.3, 0, 0, 6.3); ctx.fill();
+        var sg = ctx.createRadialGradient(stn.x - stn.r * 0.35, stn.y - stn.r * 0.4, stn.r * 0.2, stn.x, stn.y, stn.r * 1.15);
+        sg.addColorStop(0, t.night ? "#5d6a68" : "#b9c2ba");
+        sg.addColorStop(1, t.night ? "#2a3634" : "#5f6c64");
+        ctx.fillStyle = sg;
+        ctx.beginPath(); ctx.ellipse(stn.x, stn.y, stn.r, stn.r * 0.68, 0, 0, 6.3); ctx.fill();
+      }
+      // 岸の草（風に揺れる）
+      ctx.lineWidth = 2.6; ctx.lineCap = "round";
+      for (var tf = 0; tf < sc.tufts.length; tf++) {
+        var tuf = sc.tufts[tf];
+        var sway = Math.sin(now / 800 + tuf.ph) * 3;
+        ctx.strokeStyle = "rgba(" + (t.night ? "42,74,52" : "74,110,58") + ",0.9)";
+        ctx.beginPath();
+        ctx.moveTo(tuf.x, tuf.y);
+        ctx.quadraticCurveTo(tuf.x + tuf.lean * 0.5, tuf.y - tuf.h * 0.62, tuf.x + tuf.lean + sway, tuf.y - tuf.h);
+        ctx.stroke();
       }
     } else {
-      s += '<rect x="0" y="190" width="360" height="230" fill="url(#waterGrad)"></rect>';
-      s += '<polygon points="0,420 0,228 122,196 88,420" fill="' + (t.night ? "#2e4438" : "#7ea06c") + '"></polygon>';
-      s += '<polygon points="360,420 360,218 252,193 302,420" fill="' + (t.night ? "#273c31" : "#6d9060") + '"></polygon>';
-      s += '<ellipse cx="98" cy="300" rx="11" ry="6" fill="' + (t.night ? "#4c5a56" : "#9aa39b") + '"></ellipse>';
-      s += '<ellipse cx="262" cy="330" rx="14" ry="7" fill="' + (t.night ? "#4c5a56" : "#9aa39b") + '"></ellipse>';
-      s += '<ellipse cx="66" cy="368" rx="9" ry="5" fill="' + (t.night ? "#44524e" : "#8f988f") + '"></ellipse>';
-      for (var k = 0; k < 3; k++) {
-        var yy = 258 + k * 42;
-        s += '<path d="M 92 ' + yy + ' Q 180 ' + (yy - 16) + ' 268 ' + yy + '" fill="none" stroke="' + pal.glint + '66" stroke-width="2" stroke-dasharray="14 18"><animate attributeName="stroke-dashoffset" from="0" to="-64" dur="2.2s" repeatCount="indefinite"/></path>';
+      // 対岸の森
+      ctx.fillStyle = t.night ? "#16281e" : "#48663f";
+      ctx.fillRect(-8, H - 12, 376, 13);
+      ctx.fillStyle = t.night ? "#122016" : "#3c5834";
+      for (var tr = 0; tr < 46; tr++) {
+        var trx = -6 + tr * 8.2;
+        var trh = 5 + hash2(tr, 5) * 7;
+        ctx.beginPath();
+        ctx.moveTo(trx - 3, H - 10); ctx.lineTo(trx, H - 10 - trh); ctx.lineTo(trx + 3, H - 10);
+        ctx.closePath(); ctx.fill();
       }
-      // 手前の草（ゆれる）
-      s += '<g fill="none" stroke="' + (t.night ? "#3c5544" : "#5d8054") + '" stroke-width="3" stroke-linecap="round">';
-      for (var g2 = 0; g2 < 5; g2++) {
-        var gx = 12 + g2 * 14 + rng() * 6, gy = 420, gh = 34 + rng() * 22, lean = 6 + rng() * 8;
-        s += '<path d="M ' + gx + ' ' + gy + ' q ' + lean.toFixed(1) + ' -' + (gh * 0.6).toFixed(1) + ' ' + (lean * 1.7).toFixed(1) + ' -' + gh.toFixed(1) + '">' +
-          '<animate attributeName="d" values="M ' + gx + ' ' + gy + ' q ' + lean.toFixed(1) + ' -' + (gh * 0.6).toFixed(1) + ' ' + (lean * 1.7).toFixed(1) + ' -' + gh.toFixed(1) + ';M ' + gx + ' ' + gy + ' q ' + (lean + 4).toFixed(1) + ' -' + (gh * 0.6).toFixed(1) + ' ' + (lean * 2.3).toFixed(1) + ' -' + (gh - 3).toFixed(1) + ';M ' + gx + ' ' + gy + ' q ' + lean.toFixed(1) + ' -' + (gh * 0.6).toFixed(1) + ' ' + (lean * 1.7).toFixed(1) + ' -' + gh.toFixed(1) + '" dur="' + (2.8 + rng()).toFixed(1) + 's" repeatCount="indefinite"/></path>';
+      // 堤体（コンクリのグラデ＋目地＋天端）
+      var cw = ctx.createLinearGradient(296, 0, 368, 0);
+      cw.addColorStop(0, t.night ? "#565c5e" : "#d6d6cc");
+      cw.addColorStop(1, t.night ? "#3a4042" : "#a2a296");
+      ctx.fillStyle = cw;
+      ctx.beginPath(); ctx.moveTo(298, H - 6); ctx.lineTo(368, H - 6); ctx.lineTo(368, 352); ctx.lineTo(322, 352); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.13)"; ctx.lineWidth = 1;
+      for (var jn = 0; jn < 5; jn++) {
+        ctx.beginPath(); ctx.moveTo(308 + jn * 12, H - 5); ctx.lineTo(322 + jn * 10, 350); ctx.stroke();
       }
-      s += '</g>';
+      ctx.fillStyle = t.night ? "#6a7072" : "#e8e8de";
+      ctx.fillRect(296, H - 10, 72, 5);
+      ctx.strokeStyle = t.night ? "#8a9092" : "#8b8b83"; ctx.lineWidth = 1.6;
+      for (var rl = 0; rl < 6; rl++) {
+        ctx.beginPath(); ctx.moveTo(300 + rl * 13, H - 10); ctx.lineTo(300 + rl * 13, H - 18); ctx.stroke();
+      }
+      // 取水塔
+      var twG = ctx.createLinearGradient(296, 0, 322, 0);
+      twG.addColorStop(0, t.night ? "#4c5254" : "#c2c2b8"); twG.addColorStop(1, t.night ? "#33393b" : "#8e8e84");
+      ctx.fillStyle = twG;
+      ctx.fillRect(300, H + 8, 20, 42);
+      ctx.beginPath(); ctx.arc(310, H + 8, 10, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "rgba(0,10,16,0.35)";
+      ctx.beginPath(); ctx.ellipse(310, H + 52, 13, 3.4, 0, 0, 6.3); ctx.fill();
+      // ブイのライン
+      for (var bi = 0; bi < sc.buoys.length; bi++) {
+        var bu = sc.buoys[bi];
+        var by = H + 42 + Math.sin(now / 700 + bu.ph) * 1.6;
+        ctx.fillStyle = "#e07840";
+        ctx.beginPath(); ctx.arc(bu.x, by, 2.6, 0, 6.3); ctx.fill();
+        ctx.fillStyle = "rgba(224,120,64,0.25)";
+        ctx.beginPath(); ctx.ellipse(bu.x, by + 3.4, 3.4, 1.1, 0, 0, 6.3); ctx.fill();
+      }
     }
-    // ウキ（JSがtransformで動かす）＋常設の波紋
-    s += '<g id="rippleG" visibility="hidden"><circle cx="180" cy="288" r="6" fill="none" stroke="' + pal.glint + 'aa"><animate attributeName="r" values="6;44" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2s" repeatCount="indefinite"/></circle></g>';
-    s += '<g id="bobberG" visibility="hidden"><line x1="0" y1="-9" x2="0" y2="4" stroke="#8a4a3a" stroke-width="2"/><circle cx="0" cy="0" r="5.5" fill="#d24a3a"/><path d="M -5.5 0 a 5.5 5.5 0 0 0 11 0 Z" fill="#f2f2ea"/></g>';
-    s += '</svg>';
-    return s;
+
+    // 8) 魚影（アタリ・ファイト中）
+    if (fs.shadowId) {
+      var simg = fishImage(fs.shadowId, true);
+      if (simg.complete && simg.naturalWidth > 0) {
+        var sxp, syp, wob;
+        if (fs.phase === "fight") { sxp = fs.fpX; syp = fs.fpY; wob = Math.sin(now / 130) * 4; }
+        else { sxp = 180 + Math.sin(now / 340) * 12; syp = 302; wob = Math.sin(now / 260) * 3; }
+        // V字ウェイク
+        if (fs.phase === "fight") {
+          ctx.strokeStyle = "rgba(255,255,255,0.16)"; ctx.lineWidth = 1.6;
+          ctx.beginPath(); ctx.moveTo(sxp, syp - 6); ctx.lineTo(sxp + 34, syp - 16); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(sxp, syp - 6); ctx.lineTo(sxp + 34, syp + 6); ctx.stroke();
+        }
+        ctx.save();
+        ctx.globalAlpha = 0.32;
+        ctx.filter = "blur(1.6px)";
+        ctx.drawImage(simg, sxp - 55, syp - 26 + wob, 110, 55);
+        ctx.restore();
+        ctx.filter = "none";
+      }
+    }
+
+    // 9) 波紋
+    for (var ri = ripples.length - 1; ri >= 0; ri--) {
+      var rp = ripples[ri];
+      rp.r += rp.vr * dt; rp.a -= dt * 0.5;
+      if (rp.a <= 0.01) { ripples.splice(ri, 1); continue; }
+      ctx.strokeStyle = "rgba(" + pal.glint + "," + rp.a + ")";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.ellipse(rp.x, rp.y, rp.r, rp.r * 0.34, 0, 0, 6.3); ctx.stroke();
+    }
+
+    // 10) ウキ
+    var showBob = fs.phase === "cast" || fs.phase === "wait" || fs.phase === "bite";
+    if (showBob) {
+      var bx = fs.bobX, by = fs.bobY;
+      if (fs.phase !== "cast") {
+        ctx.fillStyle = "rgba(0,18,26,0.25)";
+        ctx.beginPath(); ctx.ellipse(bx, by + 7, 7, 2.2, 0, 0, 6.3); ctx.fill();
+      }
+      ctx.strokeStyle = "#7c4034"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(bx, by - 10); ctx.lineTo(bx, by + 3); ctx.stroke();
+      var bg = ctx.createRadialGradient(bx - 1.8, by - 2, 1, bx, by, 6.4);
+      bg.addColorStop(0, "#ff8a66"); bg.addColorStop(0.6, "#e04a30"); bg.addColorStop(1, "#b02818");
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(bx, by, 5.8, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "#f4f2e6";
+      ctx.beginPath(); ctx.arc(bx, by, 5.8, 0.15, Math.PI - 0.15); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.beginPath(); ctx.arc(bx - 2, by - 2.4, 1.2, 0, 6.3); ctx.fill();
+    }
+
+    // 11) ライン＆ロッド（テーパー・ガイド・グリップ・リール）
+    var bend = fs.rodBend || 0;
+    var tipX = 224 - bend * 34, tipY = 208 + bend * 52;
+    var baseX = 338, baseY = 430;
+    var ctrlX = 302 - bend * 8, ctrlY = 332 + bend * 20;
+    var target = null;
+    if (showBob) target = [fs.bobX, fs.bobY - 8];
+    else if (fs.phase === "fight") target = [fs.fpX, fs.fpY - 4];
+    if (target) {
+      var sag = bend > 0.35 ? -4 : 15 - bend * 28;
+      var mx = (tipX + target[0]) / 2, my = Math.min(tipY, target[1]) + sag;
+      ctx.strokeStyle = "rgba(255,255,255,0.28)"; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.quadraticCurveTo(mx, my, target[0], target[1]); ctx.stroke();
+      ctx.strokeStyle = "rgba(250,250,244,0.85)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.quadraticCurveTo(mx, my, target[0], target[1]); ctx.stroke();
+    }
+    // ロッド本体（テーパー: 分割セグメントで先細り）
+    var segs = 15, px0 = baseX, py0 = baseY;
+    for (var sgi = 1; sgi <= segs; sgi++) {
+      var tt = sgi / segs;
+      var qx = (1 - tt) * (1 - tt) * baseX + 2 * (1 - tt) * tt * ctrlX + tt * tt * tipX;
+      var qy = (1 - tt) * (1 - tt) * baseY + 2 * (1 - tt) * tt * ctrlY + tt * tt * tipY;
+      ctx.strokeStyle = "#33241a";
+      ctx.lineWidth = (10 - tt * 7.4) + 1.8;
+      ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(qx, qy); ctx.stroke();
+      px0 = qx; py0 = qy;
+    }
+    px0 = baseX; py0 = baseY;
+    for (var sgj = 1; sgj <= segs; sgj++) {
+      var tj = sgj / segs;
+      var qx2 = (1 - tj) * (1 - tj) * baseX + 2 * (1 - tj) * tj * ctrlX + tj * tj * tipX;
+      var qy2 = (1 - tj) * (1 - tj) * baseY + 2 * (1 - tj) * tj * ctrlY + tj * tj * tipY;
+      var shade = Math.round(106 + tj * 52);
+      ctx.strokeStyle = "rgb(" + shade + "," + Math.round(shade * 0.72) + "," + Math.round(shade * 0.5) + ")";
+      ctx.lineWidth = 10 - tj * 7.4;
+      ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(qx2, qy2); ctx.stroke();
+      px0 = qx2; py0 = qy2;
+    }
+    // ガイド
+    ctx.strokeStyle = "rgba(226,230,232,0.9)"; ctx.lineWidth = 1.2;
+    var gts = [0.34, 0.52, 0.7, 0.86];
+    for (var gi = 0; gi < gts.length; gi++) {
+      var gt = gts[gi];
+      var ggx = (1 - gt) * (1 - gt) * baseX + 2 * (1 - gt) * gt * ctrlX + gt * gt * tipX;
+      var ggy = (1 - gt) * (1 - gt) * baseY + 2 * (1 - gt) * gt * ctrlY + gt * gt * tipY;
+      ctx.beginPath(); ctx.arc(ggx - 2.5, ggy - 2.5, 2.8 - gi * 0.45, 0, 6.3); ctx.stroke();
+    }
+    // コルクグリップ
+    ctx.strokeStyle = "#c9a878"; ctx.lineWidth = 12; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(baseX, baseY); ctx.lineTo(baseX - 8.5, baseY - 21); ctx.stroke();
+    ctx.strokeStyle = "#2e2620"; ctx.lineWidth = 12;
+    ctx.beginPath(); ctx.moveTo(baseX - 11, baseY - 27); ctx.lineTo(baseX - 14, baseY - 34); ctx.stroke();
+    // リール
+    var rxc = 320, ryc = 400;
+    ctx.fillStyle = "#252b30";
+    ctx.beginPath(); ctx.arc(rxc, ryc, 11, 0, 6.3); ctx.fill();
+    var rg = ctx.createRadialGradient(rxc - 3, ryc - 3, 2, rxc, ryc, 10);
+    rg.addColorStop(0, "#59636a"); rg.addColorStop(1, "#31383e");
+    ctx.fillStyle = rg;
+    ctx.beginPath(); ctx.arc(rxc, ryc, 9.4, 0, 6.3); ctx.fill();
+    ctx.fillStyle = "#b8c2c8";
+    ctx.beginPath(); ctx.arc(rxc, ryc, 4.6, 0, 6.3); ctx.fill();
+    var ha = fs.reelAngle || 0;
+    ctx.strokeStyle = "#d8dce0"; ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.moveTo(rxc, ryc);
+    ctx.lineTo(rxc + Math.cos(ha) * 10, ryc + Math.sin(ha) * 10); ctx.stroke();
+    ctx.fillStyle = "#e8ecee";
+    ctx.beginPath(); ctx.arc(rxc + Math.cos(ha) * 10, ryc + Math.sin(ha) * 10, 2.6, 0, 6.3); ctx.fill();
+
+    // 12) ランディングの魚（水面から跳ねる）
+    if (fs.phase === "land" && fs.fightFishId) {
+      var limg = fishImage(fs.fightFishId, false);
+      var lt = Math.min(1, fs.landT / 1.0);
+      if (limg.complete && limg.naturalWidth > 0) {
+        var ease = 1 - (1 - lt) * (1 - lt);
+        var fy = 316 - ease * 150 + Math.sin(lt * 9) * 3 * (1 - lt);
+        var rot = -0.45 + ease * 0.55;
+        var scl = 0.62 + ease * 0.42;
+        ctx.fillStyle = "rgba(0,18,26," + (0.28 * (1 - ease * 0.6)) + ")";
+        ctx.beginPath(); ctx.ellipse(180, 318, 46 * (1 - ease * 0.4), 7, 0, 0, 6.3); ctx.fill();
+        ctx.save();
+        ctx.translate(180, fy);
+        ctx.rotate(rot);
+        ctx.scale(scl, scl);
+        ctx.drawImage(limg, -110, -55, 220, 110);
+        ctx.restore();
+      }
+    }
+
+    // 13) 粒子（しぶき）
+    for (var pi = particles.length - 1; pi >= 0; pi--) {
+      var pp = particles[pi];
+      pp.age += dt;
+      if (pp.age >= pp.life) { particles.splice(pi, 1); continue; }
+      pp.vy += 300 * dt;
+      pp.x += pp.vx * dt; pp.y += pp.vy * dt;
+      var la = 1 - pp.age / pp.life;
+      ctx.fillStyle = "rgba(" + pp.hue + "," + (la * 0.9) + ")";
+      ctx.beginPath(); ctx.arc(pp.x, pp.y, pp.r * (0.6 + la * 0.4), 0, 6.3); ctx.fill();
+    }
+
+    // 14) 手前フレーミング草（暗いシルエット・パララックス感）
+    ctx.lineCap = "round";
+    for (var fgi = 0; fgi < sc.fgTufts.length; fgi++) {
+      var fgt = sc.fgTufts[fgi];
+      var fsw = Math.sin(now / 950 + fgt.ph) * 4;
+      ctx.strokeStyle = t.night ? "rgba(8,18,12,0.85)" : "rgba(24,44,26,0.8)";
+      ctx.lineWidth = 3.4;
+      ctx.beginPath();
+      ctx.moveTo(fgt.x, 424);
+      ctx.quadraticCurveTo(fgt.x + fgt.lean * 0.5, 424 - fgt.h * 0.6, fgt.x + fgt.lean + fsw, 424 - fgt.h);
+      ctx.stroke();
+    }
+
+    // 15) グレーディング（ビネット＋時間帯ティント）
+    var vg = ctx.createRadialGradient(180, 235, 120, 180, 235, 330);
+    vg.addColorStop(0, "rgba(4,14,20,0)");
+    vg.addColorStop(1, "rgba(4,14,20,0.32)");
+    ctx.fillStyle = vg;
+    ctx.fillRect(-8, -8, 376, 436);
+    ctx.fillStyle = pal.tint;
+    ctx.fillRect(-8, -8, 376, 436);
   }
 
   function renderStageScene(loc) {
-    document.getElementById("stageScene").innerHTML = sceneSVG(loc);
+    initCanvas();
+    scene = buildScene(loc);
+    particles = [];
+    ripples = [];
     document.getElementById("stageLabel").textContent = loc.name + " [" + (loc.type === "river" ? "河川" : "ダム") + "]";
   }
 
   function showFishShadow(fishId) {
-    var wrap = document.getElementById("fishShadowWrap");
-    if (!fishId) {
-      wrap.innerHTML = "";
-      wrap.classList.remove("show");
-      return;
-    }
-    wrap.innerHTML = renderFish(fishId, { silhouette: true, uid: "sh" });
-    wrap.classList.add("show");
+    fs.shadowId = fishId || null;
+    if (fishId) fishImage(fishId, true); // 事前ロード
   }
 
   function clearFishShadow() {
-    var wrap = document.getElementById("fishShadowWrap");
-    wrap.innerHTML = "";
-    wrap.classList.remove("show");
+    fs.shadowId = null;
   }
 
   function spawnSplash() {
-    var stage = document.getElementById("fishStage");
-    for (var i = 0; i < 6; i++) {
-      var dot = document.createElement("div");
-      dot.className = "splash-dot";
-      var angle = (i / 6) * Math.PI * 2;
-      dot.style.setProperty("--dx", (Math.cos(angle) * 32).toFixed(1) + "px");
-      dot.style.setProperty("--dy", (Math.sin(angle) * 32).toFixed(1) + "px");
-      stage.appendChild(dot);
-      (function (el) { setTimeout(function () { el.remove(); }, 550); })(dot);
-    }
+    burst(fs.bobX || 180, (fs.bobY || 288) + 2, 16, 130, "235,246,250");
+    spawnRipple(fs.bobX || 180, (fs.bobY || 288) + 4, true);
+    cv.shakeAmp = 4;
   }
 
   // ===== 効果音（Web Audio 合成・外部ファイルなし）=====
@@ -2145,46 +2611,6 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
   }
 
-  // ===== ロッド＆ライン描画（rAFで毎フレーム更新）=====
-  var rodRefs = null;
-  function buildRodLayer() {
-    var layer = document.getElementById("rodLayer");
-    layer.innerHTML = '<svg viewBox="0 0 360 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">' +
-      '<path id="linePath" d="" fill="none" stroke="#f8f8f4" stroke-opacity="0.75" stroke-width="1.3"/>' +
-      '<path id="rodPath" d="" fill="none" stroke="#5a4632" stroke-width="5.5" stroke-linecap="round"/>' +
-      '<path id="rodHiPath" d="" fill="none" stroke="#8a7050" stroke-width="2" stroke-linecap="round"/>' +
-      '<g id="reelG"><circle cx="322" cy="399" r="9.5" fill="#3a3f44" stroke="#22262a" stroke-width="2"/>' +
-      '<line id="reelHandle" x1="322" y1="399" x2="330" y2="391" stroke="#c9ced2" stroke-width="2.5" stroke-linecap="round"/></g>' +
-      '</svg>';
-    rodRefs = {
-      line: layer.querySelector("#linePath"),
-      rod: layer.querySelector("#rodPath"),
-      rodHi: layer.querySelector("#rodHiPath"),
-      handle: layer.querySelector("#reelHandle")
-    };
-  }
-
-  // bend 0..1（テンションで竿がしなる）、target = ライン先端 [x,y] or null
-  function drawRod(bend, target, reelAngle) {
-    if (!rodRefs) return;
-    var baseX = 336, baseY = 428;
-    var tipX = 224 - bend * 34, tipY = 208 + bend * 52;
-    var ctrlX = 300 - bend * 8, ctrlY = 330 + bend * 20;
-    var d = "M " + baseX + " " + baseY + " Q " + ctrlX + " " + ctrlY + " " + tipX.toFixed(1) + " " + tipY.toFixed(1);
-    rodRefs.rod.setAttribute("d", d);
-    rodRefs.rodHi.setAttribute("d", d);
-    if (target) {
-      var sag = bend > 0.35 ? -4 : 16 - bend * 30;
-      var mx = (tipX + target[0]) / 2, my = Math.min(tipY, target[1]) + sag;
-      rodRefs.line.setAttribute("d", "M " + tipX.toFixed(1) + " " + tipY.toFixed(1) + " Q " + mx.toFixed(1) + " " + my.toFixed(1) + " " + target[0].toFixed(1) + " " + target[1].toFixed(1));
-    } else {
-      rodRefs.line.setAttribute("d", "");
-    }
-    var a = reelAngle || 0;
-    rodRefs.handle.setAttribute("x2", (322 + Math.cos(a) * 8.5).toFixed(1));
-    rodRefs.handle.setAttribute("y2", (399 + Math.sin(a) * 8.5).toFixed(1));
-  }
-
   // ===== 釣りフェーズ管理 =====
   var FIGHT_STAMINA = { common: 4.2, uncommon: 5.6, rare: 7.2, legend: 10.5 };
   var FIGHT_PULL = { common: 0.7, uncommon: 0.85, rare: 1.0, legend: 1.28 };
@@ -2195,13 +2621,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     holding: false, tension: 55, progress: 0,
     pulling: false, nextPullAt: 0, pullEndAt: 0,
     slackTime: 0, reelAngle: 0, lastClickAt: 0,
-    fightFishId: null, fpX: 180, fpY: 300
+    fightFishId: null, fpX: 180, fpY: 300,
+    shadowId: null, landT: 0, rodBend: 0, nextIdleRippleAt: 0
   };
-
-  function sceneEl(id) {
-    var scene = document.getElementById("stageScene");
-    return scene ? scene.querySelector("#" + id) : null;
-  }
 
   function setStageText(txt, big) {
     var el = document.getElementById("stageText");
@@ -2218,7 +2640,6 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     state.time = timeInfo();
     if (loc) renderStageScene(loc);
     clearFishShadow();
-    buildRodLayer();
 
     var badge = document.getElementById("timeBadge");
     badge.textContent = state.time.label;
@@ -2257,6 +2678,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     setStageText(state.pendingFishId ? "！！ アタリ！ タップでアワセ！" : "！ ウキが動いた！ タップ！", true);
     SFX.bite();
     buzz(70);
+    cv.shakeAmp = 3;
+    spawnRipple(180, 292, true);
     state.biteActive = true;
     state.biteTimeoutTimer = setTimeout(function () {
       if (state.biteActive) {
@@ -2302,13 +2725,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (!fs.pulling && now >= fs.nextPullAt) {
       fs.pulling = true;
       fs.pullEndAt = now + 320 + Math.random() * 480;
-      stage.classList.add("pulling");
+      cv.shakeAmp = 5;
       buzz(35);
     }
     if (fs.pulling && now >= fs.pullEndAt) {
       fs.pulling = false;
       fs.nextPullAt = now + 500 + Math.random() * 950;
-      stage.classList.remove("pulling");
     }
 
     // テンション物理: 巻く=上昇 / 引き=上昇 / 離す=低下
@@ -2338,9 +2760,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     // 魚の暴れ位置（ラインの先端）
     fs.fpX = 180 + Math.sin(now / 320) * (fs.pulling ? 62 : 34);
     fs.fpY = 296 + Math.sin(now / 210) * (fs.pulling ? 16 : 7);
-    var wrap = document.getElementById("fishShadowWrap");
-    wrap.style.left = ((fs.fpX - 55) / 360 * 100) + "%";
-    wrap.style.top = ((fs.fpY - 12) / 420 * 100) + "%";
+    if (fs.pulling && Math.random() < 9 * dt) {
+      burst(fs.fpX, fs.fpY - 6, 3, 95, "230,244,248");
+      spawnRipple(fs.fpX, fs.fpY - 4, false);
+    }
 
     // 決着
     if (fs.tension >= 100) { endFishing("break"); return; }
@@ -2358,25 +2781,15 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     SFX.splash();
     setTimeout(function () { SFX.jingle(); }, 220);
     buzz([40, 60, 120]);
-    // 魚が水面から跳ねる
-    var stage = document.getElementById("fishStage");
-    var leap = document.createElement("div");
-    leap.className = "fish-leap";
-    leap.innerHTML = renderFish(fishId, { uid: "leap" });
-    stage.appendChild(leap);
-    for (var i = 0; i < 8; i++) {
-      var drop = document.createElement("div");
-      drop.className = "drop";
-      drop.style.left = (42 + Math.random() * 16) + "%";
-      drop.style.top = (52 + Math.random() * 10) + "%";
-      drop.style.setProperty("--dx", ((Math.random() * 2 - 1) * 70).toFixed(0) + "px");
-      stage.appendChild(drop);
-      (function (el) { setTimeout(function () { el.remove(); }, 750); })(drop);
-    }
+    // 魚が水面から跳ねる（Canvasで描画）
+    fs.landT = 0;
+    fishImage(fishId, false); // 事前ロード
+    burst(180, 316, 26, 175, "235,246,250");
+    spawnRipple(180, 318, true);
+    cv.shakeAmp = 6;
     setTimeout(function () {
-      leap.remove();
       handleHitSuccess(fishId);
-    }, 1150);
+    }, 1250);
   }
 
   var FAIL_INFO = {
@@ -2411,45 +2824,46 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       fs.raf = requestAnimationFrame(tick);
       var dt = Math.min(0.05, (now - fs.lastTs) / 1000);
       fs.lastTs = now;
-      var bobber = sceneEl("bobberG");
-      var ripple = sceneEl("rippleG");
 
       if (fs.phase === "cast") {
         fs.castT += dt;
         var p = Math.min(1, fs.castT / 0.7);
         // 竿先(224,208)から着水点(180,288)へ放物線
-        var bx = 224 - (224 - 180) * p;
-        var by = 208 + (288 - 208) * p - Math.sin(p * Math.PI) * 60;
-        if (bobber) {
-          bobber.setAttribute("visibility", "visible");
-          bobber.setAttribute("transform", "translate(" + bx.toFixed(1) + " " + by.toFixed(1) + ")");
-        }
-        drawRod(0.25 * (1 - p), [bx, by], fs.reelAngle);
+        fs.bobX = 224 - 44 * p;
+        fs.bobY = 208 + 80 * p - Math.sin(p * Math.PI) * 60;
+        fs.rodBend = 0.25 * (1 - p);
         if (p >= 1) {
           fs.phase = "wait";
           SFX.plop();
-          if (ripple) ripple.setAttribute("visibility", "visible");
+          spawnRipple(fs.bobX, fs.bobY + 4, true);
+          burst(fs.bobX, fs.bobY + 2, 8, 75, "235,246,250");
           setStageText("アタリを待て…");
+          fs.nextIdleRippleAt = now + 1200;
         }
       } else if (fs.phase === "wait" || fs.phase === "bite") {
         fs.idleT += dt;
-        var bobDip = fs.phase === "bite" ? 7 + Math.sin(fs.idleT * 30) * 3 : Math.sin(fs.idleT * 2.4) * 2.2;
-        if (bobber) {
-          bobber.setAttribute("visibility", "visible");
-          bobber.setAttribute("transform", "translate(180 " + (288 + bobDip).toFixed(1) + ")");
+        var dip = fs.phase === "bite" ? 7 + Math.sin(fs.idleT * 30) * 3 : Math.sin(fs.idleT * 2.4) * 2.2;
+        fs.bobX = 180;
+        fs.bobY = 288 + dip;
+        fs.rodBend = fs.phase === "bite" ? 0.18 : 0.05 + Math.sin(fs.idleT * 1.2) * 0.02;
+        if (fs.phase === "wait" && now > fs.nextIdleRippleAt) {
+          spawnRipple(180, 292, false);
+          fs.nextIdleRippleAt = now + 1400 + Math.random() * 1600;
         }
-        drawRod(fs.phase === "bite" ? 0.18 : 0.05 + Math.sin(fs.idleT * 1.2) * 0.02, [180, 288 + bobDip], fs.reelAngle);
+        if (fs.phase === "bite" && now > fs.nextIdleRippleAt) {
+          spawnRipple(180, 292, true);
+          fs.nextIdleRippleAt = now + 320;
+        }
       } else if (fs.phase === "fight") {
-        if (bobber) bobber.setAttribute("visibility", "hidden");
-        if (ripple) ripple.setAttribute("visibility", "hidden");
         fightTick(now, dt);
-        if (fs.phase === "fight") {
-          drawRod(0.15 + fs.tension / 100 * 0.85, [fs.fpX, fs.fpY], fs.reelAngle);
-        }
-      } else if (fs.phase === "land" || fs.phase === "junk" || fs.phase === "done") {
-        drawRod(0.06, null, fs.reelAngle);
-        if (bobber) bobber.setAttribute("visibility", "hidden");
+        if (fs.phase === "fight") fs.rodBend = 0.15 + fs.tension / 100 * 0.85;
+      } else if (fs.phase === "land") {
+        fs.landT += dt;
+        fs.rodBend = Math.max(0.06, fs.rodBend - dt * 1.4);
+      } else {
+        fs.rodBend = 0.06;
       }
+      paintScene(now, dt);
     }
     fs.raf = requestAnimationFrame(tick);
   }
@@ -2469,8 +2883,11 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     stage.classList.remove("pulling");
     stage.classList.remove("reeling-grip");
     document.getElementById("fightUi").classList.remove("show");
-    var wrap = document.getElementById("fishShadowWrap");
-    wrap.style.left = ""; wrap.style.top = "";
+    fs.shadowId = null;
+    fs.rodBend = 0;
+    particles = [];
+    ripples = [];
+    cv.shakeAmp = 0;
   }
 
   function clearFishingTimers() {
@@ -2659,6 +3076,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       default:
         break;
     }
+  });
+
+  window.addEventListener("resize", function () {
+    if (currentScreenId() === "screen-fish") initCanvas();
   });
 
   (function () {
