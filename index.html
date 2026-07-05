@@ -166,7 +166,21 @@
     text-shadow: 0 1px 5px rgba(10, 40, 50, .55);
     margin-top: 3px;
   }
-  .title-hero .sub { color: var(--sub-ink); font-size: 13.5px; margin-bottom: 20px; }
+  .title-hero .sub { color: var(--sub-ink); font-size: 13.5px; margin-bottom: 12px; }
+  .daily-card {
+    width: 100%;
+    background: linear-gradient(180deg, #ffffff, #f2f8f5);
+    border: 1px solid #dfe9e5;
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    text-align: left;
+    font-size: 12.5px;
+    line-height: 1.7;
+    box-shadow: 0 2px 8px rgba(20, 45, 40, .07);
+  }
+  .daily-card .dc-head { font-weight: 800; color: var(--accent-dark); font-size: 12px; letter-spacing: .06em; margin-bottom: 2px; }
+  .daily-card b { color: var(--accent-dark); }
   .title-buttons { width: 100%; display: flex; flex-direction: column; gap: 12px; padding: 0 8px; }
   .footer-note {
     text-align: center;
@@ -200,6 +214,9 @@
   .legend-diamond { width: 12px; height: 12px; background: var(--dam-color); display: inline-block; transform: rotate(45deg); }
 
   .marker-dot { fill: var(--river-color); stroke: #fff; stroke-width: 1.5; cursor: pointer; }
+  .loc-marker-group.locked .marker-dot,
+  .loc-marker-group.locked .marker-dam { fill: #9aa8ae; opacity: .75; }
+  #unlockBtn:disabled { opacity: .5; }
   .marker-dam { fill: var(--dam-color); stroke: #fff; stroke-width: 1.5; cursor: pointer; }
   .marker-hit { fill: transparent; cursor: pointer; }
   .marker-selected { stroke: #ffd23f; stroke-width: 3; }
@@ -248,6 +265,11 @@
   .choice-item .ci-desc { font-size: 12px; color: var(--sub-ink); margin-top: 2px; }
   .choice-item.selected { border-color: var(--accent); background: #eefaf6; }
   .section-label { font-size: 13px; color: var(--sub-ink); font-weight: 700; margin: 10px 0 6px; }
+  .shop-price { font-size: 13px; font-weight: 800; color: var(--accent-dark); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .shop-price.ng { color: #b3492f; opacity: .7; }
+  .shop-owned { font-size: 12px; font-weight: 700; color: #3f9d63; white-space: nowrap; }
+  .shop-req { font-size: 11px; color: var(--sub-ink); white-space: nowrap; }
+  .choice-item.owned { opacity: .72; }
 
   /* ---- fishing screen ---- */
   .fish-stage {
@@ -464,6 +486,35 @@
   #resultCatch .result-desc { color: #b8d2d4; }
   .result-name { font-size: 25px; font-weight: 800; letter-spacing: .04em; }
   .result-reading { font-size: 13px; color: var(--sub-ink); margin-bottom: 8px; }
+  #statusBar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 16px; font-size: 12.5px; color: var(--ink);
+    background: rgba(255,255,255,.72); border-bottom: 1px solid #dfe9e5;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    position: sticky; top: 0; z-index: 20;
+  }
+  #statusBar .sb-money b { font-variant-numeric: tabular-nums; }
+  #statusBar .sb-title { color: var(--accent-dark); font-weight: 700; font-size: 11.5px; }
+  .result-size-row { display: flex; align-items: baseline; gap: 8px; justify-content: center; margin: 2px 0 4px; }
+  #resultSize { font-size: 30px; font-weight: 900; color: #ffe9a8; letter-spacing: .02em; font-variant-numeric: tabular-nums; text-shadow: 0 2px 10px rgba(255,210,80,.25); }
+  .variant-tag { font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; }
+  .vt-giant { background: linear-gradient(180deg,#ffd76e,#e09c20); color: #4a3300; }
+  .vt-spawn { background: linear-gradient(180deg,#ffb8c8,#e0708e); color: #58101c; }
+  .size-meter {
+    width: min(240px, 70%); height: 7px; margin: 0 auto 8px;
+    background: rgba(255,255,255,.14); border-radius: 4px; overflow: hidden;
+  }
+  #resultSizeMeter { height: 100%; border-radius: 4px; background: linear-gradient(90deg,#5ec9b8,#ffe9a8); transition: width .6s cubic-bezier(.2,.8,.3,1); }
+  #resultSizeMeter.over { background: linear-gradient(90deg,#ffd76e,#ff9a3c); box-shadow: 0 0 10px rgba(255,180,60,.8); }
+  .record-badge {
+    display: inline-block; margin-bottom: 8px; font-size: 13px; font-weight: 800;
+    color: #5c4300; background: linear-gradient(180deg,#ffe27a,#f0b428);
+    padding: 4px 14px; border-radius: 999px;
+    box-shadow: 0 0 18px rgba(255,214,90,.65);
+    animation: recPop .5s cubic-bezier(.2,1.6,.4,1);
+  }
+  @keyframes recPop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .earn-line { font-size: 16px; font-weight: 800; color: #9fe6c8; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
   .result-meta {
     font-size: 11.5px;
     color: #8fb0b8;
@@ -549,12 +600,27 @@
   .zukan-item.rare { border-color: var(--rare); }
   .zukan-item.legend { border-color: var(--legend); box-shadow: 0 0 0 1px var(--legend) inset; }
 
+  .zi-stats { font-size: 10px; color: var(--accent-dark); font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .zi-badges { display: flex; gap: 3px; justify-content: center; margin-top: 2px; flex-wrap: wrap; }
+  .zi-badge { font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 999px; }
+  .zb-gi { background: #ffe9b0; color: #6b4f00; }
+  .zb-sp { background: #ffd9e2; color: #7c2438; }
+  .hall { font-size: 13px; }
+  .hall-row { display: flex; justify-content: space-between; padding: 3px 2px; }
+  .hall-row b { font-variant-numeric: tabular-nums; color: var(--accent-dark); }
+  .hall-titles { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .title-chip { font-size: 11px; font-weight: 800; background: linear-gradient(180deg,#ffe9b0,#f2cf7a); color: #6b4f00; padding: 3px 10px; border-radius: 999px; }
+
   .hidden { display: none !important; }
   .sr-note { font-size: 12px; color: var(--sub-ink); }
 </style>
 </head>
 <body>
 <div id="app">
+  <div id="statusBar">
+    <span class="sb-money">💰 <b id="sbMoney">0</b> 円</span>
+    <span class="sb-title" id="sbTitle"></span>
+  </div>
 
   <!-- 1. タイトル -->
   <section id="screen-title" class="screen active">
@@ -587,8 +653,10 @@
         </div>
       </div>
       <div class="sub">実在の川とダムで、実在の魚を追う図鑑釣行</div>
+      <div id="dailyCard" class="daily-card"></div>
       <div class="title-buttons">
         <button class="btn" data-action="start">▶ 釣りを始める</button>
+        <button class="btn secondary" data-action="shop">🏪 釣具店</button>
         <button class="btn secondary" data-action="zukan">📖 図鑑</button>
       </div>
     </div>
@@ -621,6 +689,7 @@
       <div id="infoSignatureArt" class="info-fish-art"></div>
       <p class="sr-note">看板魚: <strong id="infoSignature"></strong></p>
       <button class="btn" data-action="go-tackle">ここで釣る</button>
+      <button class="btn hidden" id="unlockBtn" data-action="unlock-loc"></button>
     </div>
   </section>
 
@@ -680,13 +749,17 @@
       </div>
       <div class="result-name" id="resultName"></div>
       <div class="result-reading" id="resultReading"></div>
+      <div class="result-size-row"><span id="resultSize"></span><span id="resultVariantTag" class="variant-tag hidden"></span></div>
+      <div class="size-meter"><div id="resultSizeMeter"></div></div>
+      <div id="resultRecordBadge" class="record-badge hidden">🏆 自己記録更新!</div>
       <div id="resultRarity" class="rarity-badge"></div>
       <div class="result-meta" id="resultMeta"></div>
+      <div class="earn-line" id="resultEarn"></div>
       <div class="result-desc" id="resultDesc"></div>
       <div class="btn-row" style="width:100%;">
         <button class="btn" data-action="retry-same">もう一度ここで釣る</button>
         <button class="btn secondary" data-action="change-place">場所を変える</button>
-        <button class="btn secondary" data-action="zukan">図鑑を見る</button>
+        <button class="btn secondary" data-action="shop">釣具店へ</button>
       </div>
     </div>
     <div id="resultFail" class="result-wrap hidden">
@@ -699,12 +772,27 @@
     </div>
   </section>
 
+  <!-- 5.5 ショップ -->
+  <section id="screen-shop" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-action="shop-back">← 戻る</button>
+      <h2 style="font-size:16px;margin:0;">釣具店</h2>
+    </div>
+    <div class="section-label">🎣 竿</div>
+    <div id="shopRods" class="choice-list"></div>
+    <div class="section-label">🪝 ルアー／エサ</div>
+    <div id="shopLures" class="choice-list"></div>
+    <div class="section-label">⚙️ 強化</div>
+    <div id="shopUpgrades" class="choice-list"></div>
+  </section>
+
   <!-- 6. 図鑑 -->
   <section id="screen-zukan" class="screen">
     <div class="topbar">
       <button class="btn-back" data-action="back-any">← 戻る</button>
       <h2 style="font-size:16px;margin:0;">図鑑</h2>
     </div>
+    <div id="hallTotals" class="hall card"></div>
     <div class="zukan-summary">
       <div class="zukan-count" id="zukanCount">0 / 16</div>
       <div class="rarity-breakdown" id="rarityBreakdown"></div>
@@ -860,7 +948,20 @@ function scaleRows(p,o){
 }
 
 // --- main renderer ------------------------------------------------------
+const SPAWN_TINT={
+ sake:{back:'#5a3a34',side:'#a05a4a',belly:'#d8b0a0',fin:'#6a3a30'},
+ sakuramasu:{back:'#44566a',side:'#c88a92',belly:'#ecd2ce',fin:'#5a5868'},
+ amemasu:{side:'#8a8a5c',belly:'#e8a05a',fin:'#c86a3a'},
+ oshorokoma:{belly:'#d84a30',fin:'#d85a2a',side:'#8a7454'},
+ nijimasu:{side:'#b4808e',back:'#3f4a44'},
+ brown:{side:'#b8923e',back:'#4c3a20'},
+ ito:{side:'#b06a56',back:'#663f38',fin:'#96473a'},
+ ugui:{side:'#88a06a',back:'#44543c'}
+};
 function fishSVG(sp, opts={}){
+  if(opts.variant==='spawn'&&SPAWN_TINT[sp.id]){
+    sp=Object.assign({},sp,SPAWN_TINT[sp.id]);
+  }
   const p=sp.body;
   const id='f'+sp.id+(opts.uid||'');
   const rng=mulberry(sp.seed||42);
@@ -1755,20 +1856,53 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     mukawa: [[142.42,42.98],[142.30,42.88],[142.13,42.76],[142.02,42.65],[141.93,42.56]],
     tokoro: [[143.50,43.60],[143.62,43.68],[143.75,43.74],[143.89,43.80],[143.92,43.95],[143.90,44.11]]
   };
+  (function () {
+    var gm = {};
+    Object.keys(LURE_MULTIPLIERS.minnow).forEach(function (k) { gm[k] = LURE_MULTIPLIERS.minnow[k] * 1.15; });
+    LURE_MULTIPLIERS.glow_minnow = gm;
+    LURE_MULTIPLIERS.oomono = LURE_MULTIPLIERS.bait;
+  })();
 
   var RODS = [
-    { id: "lure_rod", name: "ルアーロッド", emoji: "🎣", icon: '<svg viewBox="0 0 34 34"><path d="M4 30 Q 16 22 28 5" fill="none" stroke="#6a4a30" stroke-width="2.6" stroke-linecap="round"/><path d="M4 30 Q 16 22 28 5" fill="none" stroke="#a07850" stroke-width="1" stroke-linecap="round"/><circle cx="9" cy="27" r="3.4" fill="#31383e" stroke="#1c2226"/><circle cx="9" cy="27" r="1.4" fill="#b8c2c8"/><path d="M28 5 q 2 8 -1 14" fill="none" stroke="#dfe5e8" stroke-width="0.9"/><path d="M26.5 21 l 1 3 l 2.4 -1.4" fill="none" stroke="#9aa4aa" stroke-width="1.2"/></svg>', desc: "万能。トラウト・サケ狙い", lures: ["spoon", "minnow", "spinner"] },
-    { id: "fly_rod", name: "フライロッド", emoji: "🪶", icon: '<svg viewBox="0 0 34 34"><path d="M3 31 Q 15 24 30 4" fill="none" stroke="#7a5838" stroke-width="2" stroke-linecap="round"/><path d="M30 4 q -6 6 -14 8 q 8 2 12 -2" fill="none" stroke="#d8e2e6" stroke-width="1"/><circle cx="7" cy="29" r="2.6" fill="#3a4046"/></svg>', desc: "毛鉤で渓流魚", lures: ["fly"] },
-    { id: "bait_rod", name: "のべ竿", emoji: "🪱", icon: '<svg viewBox="0 0 34 34"><path d="M5 31 L 26 4" fill="none" stroke="#8a6a42" stroke-width="2.4" stroke-linecap="round"/><path d="M26 4 L 26 18" fill="none" stroke="#dfe5e8" stroke-width="0.9"/><circle cx="26" cy="20" r="2.6" fill="#d24a3a"/><path d="M24.9 20 a 2.6 2.6 0 0 0 2.2 0 Z" fill="#f2f2ea"/></svg>', desc: "エサでなんでも", lures: ["bait"] }
+    { id: "lure_rod", name: "ルアーロッド", emoji: "🎣", icon: '<svg viewBox="0 0 34 34"><path d="M4 30 Q 16 22 28 5" fill="none" stroke="#6a4a30" stroke-width="2.6" stroke-linecap="round"/><path d="M4 30 Q 16 22 28 5" fill="none" stroke="#a07850" stroke-width="1" stroke-linecap="round"/><circle cx="9" cy="27" r="3.4" fill="#31383e" stroke="#1c2226"/><circle cx="9" cy="27" r="1.4" fill="#b8c2c8"/><path d="M28 5 q 2 8 -1 14" fill="none" stroke="#dfe5e8" stroke-width="0.9"/><path d="M26.5 21 l 1 3 l 2.4 -1.4" fill="none" stroke="#9aa4aa" stroke-width="1.2"/></svg>', desc: "万能。トラウト・サケ狙い", price: 0, lures: ["spoon", "minnow", "spinner", "glow_minnow"] },
+    { id: "fly_rod", name: "フライロッド", emoji: "🪶", icon: '<svg viewBox="0 0 34 34"><path d="M3 31 Q 15 24 30 4" fill="none" stroke="#7a5838" stroke-width="2" stroke-linecap="round"/><path d="M30 4 q -6 6 -14 8 q 8 2 12 -2" fill="none" stroke="#d8e2e6" stroke-width="1"/><circle cx="7" cy="29" r="2.6" fill="#3a4046"/></svg>', desc: "毛鉤で渓流魚", price: 5000, lures: ["fly"] },
+    { id: "bait_rod", name: "のべ竿", emoji: "🪱", icon: '<svg viewBox="0 0 34 34"><path d="M5 31 L 26 4" fill="none" stroke="#8a6a42" stroke-width="2.4" stroke-linecap="round"/><path d="M26 4 L 26 18" fill="none" stroke="#dfe5e8" stroke-width="0.9"/><circle cx="26" cy="20" r="2.6" fill="#d24a3a"/><path d="M24.9 20 a 2.6 2.6 0 0 0 2.2 0 Z" fill="#f2f2ea"/></svg>', desc: "エサでなんでも", price: 1500, lures: ["bait", "oomono"] }
   ];
 
   var LURES = {
-    spoon:   { name: "スプーン", emoji: "🥄", icon: '<svg viewBox="0 0 34 34"><ellipse cx="15" cy="14" rx="7" ry="11" fill="#c8ccd2" stroke="#8f979e" transform="rotate(-14 15 14)"/><ellipse cx="12.6" cy="11" rx="2.6" ry="5" fill="#eef1f4" transform="rotate(-14 13 11)" opacity="0.8"/><path d="M19 25 q 1.6 4 -1.6 5.6 q -3.4 1 -4 -2" fill="none" stroke="#6d757c" stroke-width="1.6"/></svg>', desc: "金属の輝きでトラウトを誘う定番。" },
-    minnow:  { name: "ミノー", emoji: "🐠", icon: '<svg viewBox="0 0 34 34"><path d="M4 15 Q 12 9 24 13 Q 29 15 24 18 Q 12 21 4 16 Z" fill="#7fb0c8" stroke="#4a7890"/><path d="M4 15 Q 8 12 12 12 L 12 18 Q 7 18 4 16 Z" fill="#eef4f6"/><circle cx="22.6" cy="14.4" r="1.4" fill="#16222a"/><path d="M6 17 q -2.4 2.6 -1 5" fill="none" stroke="#4a7890" stroke-width="1.4"/><path d="M14 20 q 0.6 3.4 -2 4.4 M 24 18 q 1 3 -1.6 4.2" fill="none" stroke="#6d757c" stroke-width="1.3"/></svg>', desc: "小魚型。大型のイトウ・サケ・ブラウンに強い。" },
-    spinner: { name: "スピナー", emoji: "🌀", icon: '<svg viewBox="0 0 34 34"><line x1="17" y1="3" x2="17" y2="25" stroke="#9aa2a8" stroke-width="1.6"/><ellipse cx="12" cy="11" rx="4.4" ry="7.4" fill="#d8b04a" stroke="#a8842e" transform="rotate(18 12 11)"/><circle cx="17" cy="19" r="2.2" fill="#c04838"/><path d="M17 25 q 1.8 3.6 -1.2 5 q -3.2 1 -3.8 -1.8" fill="none" stroke="#6d757c" stroke-width="1.6"/></svg>', desc: "回転ブレードで渓流のニジマス・オショロコマに。" },
-    fly:     { name: "フライ", emoji: "🪶", icon: '<svg viewBox="0 0 34 34"><path d="M12 20 q 2 6 8 6 q 5 0 5 -4" fill="none" stroke="#6d757c" stroke-width="1.8"/><path d="M12 20 L 6 8 M 12 20 L 12 6 M 12 20 L 19 8" stroke="#a8763e" stroke-width="1.5"/><path d="M12 20 L 8 12 M 12 20 L 16 11" stroke="#d0a05c" stroke-width="1.2"/><ellipse cx="12.5" cy="20.5" rx="3.4" ry="2.4" fill="#5c4a34"/></svg>', desc: "毛鉤。ヤマメ・オショロコマ・アユ向き。" },
-    bait:    { name: "エサ（イクラ／ミミズ）", emoji: "🪱", icon: '<svg viewBox="0 0 34 34"><path d="M5 24 q 4 -8 9 -3 q 5 5 9 -2 q 2 -4 6 -3" fill="none" stroke="#c47a5a" stroke-width="3.4" stroke-linecap="round"/><circle cx="9" cy="10" r="3.4" fill="#f0885a" opacity="0.9"/><circle cx="15" cy="7" r="3" fill="#f0885a" opacity="0.75"/><circle cx="8" cy="9" r="1" fill="#fff" opacity="0.8"/></svg>', desc: "イクラやミミズ。雑魚から底物までなんでも。" }
+    spoon:   { name: "スプーン", emoji: "🥄", icon: '<svg viewBox="0 0 34 34"><ellipse cx="15" cy="14" rx="7" ry="11" fill="#c8ccd2" stroke="#8f979e" transform="rotate(-14 15 14)"/><ellipse cx="12.6" cy="11" rx="2.6" ry="5" fill="#eef1f4" transform="rotate(-14 13 11)" opacity="0.8"/><path d="M19 25 q 1.6 4 -1.6 5.6 q -3.4 1 -4 -2" fill="none" stroke="#6d757c" stroke-width="1.6"/></svg>', desc: "金属の輝きでトラウトを誘う定番。", price: 0 },
+    minnow:  { name: "ミノー", emoji: "🐠", icon: '<svg viewBox="0 0 34 34"><path d="M4 15 Q 12 9 24 13 Q 29 15 24 18 Q 12 21 4 16 Z" fill="#7fb0c8" stroke="#4a7890"/><path d="M4 15 Q 8 12 12 12 L 12 18 Q 7 18 4 16 Z" fill="#eef4f6"/><circle cx="22.6" cy="14.4" r="1.4" fill="#16222a"/><path d="M6 17 q -2.4 2.6 -1 5" fill="none" stroke="#4a7890" stroke-width="1.4"/><path d="M14 20 q 0.6 3.4 -2 4.4 M 24 18 q 1 3 -1.6 4.2" fill="none" stroke="#6d757c" stroke-width="1.3"/></svg>', desc: "小魚型。大型のイトウ・サケ・ブラウンに強い。", price: 2000 },
+    spinner: { name: "スピナー", emoji: "🌀", icon: '<svg viewBox="0 0 34 34"><line x1="17" y1="3" x2="17" y2="25" stroke="#9aa2a8" stroke-width="1.6"/><ellipse cx="12" cy="11" rx="4.4" ry="7.4" fill="#d8b04a" stroke="#a8842e" transform="rotate(18 12 11)"/><circle cx="17" cy="19" r="2.2" fill="#c04838"/><path d="M17 25 q 1.8 3.6 -1.2 5 q -3.2 1 -3.8 -1.8" fill="none" stroke="#6d757c" stroke-width="1.6"/></svg>', desc: "回転ブレードで渓流のニジマス・オショロコマに。", price: 800 },
+    fly:     { name: "フライ", emoji: "🪶", icon: '<svg viewBox="0 0 34 34"><path d="M12 20 q 2 6 8 6 q 5 0 5 -4" fill="none" stroke="#6d757c" stroke-width="1.8"/><path d="M12 20 L 6 8 M 12 20 L 12 6 M 12 20 L 19 8" stroke="#a8763e" stroke-width="1.5"/><path d="M12 20 L 8 12 M 12 20 L 16 11" stroke="#d0a05c" stroke-width="1.2"/><ellipse cx="12.5" cy="20.5" rx="3.4" ry="2.4" fill="#5c4a34"/></svg>', desc: "毛鉤。ヤマメ・オショロコマ・アユ向き。", price: 1200 },
+    bait:    { name: "エサ（イクラ／ミミズ）", emoji: "🪱", icon: '<svg viewBox="0 0 34 34"><path d="M5 24 q 4 -8 9 -3 q 5 5 9 -2 q 2 -4 6 -3" fill="none" stroke="#c47a5a" stroke-width="3.4" stroke-linecap="round"/><circle cx="9" cy="10" r="3.4" fill="#f0885a" opacity="0.9"/><circle cx="15" cy="7" r="3" fill="#f0885a" opacity="0.75"/><circle cx="8" cy="9" r="1" fill="#fff" opacity="0.8"/></svg>', desc: "イクラやミミズ。雑魚から底物までなんでも。", price: 600 },
+    glow_minnow: { name: "夜光ミノー", emoji: "🌙", desc: "闇夜で光る。夜釣りの空振りが激減。", price: 8000 },
+    oomono:  { name: "大物イクラ", emoji: "🔴", desc: "特大の房掛け。大物が食ってきやすい。", price: 6000 }
   };
+  LURES.glow_minnow.icon = LURES.minnow.icon;
+  LURES.oomono.icon = LURES.bait.icon;
+
+  var UPGRADES = [
+    { id: "line1", name: "ライン強化 Ⅰ", desc: "テンション限界+5。切れにくくなる", price: 2500, req: null },
+    { id: "line2", name: "ライン強化 Ⅱ", desc: "テンション限界さらに+10", price: 9000, req: "line1" },
+    { id: "reel1", name: "ハイギアリール Ⅰ", desc: "寄せ速度 +15%", price: 3500, req: null },
+    { id: "reel2", name: "ハイギアリール Ⅱ", desc: "寄せ速度 さらに+15%", price: 12000, req: "reel1" }
+  ];
+  function gearStats() {
+    var up = save.gear.upgrades;
+    return {
+      lineMax: 95 + (up.indexOf("line1") >= 0 ? 5 : 0) + (up.indexOf("line2") >= 0 ? 10 : 0),
+      reel: 1 + (up.indexOf("reel1") >= 0 ? 0.15 : 0) + (up.indexOf("reel2") >= 0 ? 0.15 : 0)
+    };
+  }
+  // 解禁費用（0円=初期開放。道央→道南→十勝→オホーツク→道東→道北の進行曲線）
+  var LOCK_COST = {
+    toyohira: 0, ishikari: 0, izarigawa: 0,
+    shiribetsu: 2000, mukawa: 2500, saru: 3000, nibutani: 3500, katsurazawa: 4000,
+    kanayama: 5000, toshibetsu: 6000, hoheikyo: 7000, tokachi: 8000, tokachi_dam: 9000,
+    taisetsu: 10000, chubetsu: 12000, yubetsu: 14000, tokoro: 16000, abashiri: 18000,
+    kushiro: 22000, iwaonai: 30000, sanru: 40000, teshio: 50000
+  };
+  function isUnlocked(locId) { return save.unlocked.indexOf(locId) >= 0; }
 
   var RARITY_LABEL = { common: "コモン", uncommon: "アンコモン", rare: "レア", legend: "レジェンド" };
   var RARITY_GLOW = {
@@ -1778,6 +1912,154 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     legend: "radial-gradient(circle, #c99a2eaa 0%, transparent 70%)"
   };
   var STORAGE_KEY = "hokkaido_fishing_zukan_v1";
+
+  // ===== ゲームバランス（調整はここに集約） =====
+  var BAL = {
+    // [最小cm, 最大cm]（ゲーム用デザイン値。実測データベースの値ではない）
+    sizes: {
+      sake: [55, 90], sakuramasu: [25, 60], amemasu: [20, 70], oshorokoma: [12, 32],
+      nijimasu: [20, 65], brown: [25, 75], ito: [60, 140], wakasagi: [6, 15],
+      ugui: [15, 45], fukudojo: [8, 20], koi: [30, 85], funa: [15, 40],
+      kawayatsume: [30, 58], ayu: [12, 28], shishamo: [10, 18], kajika: [8, 25]
+    },
+    price: { common: 120, uncommon: 340, rare: 900, legend: 4200 },
+    sizeExpBase: 2.6,       // 大きいほど稀（小さいほど大物が出やすい）
+    variantGiantRate: 0.01,
+    variantSpawnRate: 0.04
+  };
+  var SPAWN_ABLE = ["sake", "sakuramasu", "amemasu", "oshorokoma", "nijimasu", "brown", "ito", "ugui"];
+
+  var SAVE_KEY = "hokkaido_fishing_save_v2";
+  function defaultSave() {
+    return {
+      money: 0,
+      gear: { rods: ["lure_rod"], lures: ["spoon"], upgrades: [] },
+      unlocked: ["toyohira", "ishikari", "izarigawa"],
+      records: {},
+      totals: { catches: 0, earned: 0, barashi: 0 },
+      titles: [],
+      zukan: {}
+    };
+  }
+  function loadSave() {
+    try {
+      var raw = window.localStorage.getItem(SAVE_KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (s && typeof s === "object" && s.gear && s.totals && s.zukan) {
+          var d = defaultSave();
+          Object.keys(d).forEach(function (k) { if (s[k] === undefined) s[k] = d[k]; });
+          return s;
+        }
+      }
+    } catch (e) {}
+    var sv = defaultSave();
+    // 旧図鑑(v1)からの移行（進行を失わせない）
+    try {
+      var old = window.localStorage.getItem(STORAGE_KEY);
+      if (old) {
+        var op = JSON.parse(old);
+        var caught = op && op.caught ? op.caught : {};
+        Object.keys(caught).forEach(function (fid) {
+          if (caught[fid]) {
+            sv.zukan[fid] = true;
+            sv.records[fid] = { best: 0, count: 1, sp: false, gi: false };
+            sv.totals.catches++;
+          }
+        });
+      }
+    } catch (e) {}
+    return sv;
+  }
+  function persistSave() {
+    try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+  }
+
+  function rollSize(fishId) {
+    var sr = BAL.sizes[fishId] || [10, 40];
+    var exp = BAL.sizeExpBase;
+    if (state.time && state.time.mazume) exp -= 0.3;
+    if (state.selectedLureId === "oomono") exp -= 0.35;
+    if (state.daily && state.daily.hotLoc === state.selectedLocationId) exp -= 0.2;
+    var variant = null;
+    var vr = Math.random();
+    if (vr < BAL.variantGiantRate) variant = "giant";
+    else if (vr < BAL.variantGiantRate + BAL.variantSpawnRate && SPAWN_ABLE.indexOf(fishId) >= 0) variant = "spawn";
+    var span = sr[1] - sr[0];
+    var cm = sr[0] + span * Math.pow(Math.random(), Math.max(1.6, exp));
+    if (variant === "giant") cm = sr[1] + span * 0.2 * Math.random();
+    var ratio = Math.max(0, Math.min(1.2, (cm - sr[0]) / span));
+    return { cm: Math.round(cm * 10) / 10, ratio: ratio, variant: variant };
+  }
+
+  function sellPrice(fishId, ratio, variant) {
+    var f = FISH[fishId] || { rarity: "common" };
+    var base = BAL.price[f.rarity] || 120;
+    var sizeFactor = 0.6 + 2.4 * Math.pow(Math.max(0, Math.min(1.2, ratio)), 1.3);
+    var vMul = variant === "giant" ? 1.8 : variant === "spawn" ? 1.5 : 1;
+    return Math.round(base * sizeFactor * vMul);
+  }
+
+  // ===== 今日の釣り便り（日替わり: 日付シードで決定・通信なし） =====
+  var WEATHER_INFO = {
+    sun:   { label: "晴れ", emoji: "☀️" },
+    cloud: { label: "くもり", emoji: "☁️" },
+    rain:  { label: "雨", emoji: "☔" }
+  };
+  function dailyInfo() {
+    var d = new Date();
+    var dayInt = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+    var wr = hash2(dayInt, 11);
+    var weather = wr < 0.25 ? "rain" : wr < 0.6 ? "cloud" : "sun";
+    var ids = Object.keys(FISH);
+    var f1 = ids[Math.floor(hash2(dayInt, 23) * ids.length) % ids.length];
+    var f2 = ids[(Math.floor(hash2(dayInt, 37) * ids.length) + 3) % ids.length];
+    if (f2 === f1) f2 = ids[(ids.indexOf(f1) + 5) % ids.length];
+    var hotLoc = LOCATIONS[Math.floor(hash2(dayInt, 53) * LOCATIONS.length) % LOCATIONS.length].id;
+    return { weather: weather, hot: [f1, f2], hotLoc: hotLoc, dayInt: dayInt };
+  }
+
+  var TITLES = [
+    { id: "rookie", name: "ルーキー釣り師", check: function (s) { return s.totals.catches >= 10; } },
+    { id: "veteran", name: "ベテラン釣り師", check: function (s) { return s.totals.catches >= 50; } },
+    { id: "itoh1", name: "イトウハンター", check: function (s) { return s.records.ito && s.records.ito.count >= 1; } },
+    { id: "itoh3", name: "イトウマスター", check: function (s) { return s.records.ito && s.records.ito.count >= 3; } },
+    { id: "allloc", name: "北海道制覇", check: function (s) { return s.unlocked.length >= 22; } },
+    { id: "comp", name: "図鑑コンプリート", check: function (s) { return Object.keys(s.zukan).length >= 16; } }
+  ];
+  function evalTitles() {
+    TITLES.forEach(function (t) {
+      if (save.titles.indexOf(t.id) < 0 && t.check(save)) save.titles.push(t.id);
+    });
+  }
+  function currentTitleName() {
+    for (var i = TITLES.length - 1; i >= 0; i--) {
+      if (save.titles.indexOf(TITLES[i].id) >= 0) return TITLES[i].name;
+    }
+    return "";
+  }
+
+  function renderDailyCard() {
+    var el = document.getElementById("dailyCard");
+    if (!el) return;
+    var dl = state.daily = dailyInfo();
+    var wx = WEATHER_INFO[dl.weather];
+    var hotNames = dl.hot.map(function (fid) { return FISH[fid] ? FISH[fid].name : fid; }).join("・");
+    var hl = getLocation(dl.hotLoc);
+    el.innerHTML =
+      '<div class="dc-head">📮 今日の釣り便り</div>' +
+      '<div class="dc-row">' + wx.emoji + ' ' + wx.label +
+      (dl.weather === "rain" ? '（イワナ類の活性UP）' : '') + '</div>' +
+      '<div class="dc-row">🔥 荒食い: <b>' + hotNames + '</b></div>' +
+      '<div class="dc-row">📍 狙い目: <b>' + (hl ? hl.name : "") + '</b>' + (isUnlocked(dl.hotLoc) ? '' : '（未解禁）') + '</div>';
+  }
+
+  function updateStatusBar() {
+    var el = document.getElementById("sbMoney");
+    if (el) el.textContent = (save.money || 0).toLocaleString();
+    var tl = document.getElementById("sbTitle");
+    if (tl) tl.textContent = currentTitleName();
+  }
 
   // ===== 投影（経度緯度 → SVG座標）SPEC §2 =====
   function project(lon, lat) {
@@ -1801,35 +2083,27 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     prevScreenBeforeZukan: "screen-title"
   };
 
-  function loadZukan() {
-    try {
-      var raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return {};
-      var parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object" && parsed.caught && typeof parsed.caught === "object") {
-        return parsed.caught;
-      }
-      return {};
-    } catch (e) {
-      return {};
-    }
-  }
+  var save = loadSave();
+  persistSave();
+  var zukan = save.zukan; // 既存コード互換の参照
 
-  function saveZukan(caught) {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, caught: caught }));
-    } catch (e) {
-      /* localStorageが使えない環境でも無視して継続 */
-    }
-  }
-
-  var zukan = loadZukan();
-
-  function markCaught(fishId) {
-    var isNew = !zukan[fishId];
-    zukan[fishId] = true;
-    saveZukan(zukan);
-    return isNew;
+  function recordCatch(fishId, cm, variant, earn) {
+    var isNew = !save.zukan[fishId];
+    save.zukan[fishId] = true;
+    var r = save.records[fishId];
+    if (!r) { r = { best: 0, count: 0, sp: false, gi: false }; save.records[fishId] = r; }
+    var isRecord = cm > (r.best || 0);
+    if (isRecord) r.best = cm;
+    r.count++;
+    if (variant === "spawn") r.sp = true;
+    if (variant === "giant") r.gi = true;
+    save.totals.catches++;
+    save.totals.earned += earn;
+    save.money += earn;
+    evalTitles();
+    persistSave();
+    updateStatusBar();
+    return { isNew: isNew, isRecord: isRecord };
   }
 
   // ===== 画面切替 =====
@@ -1842,6 +2116,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       SFX.stopAmbience();
       stopStageLoop();
     }
+    if (id === "screen-title" && typeof renderDailyCard === "function") renderDailyCard();
     window.scrollTo(0, 0);
   }
 
@@ -1945,7 +2220,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       markerPositions[loc.id] = xy;
       var x = xy[0].toFixed(1), y = xy[1].toFixed(1);
       var isDam = loc.type === "dam";
-      parts.push('<g class="loc-marker-group" data-loc-id="' + loc.id + '" style="filter:drop-shadow(0 2.5px 2px rgba(10,30,40,.4))">');
+      var lockedCls = isUnlocked(loc.id) ? "" : " locked";
+      parts.push('<g class="loc-marker-group' + lockedCls + '" data-loc-id="' + loc.id + '" style="filter:drop-shadow(0 2.5px 2px rgba(10,30,40,.4))">');
       if (isDam) {
         parts.push('<rect class="marker-dam" data-loc-id="' + loc.id + '" x="' + (xy[0] - 8) + '" y="' + (xy[1] - 8) + '" width="16" height="16" transform="rotate(45 ' + x + ' ' + y + ')"></rect>');
       } else {
@@ -2131,7 +2407,34 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var sigFish = FISH[loc.signature];
     document.getElementById("infoSignatureArt").innerHTML = renderFish(loc.signature, { uid: "card" });
     document.getElementById("infoSignature").textContent = sigFish ? sigFish.name : loc.signature;
+    var locked = !isUnlocked(locId);
+    var goBtn = document.querySelector('button[data-action="go-tackle"]');
+    var unBtn = document.getElementById("unlockBtn");
+    goBtn.classList.toggle("hidden", locked);
+    unBtn.classList.toggle("hidden", !locked);
+    if (locked) {
+      var cost = LOCK_COST[locId] || 0;
+      unBtn.textContent = "🔒 遠征を解禁する（" + cost.toLocaleString() + "円）";
+      unBtn.disabled = save.money < cost;
+    }
     document.getElementById("infoCard").classList.add("show");
+  }
+
+  function unlockLocation() {
+    var locId = state.selectedLocationId;
+    if (!locId || isUnlocked(locId)) return;
+    var cost = LOCK_COST[locId] || 0;
+    if (save.money < cost) return;
+    save.money -= cost;
+    save.unlocked.push(locId);
+    evalTitles();
+    persistSave();
+    updateStatusBar();
+    SFX.ensure();
+    SFX.jingle();
+    var g = document.querySelector('.loc-marker-group[data-loc-id="' + locId + '"]');
+    if (g) g.classList.remove("locked");
+    selectLocation(locId);
   }
 
   // ===== タックル選択画面 =====
@@ -2147,6 +2450,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var rodList = document.getElementById("rodList");
     rodList.innerHTML = "";
     RODS.forEach(function (rod) {
+      if (save.gear.rods.indexOf(rod.id) < 0) return; // 未購入はショップで
       var item = document.createElement("div");
       item.className = "choice-item";
       item.setAttribute("data-rod-id", rod.id);
@@ -2172,6 +2476,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var lureList = document.getElementById("lureList");
     lureList.innerHTML = "";
     rod.lures.forEach(function (lureId) {
+      if (save.gear.lures.indexOf(lureId) < 0) return;
       var lure = LURES[lureId];
       var item = document.createElement("div");
       item.className = "choice-item";
@@ -2275,10 +2580,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   var ripples = [];
   var fishImgCache = {};
 
-  function fishImage(id, sil) {
-    var key = id + (sil ? "_s" : "");
+  function fishImage(id, sil, variant) {
+    var key = id + (sil ? "_s" : "") + (variant ? "_" + variant : "");
     if (fishImgCache[key]) return fishImgCache[key];
-    var svg = renderFish(id, { silhouette: !!sil, uid: "cv" + key });
+    var svg = renderFish(id, { silhouette: !!sil, uid: "cv" + key, variant: variant });
     var img = new Image();
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
     fishImgCache[key] = img;
@@ -2682,6 +2987,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       ctx.globalAlpha = 1;
     }
 
+    var wx = (state.daily && state.daily.weather) || "sun";
     var ly = t.key === "yuu" ? 100 : t.key === "asa" ? 74 : 52;
     var glowG = ctx.createRadialGradient(pal.lx, ly, 4, pal.lx, ly, 96);
     glowG.addColorStop(0, "rgba(" + pal.glow + ",0.55)");
@@ -2689,8 +2995,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     glowG.addColorStop(1, "rgba(" + pal.glow + ",0)");
     ctx.fillStyle = glowG;
     ctx.fillRect(pal.lx - 96, ly - 96, 192, 192);
-    // 光条（朝夕）
-    if (pal.rays) {
+    // 光条（朝夕・晴れのみ）
+    if (pal.rays && wx === "sun") {
       ctx.save();
       ctx.translate(pal.lx, ly);
       ctx.rotate(now / 40000);
@@ -2703,8 +3009,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       }
       ctx.restore();
     }
+    ctx.globalAlpha = wx === "rain" ? 0.25 : wx === "cloud" ? 0.5 : 1;
     ctx.fillStyle = pal.sun;
     ctx.beginPath(); ctx.arc(pal.lx, ly, t.key === "yuu" ? 22 : 16, 0, 6.3); ctx.fill();
+    ctx.globalAlpha = 1;
     if (t.night) {
       ctx.fillStyle = pal.sky[0];
       ctx.beginPath(); ctx.arc(pal.lx - 7, ly - 4, 14, 0, 6.3); ctx.fill();
@@ -2727,7 +3035,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         ctx.fillStyle = "rgba(148,168,182,0.26)";
         ctx.beginPath(); ctx.ellipse(cx0, cy2 + 1.4, cw * 0.46, 2.8, 0, 0, 6.3); ctx.fill();
       }
-      if (t.key === "hiru" || t.key === "asa") {
+      if ((t.key === "hiru" || t.key === "asa") && wx === "sun") {
         // レンズフレア（太陽から画面中心へ）
         for (var lf = 1; lf <= 3; lf++) {
           var fx = pal.lx + (180 - pal.lx) * (lf * 0.36), fy = ly + (240 - ly) * (lf * 0.36);
@@ -3082,7 +3390,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         ctx.save();
         ctx.globalAlpha = 0.32;
         ctx.filter = "blur(1.6px)";
-        ctx.drawImage(simg, sxp - 55, syp - 26 + wob, 110, 55);
+        var shw = 78 + 74 * Math.min(1.2, fs.pendingSizeRatio || 0.4);
+        ctx.drawImage(simg, sxp - shw / 2, syp - shw / 4 + wob, shw, shw / 2);
         ctx.restore();
         ctx.filter = "none";
       }
@@ -3186,7 +3495,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
     // 12) ランディング
     if (fs.phase === "land" && fs.fightFishId) {
-      var limg = fishImage(fs.fightFishId, false);
+      var limg = fishImage(fs.fightFishId, false, fs.pendingVariant);
       var lt = Math.min(1, fs.landT / 1.0);
       if (limg.complete && limg.naturalWidth > 0) {
         var ease = 1 - (1 - lt) * (1 - lt);
@@ -3227,6 +3536,32 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       ctx.moveTo(fgt.x, 424);
       ctx.quadraticCurveTo(fgt.x + fgt.lean * 0.5, 424 - fgt.h * 0.6, fgt.x + fgt.lean + fsw, 424 - fgt.h);
       ctx.stroke();
+    }
+
+    // 14.5) 天候（雨脚・曇り）
+    if (wx === "rain") {
+      ctx.fillStyle = "rgba(30, 50, 70, 0.13)";
+      ctx.fillRect(-8, -8, 376, 436);
+      ctx.strokeStyle = "rgba(210, 230, 240, 0.32)";
+      ctx.lineWidth = 1;
+      for (var rn = 0; rn < 38; rn++) {
+        var rx0 = (hash2(rn, 3) * 400) % 400 - 20;
+        var ry0 = ((hash2(rn, 7) * 460 + now / 1000 * 340) % 460) - 20;
+        ctx.beginPath();
+        ctx.moveTo(rx0, ry0);
+        ctx.lineTo(rx0 - 3, ry0 + 13);
+        ctx.stroke();
+      }
+      for (var rm = 0; rm < 7; rm++) {
+        var ph2 = (now / 600 + hash2(rm, 13) * 6) % 1;
+        var rmx = hash2(rm, 17) * 360;
+        var rmy = HORIZON + 14 + hash2(rm, 19) * 190;
+        ctx.strokeStyle = "rgba(220, 238, 246," + (0.3 * (1 - ph2)) + ")";
+        ctx.beginPath(); ctx.ellipse(rmx, rmy, 3 + ph2 * 14, (3 + ph2 * 14) * 0.32, 0, 0, 6.3); ctx.stroke();
+      }
+    } else if (wx === "cloud") {
+      ctx.fillStyle = "rgba(190, 202, 212, 0.10)";
+      ctx.fillRect(-8, -8, 376, 436);
     }
 
     // 15) グレーディング
@@ -3374,7 +3709,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     pulling: false, nextPullAt: 0, pullEndAt: 0,
     slackTime: 0, reelAngle: 0, lastClickAt: 0,
     fightFishId: null, fpX: 180, fpY: 300,
-    shadowId: null, landT: 0, rodBend: 0, nextIdleRippleAt: 0
+    shadowId: null, landT: 0, rodBend: 0, nextIdleRippleAt: 0,
+    pendingSize: 0, pendingSizeRatio: 0, pendingVariant: null,
+    fightStamMul: 1, fightPullMul: 1
   };
 
   function setStageText(txt, big) {
@@ -3393,8 +3730,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (loc) renderStageScene(loc);
     clearFishShadow();
 
+    state.daily = dailyInfo();
     var badge = document.getElementById("timeBadge");
-    badge.textContent = state.time.label;
+    badge.textContent = (WEATHER_INFO[state.daily.weather] || {}).emoji + " " + state.time.label;
     badge.className = "time-badge" + (state.time.mazume ? " mazume" : "");
     document.getElementById("muteBtn").textContent = SFX.muted() ? "🔇" : "🔊";
 
@@ -3422,7 +3760,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   function triggerBite() {
     if (fs.phase !== "wait" && fs.phase !== "cast") return;
     var bouzuRate = state.time && state.time.mazume ? 0.08 : 0.15;
+    if (state.selectedLureId === "glow_minnow" && state.time && state.time.night) bouzuRate = Math.min(bouzuRate, 0.07);
+    if (state.daily && state.daily.hotLoc === state.selectedLocationId) bouzuRate = Math.max(0.05, bouzuRate - 0.05);
     state.pendingFishId = drawFish(state.selectedLocationId, state.selectedLureId, bouzuRate);
+    if (state.pendingFishId) {
+      var roll = rollSize(state.pendingFishId);
+      fs.pendingSize = roll.cm;
+      fs.pendingSizeRatio = roll.ratio;
+      fs.pendingVariant = roll.variant;
+    } else {
+      fs.pendingSize = 0; fs.pendingSizeRatio = 0; fs.pendingVariant = null;
+    }
     showFishShadow(state.pendingFishId);
     fs.phase = "bite";
     var stage = document.getElementById("fishStage");
@@ -3460,6 +3808,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     // ファイト開始
     fs.phase = "fight";
     fs.fightFishId = state.pendingFishId;
+    var szr = fs.pendingSizeRatio || 0.4;
+    fs.fightStamMul = 0.7 + szr * 0.9;   // デカいほど長期戦
+    fs.fightPullMul = 0.8 + szr * 0.6;   // デカいほど引きが強い
+    var gs = gearStats();
+    fs.lineMax = gs.lineMax;
+    fs.reelMul = gs.reel;
+    var zoneEl = document.querySelector(".gauge-zone");
+    if (zoneEl) {
+      zoneEl.style.left = (35 / fs.lineMax * 100) + "%";
+      zoneEl.style.width = (40 / fs.lineMax * 100) + "%";
+    }
     fs.tension = 55; fs.progress = 0;
     fs.slackTime = 0; fs.holding = false;
     fs.pulling = false;
@@ -3470,7 +3829,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
   function fightTick(now, dt) {
     var fish = FISH[fs.fightFishId] || { rarity: "common" };
-    var pull = FIGHT_PULL[fish.rarity] || 0.8;
+    var pull = (FIGHT_PULL[fish.rarity] || 0.8) * (fs.fightPullMul || 1);
     var stage = document.getElementById("fishStage");
 
     // 魚の引きバースト
@@ -3486,8 +3845,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
 
     // テンション物理: 巻く=上昇 / 引き=上昇 / 離す=低下
+    var lineMax = fs.lineMax || 100;
     var delta = (fs.holding ? 58 : -46) + (fs.pulling ? 46 * pull : 0);
-    fs.tension = Math.max(0, Math.min(100, fs.tension + delta * dt));
+    fs.tension = Math.max(0, Math.min(lineMax, fs.tension + delta * dt));
 
     // リール音
     if (fs.holding) {
@@ -3497,16 +3857,16 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
     // 寄せ進行
     var inGreen = fs.tension >= 35 && fs.tension <= 75;
-    var stamina = FIGHT_STAMINA[fish.rarity] || 5;
-    fs.progress = Math.max(0, Math.min(100, fs.progress + (inGreen ? (100 / stamina) : -7) * dt));
+    var stamina = (FIGHT_STAMINA[fish.rarity] || 5) * (fs.fightStamMul || 1);
+    fs.progress = Math.max(0, Math.min(100, fs.progress + (inGreen ? (100 / stamina) * (fs.reelMul || 1) : -7) * dt));
 
     // たるみ判定
     if (fs.tension <= 1) fs.slackTime += dt; else fs.slackTime = 0;
 
     // UI更新
     var tf = document.getElementById("tensionFill");
-    tf.style.width = Math.max(2, fs.tension) + "%";
-    tf.className = fs.tension > 88 ? "danger" : (fs.tension > 75 || fs.tension < 22 ? "warn" : "");
+    tf.style.width = Math.max(2, fs.tension / lineMax * 100) + "%";
+    tf.className = fs.tension > lineMax - 12 ? "danger" : (fs.tension > 75 || fs.tension < 22 ? "warn" : "");
     document.getElementById("progressFill").style.width = fs.progress + "%";
 
     // 魚の暴れ位置（ラインの先端）
@@ -3518,7 +3878,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
 
     // 決着
-    if (fs.tension >= 100) { endFishing("break"); return; }
+    if (fs.tension >= lineMax) { endFishing("break"); return; }
     if (fs.slackTime > 1.1) { endFishing("off"); return; }
     if (fs.progress >= 100) { landFish(); return; }
   }
@@ -3535,7 +3895,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     buzz([40, 60, 120]);
     // 魚が水面から跳ねる（Canvasで描画）
     fs.landT = 0;
-    fishImage(fishId, false); // 事前ロード
+    fishImage(fishId, false, fs.pendingVariant); // 事前ロード
     burst(180, 316, 26, 175, "235,246,250");
     spawnRipple(180, 318, true);
     cv.shakeAmp = 6;
@@ -3562,6 +3922,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (failKey === "break") SFX.snap(); else SFX.fail();
     if (failKey === "break" || failKey === "off") buzz(120);
     state.lastResultKind = info.kind;
+    if (info.kind === "barasi") { save.totals.barashi++; persistSave(); }
     setTimeout(function () {
       renderResultFail(info.emoji, info.title, info.desc);
       showScreen("screen-result");
@@ -3681,6 +4042,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var base = pool[fid];
       var mult = multipliers[fid] !== undefined ? multipliers[fid] : 1.0;
       var w = base * mult;
+      var dl = state.daily;
+      if (dl && dl.hot.indexOf(fid) >= 0) w *= 2;
+      if (dl && dl.weather === "rain" && (fid === "amemasu" || fid === "oshorokoma" || fid === "ito")) w *= 1.5;
       if (w > 0) {
         total += w;
         weighted.push({ id: fid, w: w });
@@ -3701,10 +4065,15 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       handleBouzu();
       return;
     }
-    var isNew = markCaught(fishId);
+    var cm = fs.pendingSize || rollSize(fishId).cm;
+    var ratio = fs.pendingSizeRatio || 0;
+    var variant = fs.pendingVariant || null;
+    var earn = sellPrice(fishId, ratio, variant);
+    var rec = recordCatch(fishId, cm, variant, earn);
     state.lastCaughtFishId = fishId;
+    state.lastCatchCm = cm;
     state.lastResultKind = "catch";
-    renderResultCatch(fishId, isNew);
+    renderResultCatch(fishId, { isNew: rec.isNew, isRecord: rec.isRecord, cm: cm, ratio: ratio, variant: variant, earn: earn });
     showScreen("screen-result");
   }
 
@@ -3720,12 +4089,28 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     showScreen("screen-result");
   }
 
-  function renderResultCatch(fishId, isNew) {
+  function renderResultCatch(fishId, info) {
+    info = info || {};
+    var isNew = !!info.isNew;
     document.getElementById("resultCatch").classList.remove("hidden");
     document.getElementById("resultFail").classList.add("hidden");
     var fish = FISH[fishId];
     document.getElementById("resultNewBadge").classList.toggle("hidden", !isNew);
-    document.getElementById("resultFishArt").innerHTML = renderFish(fishId, { uid: "r" });
+    // サイズ・変異・収入・記録
+    var szEl = document.getElementById("resultSize");
+    szEl.textContent = info.cm ? info.cm.toFixed(1) + " cm" : "";
+    var vt = document.getElementById("resultVariantTag");
+    if (info.variant === "giant") { vt.textContent = "👑 大物"; vt.className = "variant-tag vt-giant"; }
+    else if (info.variant === "spawn") { vt.textContent = "🌸 婚姻色"; vt.className = "variant-tag vt-spawn"; }
+    else { vt.className = "variant-tag hidden"; }
+    var meter = document.getElementById("resultSizeMeter");
+    var pct = Math.min(100, (info.ratio || 0) * 100);
+    meter.style.width = Math.max(4, pct) + "%";
+    meter.classList.toggle("over", (info.ratio || 0) > 1);
+    document.getElementById("resultRecordBadge").classList.toggle("hidden", !(info.isRecord && !isNew));
+    document.getElementById("resultEarn").textContent = "+ " + (info.earn || 0).toLocaleString() + " 円";
+    if (info.isRecord && !isNew) { SFX.jingle(); }
+    document.getElementById("resultFishArt").innerHTML = renderFish(fishId, { uid: "r", variant: info.variant });
     document.getElementById("resultFishGlow").style.background = RARITY_GLOW[fish.rarity] || "";
     document.getElementById("resultName").textContent = fish.name;
     document.getElementById("resultReading").textContent = fish.reading;
@@ -3747,6 +4132,68 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     document.getElementById("failDesc").textContent = desc;
   }
 
+  // ===== ショップ =====
+  function shopItem(kind, obj, owned, canBuy, reqName) {
+    var item = document.createElement("div");
+    item.className = "choice-item" + (owned ? " owned" : "");
+    var priceHtml = owned ? '<span class="shop-owned">✓ 所有</span>'
+      : reqName ? '<span class="shop-req">要: ' + reqName + '</span>'
+      : '<span class="shop-price' + (canBuy ? "" : " ng") + '">' + (obj.price || 0).toLocaleString() + '円</span>';
+    item.innerHTML =
+      '<div class="ci-emoji">' + (obj.icon || obj.emoji || "⚙️") + '</div>' +
+      '<div class="ci-text"><div class="ci-name">' + obj.name + '</div><div class="ci-desc">' + obj.desc + '</div></div>' +
+      priceHtml;
+    return item;
+  }
+
+  function renderShop() {
+    var rodsEl = document.getElementById("shopRods");
+    var luresEl = document.getElementById("shopLures");
+    var upsEl = document.getElementById("shopUpgrades");
+    rodsEl.innerHTML = ""; luresEl.innerHTML = ""; upsEl.innerHTML = "";
+    RODS.forEach(function (rod) {
+      var owned = save.gear.rods.indexOf(rod.id) >= 0;
+      var canBuy = save.money >= (rod.price || 0);
+      var item = shopItem("rod", rod, owned, canBuy, null);
+      if (!owned) item.addEventListener("click", function () { buyItem("rod", rod.id, rod.price || 0); });
+      rodsEl.appendChild(item);
+    });
+    Object.keys(LURES).forEach(function (lid) {
+      var lure = LURES[lid];
+      var owned = save.gear.lures.indexOf(lid) >= 0;
+      var canBuy = save.money >= (lure.price || 0);
+      var item = shopItem("lure", lure, owned, canBuy, null);
+      if (!owned) item.addEventListener("click", function () { buyItem("lure", lid, lure.price || 0); });
+      luresEl.appendChild(item);
+    });
+    UPGRADES.forEach(function (up) {
+      var owned = save.gear.upgrades.indexOf(up.id) >= 0;
+      var reqMissing = up.req && save.gear.upgrades.indexOf(up.req) < 0;
+      var reqName = null;
+      if (reqMissing) {
+        var reqUp = UPGRADES.filter(function (u) { return u.id === up.req; })[0];
+        reqName = reqUp ? reqUp.name : up.req;
+      }
+      var canBuy = !reqMissing && save.money >= up.price;
+      var item = shopItem("upgrade", up, owned, canBuy, reqName);
+      if (!owned && !reqMissing) item.addEventListener("click", function () { buyItem("upgrade", up.id, up.price); });
+      upsEl.appendChild(item);
+    });
+  }
+
+  function buyItem(kind, id, price) {
+    if (save.money < price) { SFX.ensure(); SFX.fail(); return; }
+    save.money -= price;
+    if (kind === "rod") save.gear.rods.push(id);
+    if (kind === "lure") save.gear.lures.push(id);
+    if (kind === "upgrade") save.gear.upgrades.push(id);
+    persistSave();
+    updateStatusBar();
+    SFX.ensure();
+    SFX.jingle();
+    renderShop();
+  }
+
   // ===== 図鑑画面 =====
   function renderZukan() {
     var fishIds = Object.keys(FISH);
@@ -3761,6 +4208,25 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       rarityTotals[r]++;
       if (zukan[id]) rarityCaught[r]++;
     });
+    // 記録の間
+    var hall = document.getElementById("hallTotals");
+    if (hall) {
+      var maxFish = null, maxCm = 0;
+      Object.keys(save.records).forEach(function (fid) {
+        var r = save.records[fid];
+        if (r.best > maxCm) { maxCm = r.best; maxFish = fid; }
+      });
+      var earned = save.titles.map(function (tid) {
+        var t = TITLES.filter(function (x) { return x.id === tid; })[0];
+        return t ? '<span class="title-chip">' + t.name + '</span>' : "";
+      }).join("");
+      hall.innerHTML =
+        '<div class="hall-row"><span>総釣果</span><b>' + save.totals.catches + ' 匹</b></div>' +
+        '<div class="hall-row"><span>総収入</span><b>' + save.totals.earned.toLocaleString() + ' 円</b></div>' +
+        '<div class="hall-row"><span>最大魚</span><b>' + (maxFish ? (FISH[maxFish] ? FISH[maxFish].name : maxFish) + " " + maxCm.toFixed(1) + "cm" : "—") + '</b></div>' +
+        '<div class="hall-row"><span>解禁済み</span><b>' + save.unlocked.length + ' / ' + LOCATIONS.length + ' ヶ所</b></div>' +
+        (earned ? '<div class="hall-titles">' + earned + '</div>' : "");
+    }
     var breakdown = document.getElementById("rarityBreakdown");
     breakdown.innerHTML = rarityOrder.map(function (r) {
       return '<span><span class="rb-dot" style="background:var(--' + r + ')"></span>' +
@@ -3775,9 +4241,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var item = document.createElement("div");
       item.className = "zukan-item " + fish.rarity + (caught ? "" : " locked");
       if (caught) {
+        var rec = save.records[id] || {};
+        var stats = rec.best ? "最大 " + rec.best.toFixed(1) + "cm ・ " + (rec.count || 0) + "匹" : (rec.count || 0) + "匹";
+        var vb = (rec.gi ? '<span class="zi-badge zb-gi">👑大物</span>' : "") + (rec.sp ? '<span class="zi-badge zb-sp">🌸婚姻色</span>' : "");
         item.innerHTML =
           '<div class="zi-art">' + renderFish(id, { uid: "z" + id }) + '</div>' +
           '<div class="zi-name">' + fish.name + '</div>' +
+          '<div class="zi-stats">' + stats + '</div>' +
+          (vb ? '<div class="zi-badges">' + vb + '</div>' : '') +
           '<div class="zi-rarity">' + RARITY_LABEL[fish.rarity] + '</div>';
       } else {
         item.innerHTML =
@@ -3829,6 +4300,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       case "change-place":
         showScreen("screen-map");
         break;
+      case "shop":
+        state.prevScreenBeforeShop = currentScreenId();
+        renderShop();
+        showScreen("screen-shop");
+        break;
+      case "shop-back":
+        showScreen(state.prevScreenBeforeShop || "screen-title");
+        break;
+      case "unlock-loc":
+        unlockLocation();
+        break;
       default:
         break;
     }
@@ -3860,6 +4342,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
   // ===== 初期化 =====
   document.getElementById("titleFishArt").innerHTML = renderFish("ito", { uid: "t" });
+  updateStatusBar();
+  renderDailyCard();
   buildMap();
   showScreen("screen-title");
 
@@ -3872,6 +4356,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       phase: fs.phase,
       tension: fs.tension,
       progress: fs.progress,
+      money: save.money,
+      pendingSize: fs.pendingSize,
+      pendingVariant: fs.pendingVariant,
+      unlocked: save.unlocked.slice(),
       mapZoom: { s: mapZoom.s, tx: mapZoom.tx, ty: mapZoom.ty }
     };
   };
