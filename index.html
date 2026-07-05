@@ -241,7 +241,8 @@
     cursor: pointer;
     text-align: left;
   }
-  .choice-item .ci-emoji { font-size: 26px; width: 34px; text-align: center; }
+  .choice-item .ci-emoji { font-size: 26px; width: 38px; text-align: center; flex: none; }
+  .choice-item .ci-emoji svg { width: 34px; height: 34px; display: block; margin: 0 auto; filter: drop-shadow(0 1px 1px rgba(20,40,35,.18)); }
   .choice-item .ci-text { flex: 1; }
   .choice-item .ci-name { font-weight: 700; font-size: 15px; }
   .choice-item .ci-desc { font-size: 12px; color: var(--sub-ink); margin-top: 2px; }
@@ -494,9 +495,15 @@
   .rarity-rare { background: var(--rare); }
   .rarity-legend { background: var(--legend); }
   .result-desc { font-size: 14px; color: var(--sub-ink); max-width: 340px; margin-bottom: 18px; }
-  .result-fail-emoji { font-size: 64px; margin-bottom: 8px; }
-  .result-fail-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
-  .result-fail-desc { font-size: 14px; color: var(--sub-ink); margin-bottom: 20px; }
+  #resultFail {
+    background: linear-gradient(180deg, #17333c 0%, #0f272f 100%);
+    border-radius: 20px;
+    padding: 30px 16px 22px;
+    box-shadow: 0 14px 34px rgba(8, 30, 38, .30);
+  }
+  .result-fail-emoji { font-size: 62px; margin-bottom: 10px; filter: drop-shadow(0 4px 8px rgba(0,10,16,.4)); }
+  .result-fail-title { font-size: 21px; font-weight: 800; margin-bottom: 8px; color: #f0f6f4; letter-spacing: .04em; }
+  .result-fail-desc { font-size: 13.5px; color: #a8c4c6; margin-bottom: 22px; max-width: 320px; line-height: 1.7; }
 
   /* ---- zukan screen ---- */
   .zukan-summary {
@@ -515,7 +522,7 @@
     gap: 10px;
   }
   .zukan-item {
-    background: var(--card-bg);
+    background: linear-gradient(180deg, #fbfdfc 0%, #eef6f3 100%);
     border-radius: 14px;
     padding: 10px 8px;
     text-align: center;
@@ -525,12 +532,18 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 2px 6px rgba(20, 45, 40, .07);
   }
-  .zukan-item .zi-art { width: 100%; display: flex; justify-content: center; }
-  .zukan-item .zi-art svg { width: 90%; max-height: 68px; height: auto; display: block; }
+  .zukan-item .zi-art {
+    width: 100%; display: flex; justify-content: center;
+    background: radial-gradient(ellipse at 50% 60%, rgba(120, 180, 200, .16) 0%, transparent 70%);
+    border-radius: 10px;
+  }
+  .zukan-item .zi-art svg { width: 90%; max-height: 68px; height: auto; display: block; filter: drop-shadow(0 3px 3px rgba(20, 45, 50, .18)); }
   .zukan-item .zi-name { font-size: 12px; font-weight: 700; margin-top: 4px; }
   .zukan-item .zi-rarity { font-size: 10px; color: var(--sub-ink); margin-top: 2px; }
-  .zukan-item.locked { opacity: .6; }
+  .zukan-item.locked { opacity: .55; background: linear-gradient(180deg, #eef1ef 0%, #e2e8e5 100%); }
+  .zukan-item.locked .zi-art svg { filter: none; }
   .zukan-item.common { border-color: var(--common); }
   .zukan-item.uncommon { border-color: var(--uncommon); }
   .zukan-item.rare { border-color: var(--rare); }
@@ -808,6 +821,7 @@ function spots(p,o,rng){
     const y=62+yr*dHere;
     const r=o.rMin+rng()*(o.rMax-o.rMin);
     if(o.halo) s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r+1.6).toFixed(1)}" fill="${o.halo}" opacity="0.85"/>`;
+    else s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r*1.8).toFixed(1)}" fill="${o.color}" opacity="${((o.op??0.85)*0.22).toFixed(2)}"/>`;
     s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${o.color}" opacity="${o.op??0.85}"/>`;
   }
   return s;
@@ -820,6 +834,10 @@ function parrMarks(p,o){
     s+=`<ellipse cx="${x.toFixed(1)}" cy="62" rx="${(4+p.depth*0.06).toFixed(1)}" ry="${(dHere*0.62).toFixed(1)}" fill="${o.color}" opacity="${o.op??0.5}"/>`;
   }
   return s;
+}
+function lensBand(p,o){
+  const x0=26+(p.len-26)*0.22, x1=p.len-4, ry=o.ry||7;
+  return `<path d="M ${x0} 62 Q ${(x0+x1)/2} ${62-ry} ${x1} ${62-1} Q ${(x0+x1)/2} ${62+ry*1.15} ${x0} 62 Z" fill="${o.color}" opacity="${o.op??0.5}"/>`;
 }
 function lateralBand(p,o){
   return `<path d="M 30 62 C ${26+(p.len-26)*0.3} ${62-2} ${26+(p.len-26)*0.7} ${62-1} ${p.len+10} 62 L ${p.len+10} ${62+(o.w||9)} C ${26+(p.len-26)*0.7} ${62+(o.w||9)+1} ${26+(p.len-26)*0.3} ${62+(o.w||9)} 30 ${62+(o.w||9)-2} Z" fill="${o.color}" opacity="${o.op??0.5}"/>`;
@@ -889,6 +907,7 @@ function fishSVG(sp, opts={}){
     // 種固有パターン
     for(const layer of (sp.layers||[])){
       if(layer.t==='band') s+=lateralBand(p,layer);
+      if(layer.t==='lens') s+=lensBand(p,layer);
       if(layer.t==='parr') s+=parrMarks(p,layer);
       if(layer.t==='spots') s+=spots(p,layer,rng);
       if(layer.t==='scales'){
@@ -905,6 +924,15 @@ function fishSVG(sp, opts={}){
     s+=`<path d="M ${26+(p.len-26)*0.27} 60 C ${26+(p.len-26)*0.5} ${58+p.depth*0.06} ${26+(p.len-26)*0.75} 60 ${p.len-4} ${62-p.pedH*0.3}" fill="none" stroke="#00000024" stroke-width="0.9"/>`;
     // 虹色の光沢帯
     s+=`<ellipse cx="${26+(p.len-26)*0.5}" cy="57" rx="${(p.len-26)*0.42}" ry="5.5" fill="#ffffff" opacity="0.13"/>`;
+    if(sp.irid){
+      let ir='';
+      for(let ii=0;ii<15;ii++){
+        const ix=44+((p.len-60)/15)*ii+rng()*5;
+        const iy=56+rng()*10;
+        ir+=`<rect x="${ix.toFixed(1)}" y="${(iy-5).toFixed(1)}" width="2.2" height="${(9+rng()*5).toFixed(1)}" rx="1" fill="${ii%2?'#bfe2ea':'#d8ecdf'}" opacity="0.13"/>`;
+      }
+      s+=ir;
+    }
     // 腹の照り返し
     s+=`<ellipse cx="${26+(p.len-26)*0.45}" cy="${62+p.depth*0.55}" rx="${(p.len-26)*0.35}" ry="${p.depth*0.3}" fill="#ffffff" opacity="0.16"/>`;
     // 腹縁の影
@@ -934,6 +962,9 @@ function fishSVG(sp, opts={}){
     if(sp.kype){
       s+=`<path d="M ${26.5} ${62+2} q 8 ${5+(p.jawDrop||0)} 15 ${3+(p.jawDrop||0)*0.6}" fill="none" stroke="#00000066" stroke-width="1.7"/>`;
       s+=`<path d="M 26 ${62+5} q 3 -4 6 -5" fill="none" stroke="#00000055" stroke-width="1.6"/>`;
+    } else if(sp.longJaw){
+      s+=`<path d="M ${26.5} ${62+2} q 10 ${6+(p.jawDrop||0)} 21 ${5+(p.jawDrop||0)*0.6}" fill="none" stroke="#00000060" stroke-width="1.7"/>`;
+      s+=`<path d="M ${44} ${62+8} q 2 2 1 4" fill="none" stroke="#00000038" stroke-width="1.3"/>`;
     } else {
       s+=`<path d="M ${26.5} ${62+2} q 7 ${4+(p.jawDrop||0)} 13 ${3+(p.jawDrop||0)*0.6}" fill="none" stroke="#00000055" stroke-width="1.4"/>`;
     }
@@ -1027,11 +1058,11 @@ function sculpinSVG(sp,opts={}){
 // --- species table --------------------------------------------------------
 const SPECIES_ART={
  sake:{id:'sake',seed:11,back:'#3f5a52',side:'#9fb3ac',belly:'#e8ede9',fin:'#42544e',adipose:true,
-   sheen:'#c8d8d4',eyeRing:'#b8c4bc',kype:true,
+   sheen:'#c8d8d4',eyeRing:'#b8c4bc',kype:true,irid:true,
    body:{len:186,depth:24,pedH:7,tail:'fork',tailLen:28,dorsalW:28,dorsalH:14,jawDrop:5,eye:4.6},
    layers:[{t:'spots',n:14,color:'#2c3a36',rMin:0.9,rMax:1.8,yMin:-1,yMax:-0.1,op:0.7}]},
  sakuramasu:{id:'sakuramasu',seed:22,back:'#4a6a75',side:'#c2ccc9',belly:'#f2f4f1',fin:'#5b6f75',adipose:true,
-   sheen:'#e2eaea',eyeRing:'#c2ccc6',
+   sheen:'#e2eaea',eyeRing:'#c2ccc6',irid:true,
    body:{len:180,depth:25,pedH:7,tail:'fork',tailLen:26,dorsalW:27,dorsalH:14,eye:4.6},
    layers:[{t:'band',color:'#e88ca0',op:0.5,w:10},{t:'parr',n:9,color:'#3c5661',op:0.5},
      {t:'spots',n:10,color:'#2f434c',rMin:0.8,rMax:1.6,yMin:-1,yMax:-0.3,op:0.65}]},
@@ -1047,20 +1078,22 @@ const SPECIES_ART={
  nijimasu:{id:'nijimasu',seed:55,back:'#48604f',side:'#b9c4b4',belly:'#eef0e8',fin:'#5f7263',adipose:true,
    sheen:'#dde6da',eyeRing:'#c8cfc0',cheek:'#e093a6',
    body:{len:182,depth:26,pedH:7,tail:'fork',tailLen:26,dorsalW:28,dorsalH:14,eye:4.5},
-   layers:[{t:'band',color:'#d97f96',op:0.65,w:9},
+   layers:[{t:'lens',color:'#d97f96',op:0.6,ry:8},
      {t:'spots',n:44,color:'#25332c',rMin:0.7,rMax:1.5,yMin:-1,yMax:0.7,op:0.8}]},
  brown:{id:'brown',seed:66,back:'#5c4a2e',side:'#a98f57',belly:'#efe1b8',fin:'#6d5836',adipose:true,
    sheen:'#cdb87e',eyeRing:'#d4bc7e',
+   longJaw:true,
    body:{len:184,depth:26,pedH:7.2,tail:'trunc',tailLen:24,dorsalW:28,dorsalH:14,eye:4.6},
    layers:[{t:'spots',n:18,color:'#31281a',rMin:1.6,rMax:2.6,yMin:-1,yMax:0.4,op:0.9},
      {t:'spots',n:8,color:'#c8432f',rMin:1.4,rMax:2,halo:'#efe6cb',yMin:-0.2,yMax:0.6,op:0.95}]},
  ito:{id:'ito',seed:77,back:'#5a4a44',side:'#a8867a',belly:'#e7d5c9',fin:'#8c4f42',adipose:true,
    sheen:'#c8a894',eyeRing:'#c0a488',
+   longJaw:true,
    body:{len:200,depth:21,pedH:8,tail:'trunc',tailLen:26,dorsalW:26,dorsalH:12,snout:1,eye:4.2},
    layers:[{t:'band',color:'#b8574a',op:0.35,w:12},
      {t:'spots',n:46,color:'#2e2622',rMin:0.6,rMax:1.3,yMin:-1,yMax:0.5,op:0.85}]},
  wakasagi:{id:'wakasagi',seed:88,back:'#7c8894',side:'#c9d2d8',belly:'#f4f6f7',fin:'#9aa6ae',adipose:true,
-   sheen:'#e8eef2',eyeRing:'#d0d8dc',scaleR:2,scaleOp:0.08,
+   sheen:'#e8eef2',eyeRing:'#d0d8dc',irid:true,scaleR:2,scaleOp:0.08,
    body:{len:150,depth:13,pedH:5,tail:'fork',tailLen:20,dorsalW:20,dorsalH:10,eye:4.2},
    layers:[{t:'band',color:'#aab6bf',op:0.6,w:5}]},
  ugui:{id:'ugui',seed:99,back:'#55604a',side:'#a4a58c',belly:'#eeeadb',fin:'#77755c',
@@ -1081,12 +1114,12 @@ const SPECIES_ART={
    body:{len:160,depth:32,pedH:7.5,tail:'fork',tailLen:22,dorsalW:40,dorsalH:14,snout:1,eye:4.5},
    layers:[]},
  ayu:{id:'ayu',seed:143,back:'#5c6a4e',side:'#bcc4a8',belly:'#f2f2e4',fin:'#d9a13c',adipose:true,
-   sheen:'#dee4cc',eyeRing:'#d2c88e',
+   sheen:'#dee4cc',eyeRing:'#d2c88e',irid:true,
    body:{len:170,depth:20,pedH:6,tail:'fork',tailLen:24,dorsalW:24,dorsalH:15,eye:4.3},
    layers:[{t:'spots',n:1,color:'#e8c33f',rMin:6,rMax:6,yMin:-0.45,yMax:-0.45,op:0.9},
      {t:'band',color:'#88906e',op:0.35,w:7}]},
  shishamo:{id:'shishamo',seed:154,back:'#8a8f80',side:'#cfd2c4',belly:'#f5f5ec',fin:'#a0a494',adipose:true,
-   sheen:'#e8eadf',eyeRing:'#ccd0c2',scaleR:2,scaleOp:0.08,
+   sheen:'#e8eadf',eyeRing:'#ccd0c2',irid:true,scaleR:2,scaleOp:0.08,
    body:{len:172,depth:13,pedH:5,tail:'fork',tailLen:22,dorsalW:20,dorsalH:10,eye:3.9},
    layers:[{t:'band',color:'#b2b6a6',op:0.55,w:5},{t:'spots',n:16,color:'#6e7466',rMin:0.5,rMax:1,yMin:-1,yMax:-0.3,op:0.6}]},
  kawayatsume:{id:'kawayatsume',seed:165,back:'#4c5648',side:'#7e8468',belly:'#cfcdb0',fin:'#5f6852',special:'lamprey'},
@@ -1724,17 +1757,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   };
 
   var RODS = [
-    { id: "lure_rod", name: "ルアーロッド", emoji: "🎣", desc: "万能。トラウト・サケ狙い", lures: ["spoon", "minnow", "spinner"] },
-    { id: "fly_rod", name: "フライロッド", emoji: "🪶", desc: "毛鉤で渓流魚", lures: ["fly"] },
-    { id: "bait_rod", name: "のべ竿", emoji: "🪱", desc: "エサでなんでも", lures: ["bait"] }
+    { id: "lure_rod", name: "ルアーロッド", emoji: "🎣", icon: '<svg viewBox="0 0 34 34"><path d="M4 30 Q 16 22 28 5" fill="none" stroke="#6a4a30" stroke-width="2.6" stroke-linecap="round"/><path d="M4 30 Q 16 22 28 5" fill="none" stroke="#a07850" stroke-width="1" stroke-linecap="round"/><circle cx="9" cy="27" r="3.4" fill="#31383e" stroke="#1c2226"/><circle cx="9" cy="27" r="1.4" fill="#b8c2c8"/><path d="M28 5 q 2 8 -1 14" fill="none" stroke="#dfe5e8" stroke-width="0.9"/><path d="M26.5 21 l 1 3 l 2.4 -1.4" fill="none" stroke="#9aa4aa" stroke-width="1.2"/></svg>', desc: "万能。トラウト・サケ狙い", lures: ["spoon", "minnow", "spinner"] },
+    { id: "fly_rod", name: "フライロッド", emoji: "🪶", icon: '<svg viewBox="0 0 34 34"><path d="M3 31 Q 15 24 30 4" fill="none" stroke="#7a5838" stroke-width="2" stroke-linecap="round"/><path d="M30 4 q -6 6 -14 8 q 8 2 12 -2" fill="none" stroke="#d8e2e6" stroke-width="1"/><circle cx="7" cy="29" r="2.6" fill="#3a4046"/></svg>', desc: "毛鉤で渓流魚", lures: ["fly"] },
+    { id: "bait_rod", name: "のべ竿", emoji: "🪱", icon: '<svg viewBox="0 0 34 34"><path d="M5 31 L 26 4" fill="none" stroke="#8a6a42" stroke-width="2.4" stroke-linecap="round"/><path d="M26 4 L 26 18" fill="none" stroke="#dfe5e8" stroke-width="0.9"/><circle cx="26" cy="20" r="2.6" fill="#d24a3a"/><path d="M24.9 20 a 2.6 2.6 0 0 0 2.2 0 Z" fill="#f2f2ea"/></svg>', desc: "エサでなんでも", lures: ["bait"] }
   ];
 
   var LURES = {
-    spoon:   { name: "スプーン", emoji: "🥄", desc: "金属の輝きでトラウトを誘う定番。" },
-    minnow:  { name: "ミノー", emoji: "🐠", desc: "小魚型。大型のイトウ・サケ・ブラウンに強い。" },
-    spinner: { name: "スピナー", emoji: "🌀", desc: "回転ブレードで渓流のニジマス・オショロコマに。" },
-    fly:     { name: "フライ", emoji: "🪶", desc: "毛鉤。ヤマメ・オショロコマ・アユ向き。" },
-    bait:    { name: "エサ（イクラ／ミミズ）", emoji: "🪱", desc: "イクラやミミズ。雑魚から底物までなんでも。" }
+    spoon:   { name: "スプーン", emoji: "🥄", icon: '<svg viewBox="0 0 34 34"><ellipse cx="15" cy="14" rx="7" ry="11" fill="#c8ccd2" stroke="#8f979e" transform="rotate(-14 15 14)"/><ellipse cx="12.6" cy="11" rx="2.6" ry="5" fill="#eef1f4" transform="rotate(-14 13 11)" opacity="0.8"/><path d="M19 25 q 1.6 4 -1.6 5.6 q -3.4 1 -4 -2" fill="none" stroke="#6d757c" stroke-width="1.6"/></svg>', desc: "金属の輝きでトラウトを誘う定番。" },
+    minnow:  { name: "ミノー", emoji: "🐠", icon: '<svg viewBox="0 0 34 34"><path d="M4 15 Q 12 9 24 13 Q 29 15 24 18 Q 12 21 4 16 Z" fill="#7fb0c8" stroke="#4a7890"/><path d="M4 15 Q 8 12 12 12 L 12 18 Q 7 18 4 16 Z" fill="#eef4f6"/><circle cx="22.6" cy="14.4" r="1.4" fill="#16222a"/><path d="M6 17 q -2.4 2.6 -1 5" fill="none" stroke="#4a7890" stroke-width="1.4"/><path d="M14 20 q 0.6 3.4 -2 4.4 M 24 18 q 1 3 -1.6 4.2" fill="none" stroke="#6d757c" stroke-width="1.3"/></svg>', desc: "小魚型。大型のイトウ・サケ・ブラウンに強い。" },
+    spinner: { name: "スピナー", emoji: "🌀", icon: '<svg viewBox="0 0 34 34"><line x1="17" y1="3" x2="17" y2="25" stroke="#9aa2a8" stroke-width="1.6"/><ellipse cx="12" cy="11" rx="4.4" ry="7.4" fill="#d8b04a" stroke="#a8842e" transform="rotate(18 12 11)"/><circle cx="17" cy="19" r="2.2" fill="#c04838"/><path d="M17 25 q 1.8 3.6 -1.2 5 q -3.2 1 -3.8 -1.8" fill="none" stroke="#6d757c" stroke-width="1.6"/></svg>', desc: "回転ブレードで渓流のニジマス・オショロコマに。" },
+    fly:     { name: "フライ", emoji: "🪶", icon: '<svg viewBox="0 0 34 34"><path d="M12 20 q 2 6 8 6 q 5 0 5 -4" fill="none" stroke="#6d757c" stroke-width="1.8"/><path d="M12 20 L 6 8 M 12 20 L 12 6 M 12 20 L 19 8" stroke="#a8763e" stroke-width="1.5"/><path d="M12 20 L 8 12 M 12 20 L 16 11" stroke="#d0a05c" stroke-width="1.2"/><ellipse cx="12.5" cy="20.5" rx="3.4" ry="2.4" fill="#5c4a34"/></svg>', desc: "毛鉤。ヤマメ・オショロコマ・アユ向き。" },
+    bait:    { name: "エサ（イクラ／ミミズ）", emoji: "🪱", icon: '<svg viewBox="0 0 34 34"><path d="M5 24 q 4 -8 9 -3 q 5 5 9 -2 q 2 -4 6 -3" fill="none" stroke="#c47a5a" stroke-width="3.4" stroke-linecap="round"/><circle cx="9" cy="10" r="3.4" fill="#f0885a" opacity="0.9"/><circle cx="15" cy="7" r="3" fill="#f0885a" opacity="0.75"/><circle cx="8" cy="9" r="1" fill="#fff" opacity="0.8"/></svg>', desc: "イクラやミミズ。雑魚から底物までなんでも。" }
   };
 
   var RARITY_LABEL = { common: "コモン", uncommon: "アンコモン", rare: "レア", legend: "レジェンド" };
@@ -1912,7 +1945,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       markerPositions[loc.id] = xy;
       var x = xy[0].toFixed(1), y = xy[1].toFixed(1);
       var isDam = loc.type === "dam";
-      parts.push('<g class="loc-marker-group" data-loc-id="' + loc.id + '">');
+      parts.push('<g class="loc-marker-group" data-loc-id="' + loc.id + '" style="filter:drop-shadow(0 2.5px 2px rgba(10,30,40,.4))">');
       if (isDam) {
         parts.push('<rect class="marker-dam" data-loc-id="' + loc.id + '" x="' + (xy[0] - 8) + '" y="' + (xy[1] - 8) + '" width="16" height="16" transform="rotate(45 ' + x + ' ' + y + ')"></rect>');
       } else {
@@ -2118,7 +2151,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       item.className = "choice-item";
       item.setAttribute("data-rod-id", rod.id);
       item.innerHTML =
-        '<div class="ci-emoji">' + rod.emoji + '</div>' +
+        '<div class="ci-emoji">' + (rod.icon || rod.emoji) + '</div>' +
         '<div class="ci-text"><div class="ci-name">' + rod.name + '</div><div class="ci-desc">' + rod.desc + '</div></div>';
       item.addEventListener("click", function () { selectRod(rod.id); });
       rodList.appendChild(item);
@@ -2144,7 +2177,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       item.className = "choice-item";
       item.setAttribute("data-lure-id", lureId);
       item.innerHTML =
-        '<div class="ci-emoji">' + lure.emoji + '</div>' +
+        '<div class="ci-emoji">' + (lure.icon || lure.emoji) + '</div>' +
         '<div class="ci-text"><div class="ci-name">' + lure.name + '</div><div class="ci-desc">' + lure.desc + '</div></div>';
       item.addEventListener("click", function () { selectLure(lureId); });
       lureList.appendChild(item);
@@ -2562,6 +2595,25 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
   }
 
+  function drawSpruce(ctx, x, y, h, night) {
+    ctx.strokeStyle = night ? "#101c10" : "#2c2418";
+    ctx.lineWidth = Math.max(2, h * 0.05);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - h * 0.3); ctx.stroke();
+    ctx.fillStyle = night ? "#14260f" : "#2c4a26";
+    for (var tier = 0; tier < 4; tier++) {
+      var ty = y - h * (0.24 + tier * 0.2);
+      var tw = h * (0.30 - tier * 0.058);
+      ctx.beginPath();
+      ctx.moveTo(x - tw, ty);
+      ctx.lineTo(x, ty - h * 0.30);
+      ctx.lineTo(x + tw, ty);
+      ctx.closePath(); ctx.fill();
+    }
+    // 木の落ち影
+    ctx.fillStyle = "rgba(10,24,12,0.22)";
+    ctx.beginPath(); ctx.ellipse(x, y + 2, h * 0.22, h * 0.045, 0, 0, 6.3); ctx.fill();
+  }
+
   function drawBirches(ctx, sc, night) {
     for (var bi = 0; bi < sc.birches.length; bi++) {
       var br = sc.birches[bi];
@@ -2662,11 +2714,25 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       for (var ci = 0; ci < sc.clouds.length; ci++) {
         var cl = sc.clouds[ci];
         var cx0 = ((cl.off + now / 1000 * cl.sp) % 480) - 90;
-        ctx.fillStyle = "rgba(255,255,255,0.30)";
-        for (var e = 0; e < 4; e++) {
-          ctx.beginPath();
-          ctx.ellipse(cx0 + e * 20 * cl.s, cl.y + (e % 2) * 4, (26 - e * 4) * cl.s, (8 - e) * cl.s + 4, 0, 0, 6.3);
-          ctx.fill();
+        var cw = 62 * cl.s, ch = 15 * cl.s, cy2 = cl.y;
+        // 底が平らな積雲
+        ctx.fillStyle = "rgba(255,255,255,0.82)";
+        ctx.beginPath();
+        ctx.moveTo(cx0 - cw / 2, cy2);
+        ctx.arc(cx0 - cw * 0.28, cy2 - 2, ch * 0.55, Math.PI, Math.PI * 1.9);
+        ctx.arc(cx0, cy2 - 4, ch * 0.8, Math.PI, Math.PI * 2);
+        ctx.arc(cx0 + cw * 0.28, cy2 - 2, ch * 0.5, Math.PI * 1.15, Math.PI * 2);
+        ctx.lineTo(cx0 + cw / 2, cy2);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "rgba(148,168,182,0.26)";
+        ctx.beginPath(); ctx.ellipse(cx0, cy2 + 1.4, cw * 0.46, 2.8, 0, 0, 6.3); ctx.fill();
+      }
+      if (t.key === "hiru" || t.key === "asa") {
+        // レンズフレア（太陽から画面中心へ）
+        for (var lf = 1; lf <= 3; lf++) {
+          var fx = pal.lx + (180 - pal.lx) * (lf * 0.36), fy = ly + (240 - ly) * (lf * 0.36);
+          ctx.fillStyle = "rgba(255,255,240," + (0.10 - lf * 0.022) + ")";
+          ctx.beginPath(); ctx.arc(fx, fy, 10 - lf * 2, 0, 6.3); ctx.fill();
         }
       }
     }
@@ -2794,6 +2860,35 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       ctx.stroke();
     }
 
+    // 河川: 下流へ流れる筋（遠近収束・ダッシュアニメ）＋流芯の深み
+    if (!sc.isDam) {
+      var rwf = sc.rw;
+      ctx.save();
+      for (var fk = 0; fk < 8; fk++) {
+        var ff = fk / 7;
+        var xt = rwf.topL + 10 + (rwf.topR - rwf.topL - 20) * ff;
+        var xb = rwf.botL + 14 + (rwf.botR - rwf.botL - 28) * ff;
+        var centerW = 1 - Math.abs(ff - 0.5) * 2;
+        ctx.setLineDash([9 + centerW * 8, 30]);
+        ctx.lineDashOffset = -((now / 1000 * (30 + centerW * 26)) % 1000);
+        ctx.strokeStyle = "rgba(255,255,255," + (0.045 + centerW * 0.05) + ")";
+        ctx.lineWidth = 1.2 + centerW * 1.6;
+        ctx.beginPath(); ctx.moveTo(xt, H + 4); ctx.lineTo(xb, 424); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.setLineDash([]);
+      var deepG = ctx.createLinearGradient(0, H, 0, 420);
+      deepG.addColorStop(0, "rgba(6,30,40,0)");
+      deepG.addColorStop(1, "rgba(6,30,40,0.15)");
+      ctx.fillStyle = deepG;
+      ctx.beginPath();
+      ctx.moveTo((rwf.topL + rwf.topR) / 2 - 26, H + 6);
+      ctx.lineTo((rwf.topL + rwf.topR) / 2 + 26, H + 6);
+      ctx.lineTo((rwf.botL + rwf.botR) / 2 + 52, 424);
+      ctx.lineTo((rwf.botL + rwf.botR) / 2 - 52, 424);
+      ctx.closePath(); ctx.fill();
+    }
+
     // 7) 地形
     if (!sc.isDam) {
       var rw = sc.rw;
@@ -2821,6 +2916,29 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(rw.topL, 197); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 - 8, 300, rw.botL + 1, 418); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(rw.topR, 194); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 + 10, 300, rw.botR - 2, 418); ctx.stroke();
+      // 波打ち際の砂利浜（浅瀬の小石）と岸の水中影
+      for (var pb = 0; pb < 30; pb++) {
+        var pt2 = hash2(pb, 41);
+        var isL = pb % 2 === 0;
+        var q0x = isL ? rw.topL : rw.topR, q0y = isL ? 197 : 194;
+        var qcx = isL ? (rw.topL + rw.botL) / 2 - 8 : (rw.topR + rw.botR) / 2 + 10;
+        var q1x = isL ? rw.botL + 1 : rw.botR - 2;
+        var px2 = (1 - pt2) * (1 - pt2) * q0x + 2 * (1 - pt2) * pt2 * qcx + pt2 * pt2 * q1x;
+        var py2 = (1 - pt2) * (1 - pt2) * q0y + 2 * (1 - pt2) * pt2 * 300 + pt2 * pt2 * 418;
+        var inw = (isL ? 1 : -1) * (2 + hash2(pb, 7) * 8);
+        var pr2 = 0.9 + hash2(pb, 13) * 1.8 + (py2 - 200) / 140;
+        ctx.fillStyle = "rgba(" + (hash2(pb, 3) > 0.5 ? "168,158,138" : "128,134,128") + "," + (0.5 - (py2 - 200) / 700) + ")";
+        ctx.beginPath(); ctx.ellipse(px2 + inw, py2 + 1, pr2, pr2 * 0.6, 0, 0, 6.3); ctx.fill();
+      }
+      ctx.fillStyle = "rgba(6,26,34,0.13)";
+      ctx.beginPath();
+      ctx.moveTo(rw.topL, 198); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 - 2, 300, rw.botL + 8, 420);
+      ctx.lineTo(rw.botL + 20, 420); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 + 10, 302, rw.topL + 9, 199);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(rw.topR, 195); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 + 4, 300, rw.botR - 9, 420);
+      ctx.lineTo(rw.botR - 21, 420); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 - 8, 302, rw.topR - 9, 196);
+      ctx.closePath(); ctx.fill();
       // 渓流: 流芯の白泡スジ
       if (sc.rec.width === "narrow") {
         for (var fl = 0; fl < 3; fl++) {
@@ -2857,6 +2975,11 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         ctx.fillStyle = sg;
         ctx.beginPath(); ctx.ellipse(stn.x, stn.y, stn.r, stn.r * 0.68, 0, 0, 6.3); ctx.fill();
       }
+      // 岸のトウヒ（針葉樹）
+      drawSpruce(ctx, Math.max(20, rw.botL - 44), 336, 92, t.night);
+      drawSpruce(ctx, Math.max(12, rw.topL - 52), 262, 56, t.night);
+      drawSpruce(ctx, Math.min(348, rw.botR + 40), 376, 104, t.night);
+      drawSpruce(ctx, Math.min(352, rw.topR + 52), 276, 62, t.night);
       drawBirches(ctx, sc, t.night);
       drawReeds(ctx, sc, pal, t.night, now);
       ctx.lineWidth = 2.6; ctx.lineCap = "round";
@@ -2896,6 +3019,24 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         ctx.moveTo(mx2(308 + jn * 12), H - 5); ctx.lineTo(mx2(322 + jn * 10), 350);
         ctx.stroke();
       }
+      // 放流水のカスケードと水面の白泡
+      var spG = ctx.createLinearGradient(0, H + 20, 0, 356);
+      spG.addColorStop(0, "rgba(255,255,255,0.06)");
+      spG.addColorStop(1, "rgba(255,255,255,0.38)");
+      ctx.fillStyle = spG;
+      ctx.beginPath();
+      ctx.moveTo(mx2(301), H + 26); ctx.lineTo(mx2(308), H + 26);
+      ctx.lineTo(mx2(324), 352); ctx.lineTo(mx2(313), 352);
+      ctx.closePath(); ctx.fill();
+      for (var fb = 0; fb < 3; fb++) {
+        var fbp = ((now / 1000 * 62 + fb * 55) % 128);
+        ctx.fillStyle = "rgba(255,255,255," + (0.26 - fbp / 128 * 0.2) + ")";
+        ctx.beginPath(); ctx.ellipse(mx2(305 + fbp * 0.13), H + 28 + fbp, 3.2, 6, 0, 0, 6.3); ctx.fill();
+      }
+      ctx.fillStyle = "rgba(255,255,255,0.30)";
+      ctx.beginPath(); ctx.ellipse(mx2(318), 354, 14, 4, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.15)";
+      ctx.beginPath(); ctx.ellipse(mx2(318), 359, 23, 5, 0, 0, 6.3); ctx.fill();
       ctx.fillStyle = t.night ? "#6a7072" : "#e8e8de";
       ctx.fillRect(Math.min(mx2(296), mx2(368)), H - 10, 72, 5);
       ctx.strokeStyle = t.night ? "#8a9092" : "#8b8b83"; ctx.lineWidth = 1.6;
