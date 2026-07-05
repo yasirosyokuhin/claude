@@ -702,20 +702,24 @@
 </div>
 
 <script>
-// fishart.js — parametric SVG fish illustration system (fable5)
-// Each species: silhouette params + color layers + pattern layers.
-// viewBox 0 0 240 120, fish faces left.
 
+// fishart v2 — realistic parametric SVG fish (scales, fin rays, opercula, iris, charr fin edges)
 function mulberry(seed){let t=seed>>>0;return()=>{t+=0x6D2B79F5;let r=Math.imul(t^t>>>15,1|t);r^=r+Math.imul(r^r>>>7,61|r);return((r^r>>>14)>>>0)/4294967296}}
 
+function shadeHex(hex,f){
+  var n=parseInt(hex.slice(1),16),r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  if(f<0){r=Math.round(r*(1+f));g=Math.round(g*(1+f));b=Math.round(b*(1+f));}
+  else{r=Math.round(r+(255-r)*f);g=Math.round(g+(255-g)*f);b=Math.round(b+(255-b)*f);}
+  return "#"+((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1);
+}
+
 // --- body path builders -------------------------------------------------
-// standard fusiform body; d=half-depth at mid, L body end x, nose x=26, mid-y 62
 function bodyPath(p){
   const d=p.depth, L=p.len, ph=p.pedH, nose=26, midY=62;
-  const hx=nose+(L-nose)*0.32;            // head/back transition
-  const mx=nose+(L-nose)*0.52;            // deepest point
-  const snout=p.snout||0;                  // 0 pointed, 1 blunt
-  const jawDrop=p.jawDrop||0;              // kype hook
+  const hx=nose+(L-nose)*0.32;
+  const mx=nose+(L-nose)*0.52;
+  const snout=p.snout||0;
+  const jawDrop=p.jawDrop||0;
   return `M ${nose} ${midY-3-snout*2}
     C ${nose+8} ${midY-d*0.55} ${hx-14} ${midY-d*0.92} ${mx} ${midY-d}
     C ${mx+34} ${midY-d} ${L-22} ${midY-ph-4} ${L} ${midY-ph}
@@ -724,16 +728,41 @@ function bodyPath(p){
     C ${hx-16} ${midY+d*0.98} ${nose+7} ${midY+8+jawDrop} ${nose} ${midY+3+snout*2}
     Z`;
 }
-// caudal fin
 function tailPath(p){
   const L=p.len, ph=p.pedH, midY=62, t=p.tail||'fork', ext=p.tailLen||26;
   if(t==='fork') return `M ${L} ${midY-ph} C ${L+10} ${midY-ph-6} ${L+ext-6} ${midY-ph-16} ${L+ext} ${midY-ph-14} C ${L+ext-9} ${midY-4} ${L+ext-9} ${midY+4} ${L+ext} ${midY+ph+14} C ${L+ext-6} ${midY+ph+16} ${L+10} ${midY+ph+6} ${L} ${midY+ph} Z`;
   if(t==='trunc') return `M ${L} ${midY-ph} C ${L+12} ${midY-ph-8} ${L+ext} ${midY-ph-10} ${L+ext} ${midY-ph-6} L ${L+ext} ${midY+ph+6} C ${L+ext} ${midY+ph+10} ${L+12} ${midY+ph+8} ${L} ${midY+ph} Z`;
-  /* round */ return `M ${L} ${midY-ph} C ${L+16} ${midY-ph-10} ${L+ext+4} ${midY-8} ${L+ext+4} ${midY} C ${L+ext+4} ${midY+8} ${L+16} ${midY+ph+10} ${L} ${midY+ph} Z`;
+  return `M ${L} ${midY-ph} C ${L+16} ${midY-ph-10} ${L+ext+4} ${midY-8} ${L+ext+4} ${midY} C ${L+ext+4} ${midY+8} ${L+16} ${midY+ph+10} ${L} ${midY+ph} Z`;
+}
+function tailRays(p){
+  const L=p.len, ph=p.pedH, midY=62, t=p.tail||'fork', ext=p.tailLen||26;
+  var s='', bx=L+2, n=7;
+  for(var i=0;i<n;i++){
+    var f=i/(n-1), tx, ty;
+    if(t==='fork'){
+      tx = L+ext-3-Math.abs(f-0.5)*(-6);
+      ty = midY-ph-13 + f*(2*(ph+13));
+      // pinch center toward notch
+      if(Math.abs(f-0.5)<0.22){ tx=L+ext-10; }
+    } else if(t==='trunc'){ tx=L+ext-2; ty=midY-ph-7+f*(2*ph+14); }
+    else { tx=L+ext; ty=midY-8+f*16; }
+    s+=`<line x1="${bx}" y1="${midY-ph+ (2*ph)*f}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke="#00000022" stroke-width="0.9"/>`;
+  }
+  return s;
 }
 function dorsalPath(p){
   const L=p.len, d=p.depth, midY=62, x=26+(L-26)*0.47, w=p.dorsalW||26, h=p.dorsalH||16;
   return `M ${x} ${midY-d+3} C ${x+4} ${midY-d-h} ${x+w*0.7} ${midY-d-h*0.9} ${x+w} ${midY-d-2} C ${x+w*0.6} ${midY-d+2} ${x+w*0.3} ${midY-d+3} ${x} ${midY-d+3} Z`;
+}
+function dorsalRays(p){
+  const L=p.len, d=p.depth, midY=62, x=26+(L-26)*0.47, w=p.dorsalW||26, h=p.dorsalH||16;
+  var s='';
+  for(var i=0;i<5;i++){
+    var f=i/4;
+    var tx=x+3+f*(w-6), ty=(midY-d-h*0.95)+f*(h*0.85);
+    s+=`<line x1="${(x+2+f*(w*0.5)).toFixed(1)}" y1="${midY-d+2}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke="#00000026" stroke-width="0.8"/>`;
+  }
+  return s;
 }
 function adiposePath(p){
   const L=p.len, midY=62, ph=p.pedH, x=L-16;
@@ -744,22 +773,37 @@ function pectoralPath(p){
   const x=26+(p.len-26)*0.30, y=62+p.depth*0.42, s=p.finS||1;
   return `M ${x} ${y} q ${14*s} ${2*s} ${22*s} ${13*s} q ${-13*s} ${5*s} ${-24*s} ${-4*s} Z`;
 }
+function pectoralEdge(p){
+  const x=26+(p.len-26)*0.30, y=62+p.depth*0.42, s=p.finS||1;
+  return `M ${x} ${y} q ${14*s} ${2*s} ${22*s} ${13*s}`;
+}
 function pelvicPath(p){
   const x=26+(p.len-26)*0.52, y=62+p.depth*0.96;
   return `M ${x} ${y} q 9 8 16 10 q -10 3 -18 -3 Z`;
+}
+function pelvicEdge(p){
+  const x=26+(p.len-26)*0.52, y=62+p.depth*0.96;
+  return `M ${x} ${y} q 9 8 16 10`;
 }
 function analPath(p){
   const x=26+(p.len-26)*0.74, y=62+p.depth*0.72;
   return `M ${x} ${y} q 6 9 14 11 q -9 2 -17 -3 Z`;
 }
+function analEdge(p){
+  const x=26+(p.len-26)*0.74, y=62+p.depth*0.72;
+  return `M ${x} ${y} q 6 9 14 11`;
+}
+function depthAt(p,x){
+  const frac=(x-26)/(p.len-26);
+  return p.depth*(frac<0.5? 0.55+frac*0.9 : 1.45-frac*0.9);
+}
 // patterns --------------------------------------------------------------
-function spots(p,o,rng){ // o:{n,color,rMin,rMax,halo,yMin,yMax,op}
+function spots(p,o,rng){
   let s='';
-  const x0=34, x1=p.len+ (o.onTail? p.tailLen*0.5 : -6);
+  const x0=34, x1=p.len+(o.onTail? (p.tailLen||26)*0.5 : -6);
   for(let i=0;i<o.n;i++){
     const x=x0+rng()*(x1-x0);
-    const frac=(x-26)/(p.len-26);
-    const dHere=p.depth*(frac<0.5? 0.55+frac*0.9 : 1.45-frac*0.9);
+    const dHere=depthAt(p,Math.min(x,p.len-2));
     const yr=(o.yMin??-1)+rng()*((o.yMax??0.75)-(o.yMin??-1));
     const y=62+yr*dHere;
     const r=o.rMin+rng()*(o.rMax-o.rMin);
@@ -768,18 +812,33 @@ function spots(p,o,rng){ // o:{n,color,rMin,rMax,halo,yMin,yMax,op}
   }
   return s;
 }
-function parrMarks(p,o){ // o:{n,color,op}
+function parrMarks(p,o){
   let s='';const x0=26+(p.len-26)*0.24, x1=26+(p.len-26)*0.92;
   for(let i=0;i<o.n;i++){
     const x=x0+(x1-x0)*i/(o.n-1);
-    const frac=(x-26)/(p.len-26);
-    const dHere=p.depth*(frac<0.5? 0.6+frac*0.8 : 1.4-frac*0.8);
+    const dHere=depthAt(p,x);
     s+=`<ellipse cx="${x.toFixed(1)}" cy="62" rx="${(4+p.depth*0.06).toFixed(1)}" ry="${(dHere*0.62).toFixed(1)}" fill="${o.color}" opacity="${o.op??0.5}"/>`;
   }
   return s;
 }
-function lateralBand(p,o){ // o:{color,op,w}
+function lateralBand(p,o){
   return `<path d="M 30 62 C ${26+(p.len-26)*0.3} ${62-2} ${26+(p.len-26)*0.7} ${62-1} ${p.len+10} 62 L ${p.len+10} ${62+(o.w||9)} C ${26+(p.len-26)*0.7} ${62+(o.w||9)+1} ${26+(p.len-26)*0.3} ${62+(o.w||9)} 30 ${62+(o.w||9)-2} Z" fill="${o.color}" opacity="${o.op??0.5}"/>`;
+}
+function scaleRows(p,o){
+  // 鱗: 右向きの半円弧をレンガ状に並べる
+  var s='', r=o.r||3, color=o.color, op=o.op||0.15;
+  var x0=26+(p.len-26)*0.30, x1=p.len-8;
+  var rows=o.rows||5;
+  for(var row=0;row<rows;row++){
+    var yF=-0.72+row*(1.4/(rows-1));
+    var off=(row%2)*r;
+    for(var x=x0+off;x<x1;x+=r*2.4){
+      var dH=depthAt(p,x);
+      var y=62+yF*dH*0.92;
+      s+=`<path d="M ${x.toFixed(1)} ${(y-r).toFixed(1)} A ${r} ${r} 0 0 1 ${x.toFixed(1)} ${(y+r).toFixed(1)}" fill="none" stroke="${color}" stroke-width="0.7" opacity="${op}"/>`;
+    }
+  }
+  return s;
 }
 
 // --- main renderer ------------------------------------------------------
@@ -789,55 +848,97 @@ function fishSVG(sp, opts={}){
   const rng=mulberry(sp.seed||42);
   const silhouette=opts.silhouette;
   const W=240,H=120;
+  const backDark=shadeHex(sp.back,-0.38);
+  const sheen=sp.sheen||shadeHex(sp.side,0.42);
+  const bellyDk=shadeHex(sp.belly,-0.10);
+  const finD=shadeHex(sp.fin||sp.back,-0.32);
   let defs=`<linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="${sp.back}"/>
-      <stop offset="0.45" stop-color="${sp.side}"/>
-      <stop offset="0.72" stop-color="${sp.belly}"/>
-      <stop offset="1" stop-color="${sp.belly}"/>
+      <stop offset="0" stop-color="${backDark}"/>
+      <stop offset="0.16" stop-color="${sp.back}"/>
+      <stop offset="0.44" stop-color="${sp.side}"/>
+      <stop offset="0.60" stop-color="${sheen}"/>
+      <stop offset="0.78" stop-color="${sp.belly}"/>
+      <stop offset="1" stop-color="${bellyDk}"/>
+    </linearGradient>
+    <linearGradient id="${id}fg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${sp.fin||sp.back}"/>
+      <stop offset="1" stop-color="${finD}"/>
     </linearGradient>
     <clipPath id="${id}c"><path d="${bodyPath(p)}"/></clipPath>`;
-  const finFill=silhouette?'#26343b':(sp.fin||sp.back);
+  const finFill=silhouette?'#26343b':`url(#${id}fg)`;
   const bodyFill=silhouette?'#26343b':`url(#${id}g)`;
   let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><defs>${defs}</defs>`;
   // fins behind body
-  s+=`<path d="${tailPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.92}"/>`;
-  if(sp.rays!==false&&!silhouette){ // tail rays
-    s+=`<path d="${tailPath(p)}" fill="none" stroke="${sp.finRay||'#00000022'}" stroke-width="0.8"/>`;
-  }
+  s+=`<path d="${tailPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.94}"/>`;
+  if(!silhouette) s+=tailRays(p);
   s+=`<path d="${dorsalPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.95}"/>`;
-  if(sp.adipose&&(true)) s+=`<path d="${adiposePath(p)}" fill="${finFill}" opacity="${silhouette?1:0.95}"/>`;
-  s+=`<path d="${pelvicPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.9}"/>`;
-  s+=`<path d="${analPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.9}"/>`;
+  if(!silhouette) s+=dorsalRays(p);
+  if(sp.adipose) s+=`<path d="${adiposePath(p)}" fill="${finFill}" opacity="${silhouette?1:0.95}"/>`;
+  s+=`<path d="${pelvicPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.92}"/>`;
+  s+=`<path d="${analPath(p)}" fill="${finFill}" opacity="${silhouette?1:0.92}"/>`;
+  if(!silhouette&&sp.finEdge){
+    s+=`<path d="${pelvicEdge(p)}" fill="none" stroke="${sp.finEdge}" stroke-width="1.8" stroke-linecap="round" opacity="0.95"/>`;
+    s+=`<path d="${analEdge(p)}" fill="none" stroke="${sp.finEdge}" stroke-width="1.8" stroke-linecap="round" opacity="0.95"/>`;
+  }
   // body
-  s+=`<path d="${bodyPath(p)}" fill="${bodyFill}" stroke="${silhouette?'#26343b':sp.outline||'#00000033'}" stroke-width="1"/>`;
-  // pattern layers clipped to body
+  s+=`<path d="${bodyPath(p)}" fill="${bodyFill}" stroke="${silhouette?'#26343b':'#00000030'}" stroke-width="1"/>`;
   if(!silhouette){
     s+=`<g clip-path="url(#${id}c)">`;
-    // back shading
-    s+=`<path d="M 20 ${62-p.depth} L ${p.len+8} ${62-p.pedH-4} L ${p.len+8} 30 L 20 30 Z" fill="${sp.back}" opacity="0.35"/>`;
+    // 背の暗いキャップ＋背線
+    s+=`<path d="M 20 ${62-p.depth} L ${p.len+8} ${62-p.pedH-4} L ${p.len+8} 28 L 20 28 Z" fill="${backDark}" opacity="0.30"/>`;
+    // 種固有パターン
     for(const layer of (sp.layers||[])){
       if(layer.t==='band') s+=lateralBand(p,layer);
       if(layer.t==='parr') s+=parrMarks(p,layer);
       if(layer.t==='spots') s+=spots(p,layer,rng);
-      if(layer.t==='scales'){ // subtle scale arcs
+      if(layer.t==='scales'){
         let sc='';for(let i=0;i<layer.n;i++){const x=40+rng()*(p.len-50),y=62-p.depth*0.8+rng()*p.depth*1.6;
           sc+=`<path d="M ${x.toFixed(1)} ${y.toFixed(1)} a 4 4 0 0 1 6 0" fill="none" stroke="${layer.color}" stroke-width="0.7" opacity="${layer.op??0.35}"/>`;}
         s+=sc;
       }
     }
-    // gill cover
+    // 鱗テクスチャ
+    if(sp.scales!==false){
+      s+=scaleRows(p,{color:sp.scaleC||shadeHex(sp.side,-0.30), r:sp.scaleR||3, rows:5, op:sp.scaleOp||0.14});
+    }
+    // 側線
+    s+=`<path d="M ${26+(p.len-26)*0.27} 60 C ${26+(p.len-26)*0.5} ${58+p.depth*0.06} ${26+(p.len-26)*0.75} 60 ${p.len-4} ${62-p.pedH*0.3}" fill="none" stroke="#00000024" stroke-width="0.9"/>`;
+    // 虹色の光沢帯
+    s+=`<ellipse cx="${26+(p.len-26)*0.5}" cy="57" rx="${(p.len-26)*0.42}" ry="5.5" fill="#ffffff" opacity="0.13"/>`;
+    // 腹の照り返し
+    s+=`<ellipse cx="${26+(p.len-26)*0.45}" cy="${62+p.depth*0.55}" rx="${(p.len-26)*0.35}" ry="${p.depth*0.3}" fill="#ffffff" opacity="0.16"/>`;
+    // 腹縁の影
+    s+=`<path d="M ${26+(p.len-26)*0.2} ${62+p.depth*0.95} C ${26+(p.len-26)*0.5} ${62+p.depth*1.05} ${26+(p.len-26)*0.75} ${62+p.depth*0.8} ${p.len-4} ${62+p.pedH+2}" fill="none" stroke="#1a1608" stroke-width="2.4" opacity="0.10"/>`;
+    // エラぶた（オペルキュラム）: 影＋二重の弧
     const gx=26+(p.len-26)*0.26;
-    s+=`<path d="M ${gx} ${62-p.depth*0.78} C ${gx+9} ${62-p.depth*0.25} ${gx+9} ${62+p.depth*0.3} ${gx-3} ${62+p.depth*0.8}" fill="none" stroke="#00000030" stroke-width="1.6"/>`;
-    // belly sheen
-    s+=`<ellipse cx="${26+(p.len-26)*0.45}" cy="${62+p.depth*0.55}" rx="${(p.len-26)*0.35}" ry="${p.depth*0.3}" fill="#ffffff" opacity="0.18"/>`;
+    s+=`<ellipse cx="${gx+6}" cy="62" rx="10" ry="${p.depth*0.85}" fill="#000000" opacity="0.10"/>`;
+    s+=`<path d="M ${gx} ${62-p.depth*0.78} C ${gx+9} ${62-p.depth*0.25} ${gx+9} ${62+p.depth*0.3} ${gx-3} ${62+p.depth*0.8}" fill="none" stroke="#00000038" stroke-width="1.7"/>`;
+    s+=`<path d="M ${gx-7} ${62-p.depth*0.6} C ${gx} ${62-p.depth*0.15} ${gx} ${62+p.depth*0.25} ${gx-9} ${62+p.depth*0.62}" fill="none" stroke="#00000022" stroke-width="1.2"/>`;
+    // 頬の光
+    s+=`<ellipse cx="${gx-6}" cy="${62+p.depth*0.1}" rx="7" ry="${p.depth*0.4}" fill="${sheen}" opacity="0.30"/>`;
+    if(sp.cheek) s+=`<ellipse cx="${gx-4}" cy="${62+p.depth*0.05}" rx="8" ry="${p.depth*0.42}" fill="${sp.cheek}" opacity="0.45"/>`;
     s+=`</g>`;
-    // pectoral on top of body
+    // 胸びれ（体の上に）
     s+=`<path d="${pectoralPath(p)}" fill="${finFill}" opacity="0.92"/>`;
-    // eye
-    const ex=26+(p.len-26)*0.13, ey=62-p.depth*0.22;
-    s+=`<circle cx="${ex}" cy="${ey}" r="${p.eye||4.4}" fill="#1c2226"/><circle cx="${ex}" cy="${ey}" r="${(p.eye||4.4)*0.85}" fill="#3a4a52"/><circle cx="${ex}" cy="${ey}" r="${(p.eye||4.4)*0.45}" fill="#10151a"/><circle cx="${ex-1.2}" cy="${ey-1.4}" r="1.1" fill="#ffffffcc"/>`;
-    // mouth
-    s+=`<path d="M ${26.5} ${62+2} q 7 ${4+(p.jawDrop||0)} 13 ${3+(p.jawDrop||0)*0.6}" fill="none" stroke="#00000055" stroke-width="1.4"/>`;
+    s+=`<path d="M ${26+(p.len-26)*0.30} ${62+p.depth*0.42} l 18 8 M ${26+(p.len-26)*0.30} ${62+p.depth*0.42} l 20 4 M ${26+(p.len-26)*0.30} ${62+p.depth*0.42} l 15 11" stroke="#00000022" stroke-width="0.8" fill="none"/>`;
+    if(sp.finEdge) s+=`<path d="${pectoralEdge(p)}" fill="none" stroke="${sp.finEdge}" stroke-width="1.6" stroke-linecap="round" opacity="0.95"/>`;
+    // 眼（虹彩リング＋瞳＋キャッチライト）
+    const ex=26+(p.len-26)*0.13, ey=62-p.depth*0.22, er=p.eye||4.4;
+    s+=`<circle cx="${ex}" cy="${ey}" r="${(er*1.28).toFixed(1)}" fill="#141a1e"/>`;
+    s+=`<circle cx="${ex}" cy="${ey}" r="${(er*1.12).toFixed(1)}" fill="${sp.eyeRing||'#c8cfc4'}"/>`;
+    s+=`<circle cx="${ex}" cy="${ey}" r="${(er*0.78).toFixed(1)}" fill="#2c3a42"/>`;
+    s+=`<circle cx="${ex}" cy="${ey}" r="${(er*0.44).toFixed(1)}" fill="#04070a"/>`;
+    s+=`<circle cx="${(ex-er*0.32).toFixed(1)}" cy="${(ey-er*0.36).toFixed(1)}" r="${(er*0.20).toFixed(1)}" fill="#ffffff" opacity="0.95"/>`;
+    s+=`<circle cx="${(ex+er*0.3).toFixed(1)}" cy="${(ey+er*0.3).toFixed(1)}" r="${(er*0.10).toFixed(1)}" fill="#ffffff" opacity="0.5"/>`;
+    // 口
+    if(sp.kype){
+      s+=`<path d="M ${26.5} ${62+2} q 8 ${5+(p.jawDrop||0)} 15 ${3+(p.jawDrop||0)*0.6}" fill="none" stroke="#00000066" stroke-width="1.7"/>`;
+      s+=`<path d="M 26 ${62+5} q 3 -4 6 -5" fill="none" stroke="#00000055" stroke-width="1.6"/>`;
+    } else {
+      s+=`<path d="M ${26.5} ${62+2} q 7 ${4+(p.jawDrop||0)} 13 ${3+(p.jawDrop||0)*0.6}" fill="none" stroke="#00000055" stroke-width="1.4"/>`;
+    }
+    // 鼻孔
+    s+=`<circle cx="${(26+(p.len-26)*0.075).toFixed(1)}" cy="${(62-p.depth*0.30).toFixed(1)}" r="0.9" fill="#00000055"/>`;
     if(sp.barbels){
       s+=`<path d="M 33 ${62+7} q -2 6 -6 8 M 39 ${62+8} q -1 6 -5 9" fill="none" stroke="${sp.side}" stroke-width="1.6" stroke-linecap="round"/>`;
     }
@@ -852,22 +953,36 @@ function fishSVG(sp, opts={}){
 function lampreySVG(sp,opts={}){
   const sil=opts.silhouette, id='f'+sp.id+(opts.uid||'');
   const body=`M 22 58 C 60 50 150 49 206 56 C 214 58 214 66 206 67 C 150 73 60 72 22 66 C 17 64 17 60 22 58 Z`;
+  const backDark=shadeHex(sp.back,-0.35);
   let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120"><defs>
     <linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="${sp.back}"/><stop offset="0.6" stop-color="${sp.side}"/><stop offset="1" stop-color="${sp.belly}"/>
+      <stop offset="0" stop-color="${backDark}"/><stop offset="0.35" stop-color="${sp.back}"/><stop offset="0.62" stop-color="${sp.side}"/><stop offset="1" stop-color="${sp.belly}"/>
     </linearGradient><clipPath id="${id}c"><path d="${body}"/></clipPath></defs>`;
   const fill=sil?'#26343b':`url(#${id}g)`;
-  // low dorsal ridge fins
   s+=`<path d="M 120 52 C 140 46 165 46 185 50 L 185 56 C 165 52 140 52 120 56 Z" fill="${sil?'#26343b':sp.fin}" opacity="0.9"/>`;
   s+=`<path d="M 190 52 C 205 46 216 50 224 60 C 216 70 205 74 190 68 Z" fill="${sil?'#26343b':sp.fin}" opacity="0.95"/>`;
-  s+=`<path d="${body}" fill="${fill}" stroke="${sil?'#26343b':'#00000033'}" stroke-width="1"/>`;
   if(!sil){
-    s+=`<g clip-path="url(#${id}c)"><path d="M 18 50 L 220 46 L 220 58 L 18 58 Z" fill="${sp.back}" opacity="0.4"/></g>`;
-    // oral sucker
-    s+=`<ellipse cx="24" cy="62" rx="5" ry="6.5" fill="#5b4048"/><ellipse cx="24" cy="62" rx="3" ry="4.4" fill="#2e2126"/>`;
-    // eye + 7 gill pores
-    s+=`<circle cx="38" cy="57" r="3.2" fill="#141a1e"/><circle cx="37" cy="56" r="1" fill="#fff" opacity="0.7"/>`;
-    for(let i=0;i<7;i++) s+=`<circle cx="${48+i*5.5}" cy="61.5" r="1.4" fill="#1d262b" opacity="0.85"/>`;
+    s+=`<path d="M 192 52 L 220 58 M 196 50 L 222 62 M 200 49 L 221 66" stroke="#00000026" stroke-width="0.9" fill="none"/>`;
+  }
+  s+=`<path d="${body}" fill="${fill}" stroke="${sil?'#26343b':'#00000030'}" stroke-width="1"/>`;
+  if(!sil){
+    s+=`<g clip-path="url(#${id}c)">`;
+    s+=`<path d="M 18 50 L 220 46 L 220 57 L 18 57 Z" fill="${backDark}" opacity="0.42"/>`;
+    s+=`<ellipse cx="120" cy="57" rx="95" ry="3" fill="#ffffff" opacity="0.12"/>`;
+    // 体の皺
+    for(var i=0;i<9;i++){
+      var wx=56+i*16;
+      s+=`<path d="M ${wx} 52 q 2 8 0 17" fill="none" stroke="#00000014" stroke-width="1"/>`;
+    }
+    s+=`</g>`;
+    s+=`<ellipse cx="24" cy="62" rx="5" ry="6.5" fill="#5b4048"/><ellipse cx="24" cy="62" rx="3.4" ry="4.8" fill="#2e2126"/>`;
+    // 吸盤の歯
+    for(var th=0;th<7;th++){
+      var ta=th/7*Math.PI*2;
+      s+=`<circle cx="${(24+Math.cos(ta)*2.2).toFixed(1)}" cy="${(62+Math.sin(ta)*3.4).toFixed(1)}" r="0.5" fill="#c9b8a0" opacity="0.8"/>`;
+    }
+    s+=`<circle cx="38" cy="56.5" r="3.6" fill="#141a1e"/><circle cx="38" cy="56.5" r="2.9" fill="#5a6248"/><circle cx="38" cy="56.5" r="1.6" fill="#05080a"/><circle cx="37" cy="55.5" r="0.9" fill="#fff" opacity="0.85"/>`;
+    for(let i=0;i<7;i++) s+=`<ellipse cx="${48+i*5.5}" cy="61.5" rx="1.5" ry="1.9" fill="#1d262b" opacity="0.9"/>`;
   }
   s+=`</svg>`;
   return s;
@@ -878,27 +993,32 @@ function sculpinSVG(sp,opts={}){
   const sil=opts.silhouette, id='f'+sp.id+(opts.uid||'');
   const rng=mulberry(sp.seed||7);
   const body=`M 24 56 C 34 42 62 38 88 42 C 130 40 176 50 200 58 C 206 60 206 64 200 66 C 176 72 130 78 88 76 C 60 80 34 76 24 68 C 19 64 20 60 24 56 Z`;
+  const backDark=shadeHex(sp.back,-0.3);
   let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120"><defs>
-   <linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sp.back}"/><stop offset="0.6" stop-color="${sp.side}"/><stop offset="1" stop-color="${sp.belly}"/></linearGradient>
+   <linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${backDark}"/><stop offset="0.28" stop-color="${sp.back}"/><stop offset="0.6" stop-color="${sp.side}"/><stop offset="1" stop-color="${sp.belly}"/></linearGradient>
    <clipPath id="${id}c"><path d="${body}"/></clipPath></defs>`;
   const fin=sil?'#26343b':sp.fin;
-  // long spiny dorsal
   s+=`<path d="M 86 42 L 92 28 L 100 40 L 110 27 L 118 39 L 128 28 L 136 40 L 148 31 L 154 42 L 170 36 L 176 46 L 86 46 Z" fill="${fin}" opacity="0.9"/>`;
-  // tail round
+  if(!sil) s+=`<path d="M 92 28 L 92 45 M 110 27 L 110 45 M 128 28 L 128 45 M 148 31 L 148 45 M 170 36 L 170 46" stroke="#00000028" stroke-width="0.9" fill="none"/>`;
   s+=`<path d="M 198 56 C 212 48 224 50 230 62 C 224 74 212 76 198 66 Z" fill="${fin}"/>`;
-  s+=`<path d="${body}" fill="${sil?'#26343b':`url(#${id}g)`}" stroke="${sil?'#26343b':'#00000033'}" stroke-width="1"/>`;
+  if(!sil) s+=`<path d="M 200 58 L 226 54 M 200 61 L 229 61 M 200 64 L 226 69" stroke="#00000028" stroke-width="0.9" fill="none"/>`;
+  s+=`<path d="${body}" fill="${sil?'#26343b':`url(#${id}g)`}" stroke="${sil?'#26343b':'#00000030'}" stroke-width="1"/>`;
   if(!sil){
     s+=`<g clip-path="url(#${id}c)">`;
-    // mottling
     for(let i=0;i<26;i++){const x=30+rng()*180,y=42+rng()*34,r=2+rng()*5;
       s+=`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${r.toFixed(1)}" ry="${(r*0.7).toFixed(1)}" fill="${sp.mottle}" opacity="${0.25+rng()*0.3}"/>`;}
+    // 細かい斑点第2層
+    for(let i=0;i<40;i++){const x=30+rng()*180,y=42+rng()*34;
+      s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(0.6+rng()*1).toFixed(1)}" fill="${shadeHex(sp.mottle,-0.2)}" opacity="${0.2+rng()*0.3}"/>`;}
+    s+=`<ellipse cx="110" cy="70" rx="80" ry="7" fill="#ffffff" opacity="0.14"/>`;
+    s+=`<path d="M 52 46 C 62 54 62 62 50 72" fill="none" stroke="#00000030" stroke-width="1.6"/>`;
     s+=`</g>`;
-    // huge fan pectoral
     s+=`<path d="M 74 62 Q 96 60 106 84 Q 84 92 66 76 Z" fill="${fin}" opacity="0.95"/>
-        <path d="M 74 62 L 104 82 M 74 62 L 96 86 M 74 62 L 86 88" stroke="#00000030" stroke-width="1" fill="none"/>`;
-    // wide mouth + eyes on top
-    s+=`<circle cx="46" cy="47" r="4.6" fill="#151b1f"/><circle cx="45" cy="45.6" r="1.3" fill="#fff" opacity="0.75"/>`;
+        <path d="M 74 62 L 104 82 M 74 62 L 96 86 M 74 62 L 86 88 M 74 62 L 78 89" stroke="#00000030" stroke-width="1" fill="none"/>`;
+    s+=`<circle cx="46" cy="47" r="5.4" fill="#141a1e"/><circle cx="46" cy="47" r="4.6" fill="#8a7f5e"/><circle cx="46" cy="47" r="2.6" fill="#05080a"/><circle cx="44.6" cy="45.6" r="1.2" fill="#fff" opacity="0.85"/>`;
     s+=`<path d="M 24 60 q 14 8 30 8" fill="none" stroke="#00000060" stroke-width="2"/>`;
+    // 皮弁（カジカのヒゲ状突起）
+    s+=`<path d="M 40 42 q 1 -4 4 -5 M 52 41 q 1 -4 3 -5" stroke="#4a4132" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
   }
   s+=`</svg>`;
   return s;
@@ -907,52 +1027,66 @@ function sculpinSVG(sp,opts={}){
 // --- species table --------------------------------------------------------
 const SPECIES_ART={
  sake:{id:'sake',seed:11,back:'#3f5a52',side:'#9fb3ac',belly:'#e8ede9',fin:'#42544e',adipose:true,
+   sheen:'#c8d8d4',eyeRing:'#b8c4bc',kype:true,
    body:{len:186,depth:24,pedH:7,tail:'fork',tailLen:28,dorsalW:28,dorsalH:14,jawDrop:5,eye:4.6},
    layers:[{t:'spots',n:14,color:'#2c3a36',rMin:0.9,rMax:1.8,yMin:-1,yMax:-0.1,op:0.7}]},
  sakuramasu:{id:'sakuramasu',seed:22,back:'#4a6a75',side:'#c2ccc9',belly:'#f2f4f1',fin:'#5b6f75',adipose:true,
+   sheen:'#e2eaea',eyeRing:'#c2ccc6',
    body:{len:180,depth:25,pedH:7,tail:'fork',tailLen:26,dorsalW:27,dorsalH:14,eye:4.6},
    layers:[{t:'band',color:'#e88ca0',op:0.5,w:10},{t:'parr',n:9,color:'#3c5661',op:0.5},
      {t:'spots',n:10,color:'#2f434c',rMin:0.8,rMax:1.6,yMin:-1,yMax:-0.3,op:0.65}]},
  amemasu:{id:'amemasu',seed:33,back:'#4c5c46',side:'#7f8f75',belly:'#e6e9dd',fin:'#5a6a52',adipose:true,
+   sheen:'#b2bfa4',eyeRing:'#b4bfa8',finEdge:'#f4f2e6',scaleOp:0.08,
    body:{len:184,depth:24,pedH:7,tail:'fork',tailLen:26,dorsalW:27,dorsalH:13,eye:4.4},
    layers:[{t:'spots',n:26,color:'#f2f3ea',rMin:1.6,rMax:2.8,yMin:-1,yMax:0.55,op:0.9}]},
  oshorokoma:{id:'oshorokoma',seed:44,back:'#54513c',side:'#8d8264',belly:'#f0e3c8',fin:'#c96f3a',adipose:true,
+   sheen:'#b0a684',eyeRing:'#c2b088',finEdge:'#f8f4e8',scaleOp:0.08,
    body:{len:168,depth:23,pedH:6.5,tail:'fork',tailLen:24,dorsalW:25,dorsalH:12,eye:4.4},
    layers:[{t:'spots',n:16,color:'#e2634a',rMin:1.5,rMax:2.4,yMin:-0.5,yMax:0.6,op:0.95},
      {t:'spots',n:12,color:'#efe6c4',rMin:1.2,rMax:2,yMin:-1,yMax:-0.2,op:0.8},{t:'parr',n:8,color:'#4a4734',op:0.35}]},
  nijimasu:{id:'nijimasu',seed:55,back:'#48604f',side:'#b9c4b4',belly:'#eef0e8',fin:'#5f7263',adipose:true,
+   sheen:'#dde6da',eyeRing:'#c8cfc0',cheek:'#e093a6',
    body:{len:182,depth:26,pedH:7,tail:'fork',tailLen:26,dorsalW:28,dorsalH:14,eye:4.5},
    layers:[{t:'band',color:'#d97f96',op:0.65,w:9},
      {t:'spots',n:44,color:'#25332c',rMin:0.7,rMax:1.5,yMin:-1,yMax:0.7,op:0.8}]},
  brown:{id:'brown',seed:66,back:'#5c4a2e',side:'#a98f57',belly:'#efe1b8',fin:'#6d5836',adipose:true,
+   sheen:'#cdb87e',eyeRing:'#d4bc7e',
    body:{len:184,depth:26,pedH:7.2,tail:'trunc',tailLen:24,dorsalW:28,dorsalH:14,eye:4.6},
    layers:[{t:'spots',n:18,color:'#31281a',rMin:1.6,rMax:2.6,yMin:-1,yMax:0.4,op:0.9},
      {t:'spots',n:8,color:'#c8432f',rMin:1.4,rMax:2,halo:'#efe6cb',yMin:-0.2,yMax:0.6,op:0.95}]},
  ito:{id:'ito',seed:77,back:'#5a4a44',side:'#a8867a',belly:'#e7d5c9',fin:'#8c4f42',adipose:true,
+   sheen:'#c8a894',eyeRing:'#c0a488',
    body:{len:200,depth:21,pedH:8,tail:'trunc',tailLen:26,dorsalW:26,dorsalH:12,snout:1,eye:4.2},
    layers:[{t:'band',color:'#b8574a',op:0.35,w:12},
      {t:'spots',n:46,color:'#2e2622',rMin:0.6,rMax:1.3,yMin:-1,yMax:0.5,op:0.85}]},
  wakasagi:{id:'wakasagi',seed:88,back:'#7c8894',side:'#c9d2d8',belly:'#f4f6f7',fin:'#9aa6ae',adipose:true,
+   sheen:'#e8eef2',eyeRing:'#d0d8dc',scaleR:2,scaleOp:0.08,
    body:{len:150,depth:13,pedH:5,tail:'fork',tailLen:20,dorsalW:20,dorsalH:10,eye:4.2},
    layers:[{t:'band',color:'#aab6bf',op:0.6,w:5}]},
  ugui:{id:'ugui',seed:99,back:'#55604a',side:'#a4a58c',belly:'#eeeadb',fin:'#77755c',
+   sheen:'#c6c4a8',eyeRing:'#c8b884',
    body:{len:172,depth:22,pedH:6.5,tail:'fork',tailLen:24,dorsalW:24,dorsalH:13,eye:4.3},
    layers:[{t:'band',color:'#d4593c',op:0.75,w:6},{t:'band',color:'#3d4a3a',op:0.4,w:3},
      {t:'scales',n:60,color:'#3a4433',op:0.3}]},
  fukudojo:{id:'fukudojo',seed:110,back:'#6b5a40',side:'#9c8763',belly:'#e3d5b4',fin:'#7c6b4d',barbels:true,
+   sheen:'#bca87e',eyeRing:'#b8a070',scales:false,
    body:{len:190,depth:14,pedH:6,tail:'round',tailLen:22,dorsalW:20,dorsalH:9,snout:1,eye:3.4},
    layers:[{t:'spots',n:34,color:'#4a3d2a',rMin:1.2,rMax:2.4,yMin:-1,yMax:0.7,op:0.55}]},
  koi:{id:'koi',seed:121,back:'#4a4f42',side:'#8f8a68',belly:'#e9e0c2',fin:'#5d6151',barbels:true,
+   sheen:'#b4ae8a',eyeRing:'#c8b46e',scaleR:4,scaleOp:0.22,
    body:{len:176,depth:31,pedH:8,tail:'fork',tailLen:24,dorsalW:44,dorsalH:13,snout:1,eye:4.6},
-   layers:[{t:'scales',n:110,color:'#33382c',op:0.4}]},
+   layers:[]},
  funa:{id:'funa',seed:132,back:'#57584a',side:'#a3a084',belly:'#efe9d2',fin:'#6a6a57',
+   sheen:'#c4c0a2',eyeRing:'#c0ac72',scaleR:3.6,scaleOp:0.2,
    body:{len:160,depth:32,pedH:7.5,tail:'fork',tailLen:22,dorsalW:40,dorsalH:14,snout:1,eye:4.5},
-   layers:[{t:'scales',n:80,color:'#3c3e30',op:0.35}]},
+   layers:[]},
  ayu:{id:'ayu',seed:143,back:'#5c6a4e',side:'#bcc4a8',belly:'#f2f2e4',fin:'#d9a13c',adipose:true,
+   sheen:'#dee4cc',eyeRing:'#d2c88e',
    body:{len:170,depth:20,pedH:6,tail:'fork',tailLen:24,dorsalW:24,dorsalH:15,eye:4.3},
    layers:[{t:'spots',n:1,color:'#e8c33f',rMin:6,rMax:6,yMin:-0.45,yMax:-0.45,op:0.9},
      {t:'band',color:'#88906e',op:0.35,w:7}]},
  shishamo:{id:'shishamo',seed:154,back:'#8a8f80',side:'#cfd2c4',belly:'#f5f5ec',fin:'#a0a494',adipose:true,
+   sheen:'#e8eadf',eyeRing:'#ccd0c2',scaleR:2,scaleOp:0.08,
    body:{len:172,depth:13,pedH:5,tail:'fork',tailLen:22,dorsalW:20,dorsalH:10,eye:3.9},
    layers:[{t:'band',color:'#b2b6a6',op:0.55,w:5},{t:'spots',n:16,color:'#6e7466',rMin:0.5,rMax:1,yMin:-1,yMax:-0.3,op:0.6}]},
  kawayatsume:{id:'kawayatsume',seed:165,back:'#4c5648',side:'#7e8468',belly:'#cfcdb0',fin:'#5f6852',special:'lamprey'},
