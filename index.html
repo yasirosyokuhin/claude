@@ -215,7 +215,8 @@
 
   .marker-dot { fill: var(--river-color); stroke: #fff; stroke-width: 1.5; cursor: pointer; }
   .loc-marker-group.locked .marker-dot,
-  .loc-marker-group.locked .marker-dam { fill: #9aa8ae; opacity: .75; }
+  .loc-marker-group.locked .marker-dam { fill: #8e9ca2; opacity: .8; stroke: #e8eef0; }
+  .legend-lock { font-size: 12px; }
   #unlockBtn:disabled { opacity: .5; }
   .marker-dam { fill: var(--dam-color); stroke: #fff; stroke-width: 1.5; cursor: pointer; }
   .marker-hit { fill: transparent; cursor: pointer; }
@@ -231,7 +232,33 @@
   }
 
   .info-card { display: none; }
-  .info-card.show { display: block; }
+  .info-card.show {
+    display: block;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    width: calc(100% - 20px);
+    max-width: 460px;
+    z-index: 40;
+    margin-bottom: 0;
+    box-shadow: 0 -4px 30px rgba(10, 35, 45, .28), 0 2px 10px rgba(10, 35, 45, .18);
+    border: 1px solid #d4e2dd;
+    padding: 12px 14px;
+    animation: sheetUp .22s cubic-bezier(.2,.9,.3,1);
+    max-height: 62vh;
+    overflow-y: auto;
+  }
+  @keyframes sheetUp { from { transform: translateX(-50%) translateY(30px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+  .info-close {
+    position: absolute; top: 8px; right: 8px;
+    width: 30px; height: 30px; border-radius: 50%; border: none;
+    background: #eef3f1; color: var(--sub-ink); font-size: 15px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .info-card.show .info-fish-art svg { max-height: 48px; width: auto; }
+  .info-card.show h3 { font-size: 17px; margin-bottom: 2px; }
+  .info-card.show .sr-note { font-size: 12.5px; margin-bottom: 6px; }
   .info-card .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
   .type-badge {
     font-size: 12px;
@@ -275,7 +302,7 @@
   .fish-stage {
     position: relative;
     width: 100%;
-    aspect-ratio: 360 / 420;
+    aspect-ratio: 360 / 480;
     border-radius: var(--radius);
     overflow: hidden;
     margin-bottom: 12px;
@@ -677,9 +704,11 @@
     <div class="legend">
       <span><span class="legend-dot"></span>河川</span>
       <span><span class="legend-diamond"></span>ダム</span>
+      <span><span class="legend-lock">🔒</span>未解禁</span>
     </div>
-    <div class="map-hint">ピンチで拡大 / ドラッグで移動（地図の枠内のみ）</div>
+    <div class="map-hint">🔒の釣り場はタップ→お金で解禁できます ／ ピンチで拡大・ドラッグで移動</div>
     <div id="infoCard" class="info-card card">
+      <button class="info-close" data-action="close-info" type="button">✕</button>
       <div class="badge-row">
         <span id="infoTypeBadge" class="type-badge"></span>
         <span id="infoRegionBadge" class="type-badge"></span>
@@ -2241,6 +2270,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         parts.push('<circle class="marker-dot" data-loc-id="' + loc.id + '" cx="' + x + '" cy="' + y + '" r="9"></circle>');
       }
       parts.push('<circle class="marker-hit" data-loc-id="' + loc.id + '" cx="' + x + '" cy="' + y + '" r="18"></circle>');
+      if (lockedCls) {
+        parts.push('<text class="lock-label" x="' + x + '" y="' + (xy[1] + 4).toFixed(1) + '" text-anchor="middle" font-size="13" pointer-events="none">🔒</text>');
+      }
       parts.push('</g>');
     });
 
@@ -2446,7 +2478,11 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     SFX.ensure();
     SFX.jingle();
     var g = document.querySelector('.loc-marker-group[data-loc-id="' + locId + '"]');
-    if (g) g.classList.remove("locked");
+    if (g) {
+      g.classList.remove("locked");
+      var ll = g.querySelector(".lock-label");
+      if (ll) ll.remove();
+    }
     selectLocation(locId);
   }
 
@@ -2613,7 +2649,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (cv.el.width !== w || cv.el.height !== h) { cv.el.width = w; cv.el.height = h; }
     cv.ctx = cv.el.getContext("2d");
     cv.sx = w / 360;
-    cv.sy = h / 420;
+    cv.sy = h / 480;
   }
 
   function hash2(i, j) {
@@ -2701,8 +2737,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           { x: rw.botL - 24, y: 372, r: 11 }, { x: rw.botR + 6, y: 396, r: 18 }
         ];
       }
-      for (var tg = 0; tg < 8; tg++) sc.tufts.push({ x: 6 + tg * (rw.botL / 8) + rng() * 8, y: 420, h: 30 + rng() * 26, lean: 5 + rng() * 9, ph: rng() * 6 });
-      for (var tg2 = 0; tg2 < 6; tg2++) sc.tufts.push({ x: rw.botR + 4 + tg2 * 10 + rng() * 6, y: 420, h: 24 + rng() * 20, lean: -(4 + rng() * 8), ph: rng() * 6 });
+      for (var tg = 0; tg < 8; tg++) sc.tufts.push({ x: 6 + tg * (rw.botL / 8) + rng() * 8, y: 480, h: 30 + rng() * 26, lean: 5 + rng() * 9, ph: rng() * 6 });
+      for (var tg2 = 0; tg2 < 6; tg2++) sc.tufts.push({ x: rw.botR + 4 + tg2 * 10 + rng() * 6, y: 480, h: 24 + rng() * 20, lean: -(4 + rng() * 8), ph: rng() * 6 });
       if (rec.reeds) {
         sc.reedClumps.push({ x: rw.topL - 26, y: 252, n: 5 });
         sc.reedClumps.push({ x: rw.topR + 22, y: 268, n: 4 });
@@ -2981,7 +3017,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var shx = (Math.random() * 2 - 1) * cv.shakeAmp;
     var shy = (Math.random() * 2 - 1) * cv.shakeAmp * 0.6;
     ctx.setTransform(cv.sx, 0, 0, cv.sy, shx * cv.sx, shy * cv.sy);
-    ctx.clearRect(-8, -8, 376, 436);
+    ctx.clearRect(-8, -8, 376, 496);
 
     // 1) 空
     var skyG = ctx.createLinearGradient(0, 0, 0, H + 4);
@@ -3114,7 +3150,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var wG = ctx.createLinearGradient(0, H, 0, 420);
     wG.addColorStop(0, pal.waterHi); wG.addColorStop(0.32, pal.waterMid); wG.addColorStop(1, pal.waterDeep);
     ctx.fillStyle = wG;
-    ctx.fillRect(-8, H, 376, 420 - H + 8);
+    ctx.fillRect(-8, H, 376, 480 - H + 8);
 
     // 4) 反射（山・スカイライン）
     ctx.save();
@@ -3152,7 +3188,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var nf = hash2(nz * 13, Math.floor(now / 160));
       if (nf < 0.55) continue;
       var nx = hash2(nz, 7) * 360;
-      var ny = H + 10 + hash2(nz, 13) * (410 - H - 10);
+      var ny = H + 10 + hash2(nz, 13) * (470 - H - 10);
       ctx.fillStyle = "rgba(" + pal.glint + "," + ((nf - 0.55) * 0.22) + ")";
       ctx.fillRect(nx, ny, 2.4 + (ny - H) / 90, 1.1);
     }
@@ -3194,7 +3230,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         ctx.lineDashOffset = -((now / 1000 * (30 + centerW * 26)) % 1000);
         ctx.strokeStyle = "rgba(255,255,255," + (0.045 + centerW * 0.05) + ")";
         ctx.lineWidth = 1.2 + centerW * 1.6;
-        ctx.beginPath(); ctx.moveTo(xt, H + 4); ctx.lineTo(xb, 424); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(xt, H + 4); ctx.lineTo(xb, 484); ctx.stroke();
       }
       ctx.restore();
       ctx.setLineDash([]);
@@ -3205,8 +3241,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       ctx.beginPath();
       ctx.moveTo((rwf.topL + rwf.topR) / 2 - 26, H + 6);
       ctx.lineTo((rwf.topL + rwf.topR) / 2 + 26, H + 6);
-      ctx.lineTo((rwf.botL + rwf.botR) / 2 + 52, 424);
-      ctx.lineTo((rwf.botL + rwf.botR) / 2 - 52, 424);
+      ctx.lineTo((rwf.botL + rwf.botR) / 2 + 52, 484);
+      ctx.lineTo((rwf.botL + rwf.botR) / 2 - 52, 484);
       ctx.closePath(); ctx.fill();
     }
 
@@ -3216,27 +3252,27 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var bgL = ctx.createLinearGradient(0, 196, 0, 420);
       bgL.addColorStop(0, pal.bank[0]); bgL.addColorStop(1, pal.bank[1]);
       ctx.fillStyle = bgL;
-      ctx.beginPath(); ctx.moveTo(-8, 420); ctx.lineTo(-8, 224);
+      ctx.beginPath(); ctx.moveTo(-8, 480); ctx.lineTo(-8, 224);
       ctx.quadraticCurveTo(rw.topL * 0.5, 212, rw.topL, 196);
-      ctx.lineTo(rw.botL, 420); ctx.closePath(); ctx.fill();
+      ctx.lineTo(rw.botL, 480); ctx.closePath(); ctx.fill();
       var bgR = ctx.createLinearGradient(0, 193, 0, 420);
       bgR.addColorStop(0, pal.bank[0]); bgR.addColorStop(1, pal.bank[1]);
       ctx.fillStyle = bgR;
-      ctx.beginPath(); ctx.moveTo(368, 420); ctx.lineTo(368, 214);
+      ctx.beginPath(); ctx.moveTo(368, 480); ctx.lineTo(368, 214);
       ctx.quadraticCurveTo(360 - (360 - rw.topR) * 2, 202, rw.topR, 193);
-      ctx.lineTo(rw.botR, 420); ctx.closePath(); ctx.fill();
+      ctx.lineTo(rw.botR, 480); ctx.closePath(); ctx.fill();
       // 岸の草地テクスチャ（明暗のパッチ）
       ctx.fillStyle = "rgba(20,40,20,0.10)";
       for (var bp = 0; bp < 10; bp++) {
         var bpx = bp < 5 ? hash2(bp, 3) * rw.botL * 0.9 : rw.botR + hash2(bp, 5) * (360 - rw.botR) * 0.9;
-        var bpy = 240 + hash2(bp, 9) * 160;
+        var bpy = 240 + hash2(bp, 9) * 220;
         ctx.beginPath(); ctx.ellipse(bpx, bpy, 14 + hash2(bp, 11) * 18, 5 + hash2(bp, 13) * 5, 0.2, 0, 6.3); ctx.fill();
       }
       // 波打ち際の白泡
       ctx.strokeStyle = "rgba(255,255,255,0.34)";
       ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(rw.topL, 197); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 - 8, 300, rw.botL + 1, 418); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(rw.topR, 194); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 + 10, 300, rw.botR - 2, 418); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(rw.topL, 197); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 - 8, 330, rw.botL + 1, 478); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(rw.topR, 194); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 + 10, 330, rw.botR - 2, 478); ctx.stroke();
       // 波打ち際の砂利浜（浅瀬の小石）と岸の水中影
       for (var pb = 0; pb < 30; pb++) {
         var pt2 = hash2(pb, 41);
@@ -3245,7 +3281,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         var qcx = isL ? (rw.topL + rw.botL) / 2 - 8 : (rw.topR + rw.botR) / 2 + 10;
         var q1x = isL ? rw.botL + 1 : rw.botR - 2;
         var px2 = (1 - pt2) * (1 - pt2) * q0x + 2 * (1 - pt2) * pt2 * qcx + pt2 * pt2 * q1x;
-        var py2 = (1 - pt2) * (1 - pt2) * q0y + 2 * (1 - pt2) * pt2 * 300 + pt2 * pt2 * 418;
+        var py2 = (1 - pt2) * (1 - pt2) * q0y + 2 * (1 - pt2) * pt2 * 330 + pt2 * pt2 * 478;
         var inw = (isL ? 1 : -1) * (2 + hash2(pb, 7) * 8);
         var pr2 = 0.9 + hash2(pb, 13) * 1.8 + (py2 - 200) / 140;
         ctx.fillStyle = "rgba(" + (hash2(pb, 3) > 0.5 ? "168,158,138" : "128,134,128") + "," + (0.5 - (py2 - 200) / 700) + ")";
@@ -3253,12 +3289,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       }
       ctx.fillStyle = "rgba(6,26,34,0.13)";
       ctx.beginPath();
-      ctx.moveTo(rw.topL, 198); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 - 2, 300, rw.botL + 8, 420);
-      ctx.lineTo(rw.botL + 20, 420); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 + 10, 302, rw.topL + 9, 199);
+      ctx.moveTo(rw.topL, 198); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 - 2, 330, rw.botL + 8, 480);
+      ctx.lineTo(rw.botL + 20, 480); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 + 10, 332, rw.topL + 9, 199);
       ctx.closePath(); ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(rw.topR, 195); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 + 4, 300, rw.botR - 9, 420);
-      ctx.lineTo(rw.botR - 21, 420); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 - 8, 302, rw.topR - 9, 196);
+      ctx.moveTo(rw.topR, 195); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 + 4, 330, rw.botR - 9, 480);
+      ctx.lineTo(rw.botR - 21, 480); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 - 8, 332, rw.topR - 9, 196);
       ctx.closePath(); ctx.fill();
       // 渓流: 流芯の白泡スジ
       if (sc.rec.width === "narrow") {
@@ -3267,9 +3303,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           var flo = ((now / 1000 * (46 + fl * 9)) % 70);
           ctx.strokeStyle = "rgba(255,255,255," + (0.13 + fl * 0.02) + ")";
           ctx.lineWidth = 2.2;
-          for (var seg2 = 0; seg2 < 4; seg2++) {
+          for (var seg2 = 0; seg2 < 5; seg2++) {
             var sy2 = H + 12 + seg2 * 70 + flo;
-            if (sy2 > 414) continue;
+            if (sy2 > 474) continue;
             ctx.beginPath();
             ctx.moveTo(flx + Math.sin(sy2 / 40) * 6, sy2);
             ctx.quadraticCurveTo(flx + 3, sy2 + 16, flx + Math.sin(sy2 / 30) * 5, sy2 + 30);
@@ -3297,9 +3333,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         ctx.beginPath(); ctx.ellipse(stn.x, stn.y, stn.r, stn.r * 0.68, 0, 0, 6.3); ctx.fill();
       }
       // 岸のトウヒ（針葉樹）
-      drawSpruce(ctx, Math.max(20, rw.botL - 44), 336, 92, t.night);
+      drawSpruce(ctx, Math.max(20, rw.botL - 44), 356, 96, t.night);
       drawSpruce(ctx, Math.max(12, rw.topL - 52), 262, 56, t.night);
-      drawSpruce(ctx, Math.min(348, rw.botR + 40), 376, 104, t.night);
+      drawSpruce(ctx, Math.min(348, rw.botR + 40), 402, 108, t.night);
       drawSpruce(ctx, Math.min(352, rw.topR + 52), 276, 62, t.night);
       drawBirches(ctx, sc, t.night);
       drawReeds(ctx, sc, pal, t.night, now);
@@ -3443,8 +3479,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     // 11) ライン＆ロッド
     var bend = fs.rodBend || 0;
     var tipX = 224 - bend * 34, tipY = 208 + bend * 52;
-    var baseX = 338, baseY = 430;
-    var ctrlX = 302 - bend * 8, ctrlY = 332 + bend * 20;
+    var baseX = 338, baseY = 490;
+    var ctrlX = 302 - bend * 8, ctrlY = 372 + bend * 20;
     var target = null;
     if (showBob) target = [fs.bobX, fs.bobY - 8];
     else if (fs.phase === "fight") target = [fs.fpX, fs.fpY - 4];
@@ -3490,7 +3526,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     ctx.beginPath(); ctx.moveTo(baseX, baseY); ctx.lineTo(baseX - 8.5, baseY - 21); ctx.stroke();
     ctx.strokeStyle = "#2e2620"; ctx.lineWidth = 12;
     ctx.beginPath(); ctx.moveTo(baseX - 11, baseY - 27); ctx.lineTo(baseX - 14, baseY - 34); ctx.stroke();
-    var rxc = 320, ryc = 400;
+    var rxc = 320, ryc = 458;
     ctx.fillStyle = "#252b30";
     ctx.beginPath(); ctx.arc(rxc, ryc, 11, 0, 6.3); ctx.fill();
     var rg = ctx.createRadialGradient(rxc - 3, ryc - 3, 2, rxc, ryc, 10);
@@ -3546,20 +3582,20 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       ctx.strokeStyle = t.night ? "rgba(8,18,12,0.85)" : "rgba(24,44,26,0.8)";
       ctx.lineWidth = 3.4;
       ctx.beginPath();
-      ctx.moveTo(fgt.x, 424);
-      ctx.quadraticCurveTo(fgt.x + fgt.lean * 0.5, 424 - fgt.h * 0.6, fgt.x + fgt.lean + fsw, 424 - fgt.h);
+      ctx.moveTo(fgt.x, 484);
+      ctx.quadraticCurveTo(fgt.x + fgt.lean * 0.5, 484 - fgt.h * 0.6, fgt.x + fgt.lean + fsw, 484 - fgt.h);
       ctx.stroke();
     }
 
     // 14.5) 天候（雨脚・曇り）
     if (wx === "rain") {
       ctx.fillStyle = "rgba(30, 50, 70, 0.13)";
-      ctx.fillRect(-8, -8, 376, 436);
+      ctx.fillRect(-8, -8, 376, 496);
       ctx.strokeStyle = "rgba(210, 230, 240, 0.32)";
       ctx.lineWidth = 1;
       for (var rn = 0; rn < 38; rn++) {
         var rx0 = (hash2(rn, 3) * 400) % 400 - 20;
-        var ry0 = ((hash2(rn, 7) * 460 + now / 1000 * 340) % 460) - 20;
+        var ry0 = ((hash2(rn, 7) * 520 + now / 1000 * 340) % 520) - 20;
         ctx.beginPath();
         ctx.moveTo(rx0, ry0);
         ctx.lineTo(rx0 - 3, ry0 + 13);
@@ -3568,23 +3604,23 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       for (var rm = 0; rm < 7; rm++) {
         var ph2 = (now / 600 + hash2(rm, 13) * 6) % 1;
         var rmx = hash2(rm, 17) * 360;
-        var rmy = HORIZON + 14 + hash2(rm, 19) * 190;
+        var rmy = HORIZON + 14 + hash2(rm, 19) * 250;
         ctx.strokeStyle = "rgba(220, 238, 246," + (0.3 * (1 - ph2)) + ")";
         ctx.beginPath(); ctx.ellipse(rmx, rmy, 3 + ph2 * 14, (3 + ph2 * 14) * 0.32, 0, 0, 6.3); ctx.stroke();
       }
     } else if (wx === "cloud") {
       ctx.fillStyle = "rgba(190, 202, 212, 0.10)";
-      ctx.fillRect(-8, -8, 376, 436);
+      ctx.fillRect(-8, -8, 376, 496);
     }
 
     // 15) グレーディング
-    var vg = ctx.createRadialGradient(180, 235, 120, 180, 235, 330);
+    var vg = ctx.createRadialGradient(180, 262, 130, 180, 262, 370);
     vg.addColorStop(0, "rgba(4,14,20,0)");
     vg.addColorStop(1, "rgba(4,14,20,0.32)");
     ctx.fillStyle = vg;
-    ctx.fillRect(-8, -8, 376, 436);
+    ctx.fillRect(-8, -8, 376, 496);
     ctx.fillStyle = pal.tint;
-    ctx.fillRect(-8, -8, 376, 436);
+    ctx.fillRect(-8, -8, 376, 496);
   }
 
   function renderStageScene(loc) {
@@ -4325,6 +4361,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         break;
       case "unlock-loc":
         unlockLocation();
+        break;
+      case "close-info":
+        document.getElementById("infoCard").classList.remove("show");
         break;
       default:
         break;
