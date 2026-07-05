@@ -1964,7 +1964,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     },
     price: { common: 120, uncommon: 340, rare: 900, legend: 4200 },
     priceOverride: { sake: 2800 },                       // サケは高級魚
-    fightOverride: { sake: { stam: 1.5, pull: 1.35 } },  // サケは強烈に走る
+    fightOverride: { sake: { stam: 1.3, pull: 1.35 } },  // サケは強烈に走る
     sizeExpBase: 2.6,       // 大きいほど稀（小さいほど大物が出やすい）
     variantGiantRate: 0.01,
     variantSpawnRate: 0.04
@@ -3748,8 +3748,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   }
 
   // ===== 釣りフェーズ管理 =====
-  var FIGHT_STAMINA = { common: 4.2, uncommon: 5.6, rare: 7.2, legend: 10.5 };
-  var FIGHT_PULL = { common: 0.7, uncommon: 0.85, rare: 1.0, legend: 1.28 };
+  var FIGHT_STAMINA = { common: 4.2, uncommon: 5.8, rare: 7.2, legend: 8.5 };
+  var FIGHT_PULL = { common: 0.75, uncommon: 0.95, rare: 1.15, legend: 1.45 };
+  var RARITY_IDX = { common: 0, uncommon: 1, rare: 2, legend: 3 };
 
   var fs = {
     phase: "idle", raf: null, lastTs: 0,
@@ -3760,7 +3761,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fightFishId: null, fpX: 180, fpY: 300,
     shadowId: null, landT: 0, rodBend: 0, nextIdleRippleAt: 0,
     pendingSize: 0, pendingSizeRatio: 0, pendingVariant: null,
-    fightStamMul: 1, fightPullMul: 1
+    fightStamMul: 1, fightPullMul: 1,
+    diff: 0, zoneLo: 35, zoneHi: 75, zoneW: 40, zoneWander: 0, zonePhase: 0,
+    bigRun: false, nextBigRunAt: 0, bigRunEndAt: 0
   };
 
   function setStageText(txt, big) {
@@ -3830,12 +3833,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     cv.shakeAmp = 3;
     spawnRipple(180, 292, true);
     state.biteActive = true;
+    var winMs = state.biteWindowMs;
+    if (state.pendingFishId) {
+      var bwFish = FISH[state.pendingFishId];
+      winMs = Math.max(750, 1300 - (RARITY_IDX[bwFish.rarity] || 0) * 150 - (fs.pendingSizeRatio || 0) * 150);
+    }
     state.biteTimeoutTimer = setTimeout(function () {
       if (state.biteActive) {
         state.biteActive = false;
         endFishing("late");
       }
-    }, state.biteWindowMs);
+    }, winMs);
   }
 
   function hookset() {
@@ -3858,18 +3866,26 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fs.phase = "fight";
     fs.fightFishId = state.pendingFishId;
     var szr = fs.pendingSizeRatio || 0.4;
-    fs.fightStamMul = 0.7 + szr * 0.9;   // デカいほど長期戦
-    fs.fightPullMul = 0.8 + szr * 0.6;   // デカいほど引きが強い
+    fs.fightStamMul = 0.6 + szr * 0.8;   // デカいほど長期戦
+    fs.fightPullMul = 0.8 + szr * 0.7;   // デカいほど引きが強い
     var fo = BAL.fightOverride[fs.fightFishId];
     if (fo) { fs.fightStamMul *= fo.stam; fs.fightPullMul *= fo.pull; }
     var gs = gearStats();
     fs.lineMax = gs.lineMax;
     fs.reelMul = gs.reel;
-    var zoneEl = document.querySelector(".gauge-zone");
-    if (zoneEl) {
-      zoneEl.style.left = (35 / fs.lineMax * 100) + "%";
-      zoneEl.style.width = (40 / fs.lineMax * 100) + "%";
-    }
+    // 難易度 D (0..1): レア度とサイズで決まる
+    var fRar = (FISH[fs.fightFishId] || {}).rarity || "common";
+    fs.diff = Math.min(1, 0.12 + (RARITY_IDX[fRar] || 0) * 0.22 + Math.min(1.2, szr) * 0.32 + (fo ? 0.12 : 0));
+    fs.zoneW = 42 - fs.diff * 24;            // グリーンゾーン幅 42→18
+    // ゾーン可動域はライン限界に近づきすぎない範囲に制限
+    fs.zoneWander = Math.max(0, Math.min((fs.diff - 0.42) * 38, 76 - fs.zoneW / 2 - 52));
+    fs.zonePhase = Math.random() * 6.28;
+    fs.zoneLo = 52 - fs.zoneW / 2;
+    fs.zoneHi = 52 + fs.zoneW / 2;
+    fs.fightDeadline = performance.now() + 45000; // 長引くとすっぽ抜け
+    // 「走り」(ビッグラン): レア以上・大物で発生
+    fs.bigRun = false;
+    fs.nextBigRunAt = fs.diff > 0.38 ? performance.now() + 2600 + Math.random() * 2600 : Infinity;
     fs.tension = 55; fs.progress = 0;
     fs.slackTime = 0; fs.holding = false;
     fs.pulling = false;
@@ -3883,21 +3899,50 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var pull = (FIGHT_PULL[fish.rarity] || 0.8) * (fs.fightPullMul || 1);
     var stage = document.getElementById("fishStage");
 
-    // 魚の引きバースト
+    // 魚の引きバースト（難易度で間隔・長さが変わる）
     if (!fs.pulling && now >= fs.nextPullAt) {
       fs.pulling = true;
-      fs.pullEndAt = now + 320 + Math.random() * 480;
+      fs.pullEndAt = now + 320 + Math.random() * (480 + fs.diff * 300);
       cv.shakeAmp = 5;
       buzz(35);
     }
     if (fs.pulling && now >= fs.pullEndAt) {
       fs.pulling = false;
-      fs.nextPullAt = now + 500 + Math.random() * 950;
+      fs.nextPullAt = now + Math.max(280, 500 - fs.diff * 200) + Math.random() * (950 - fs.diff * 400);
+    }
+    // ビッグラン（走り）: 掴んだままだと一気にブレイク
+    if (!fs.bigRun && now >= fs.nextBigRunAt) {
+      fs.bigRun = true;
+      fs.bigRunEndAt = now + 800 + fs.diff * 700;
+      setStageText("走った！ 離してしのげ！！", true);
+      SFX.bite();
+      buzz([50, 40, 80]);
+      cv.shakeAmp = 7;
+    }
+    if (fs.bigRun && now >= fs.bigRunEndAt) {
+      fs.bigRun = false;
+      fs.nextBigRunAt = now + 2800 + Math.random() * 3200;
+      setStageText("長押しで巻け！", true);
+    }
+    // グリーンゾーンの移動（大物・レアはゾーンが揺れる）
+    if (fs.zoneWander > 0) {
+      var zc = 52 + Math.sin(now / 1400 + fs.zonePhase) * fs.zoneWander;
+      fs.zoneLo = zc - fs.zoneW / 2;
+      fs.zoneHi = zc + fs.zoneW / 2;
+    }
+    var zEl = document.querySelector(".gauge-zone");
+    if (zEl) {
+      zEl.style.left = (fs.zoneLo / (fs.lineMax || 100) * 100) + "%";
+      zEl.style.width = (fs.zoneW / (fs.lineMax || 100) * 100) + "%";
     }
 
     // テンション物理: 巻く=上昇 / 引き=上昇 / 離す=低下
     var lineMax = fs.lineMax || 100;
-    var delta = (fs.holding ? 58 : -46) + (fs.pulling ? 46 * pull : 0);
+    // 走り中は通常の引きを置き換える（重複しない）
+    var pullForce = fs.bigRun ? (40 + fs.diff * 22) * pull : (fs.pulling ? 46 * pull : 0);
+    // 握れば引きの55%を受け、離せば35%に逃がせる（ドラグでラインを出すイメージ）
+    var delta = fs.holding ? (56 + pullForce * 0.55) : (-52 + pullForce * 0.35);
+    if (!fs.holding) delta = Math.min(delta, 18); // 離していればブレイクまで持っていかれない
     fs.tension = Math.max(0, Math.min(lineMax, fs.tension + delta * dt));
 
     // リール音
@@ -3907,9 +3952,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
 
     // 寄せ進行
-    var inGreen = fs.tension >= 35 && fs.tension <= 75;
+    var inGreen = fs.tension >= fs.zoneLo && fs.tension <= fs.zoneHi;
     var stamina = (FIGHT_STAMINA[fish.rarity] || 5) * (fs.fightStamMul || 1);
-    fs.progress = Math.max(0, Math.min(100, fs.progress + (inGreen ? (100 / stamina) * (fs.reelMul || 1) : -7) * dt));
+    fs.progress = Math.max(0, Math.min(100, fs.progress + (inGreen ? (100 / stamina) * (fs.reelMul || 1) : -(3 + fs.diff * 4)) * dt));
 
     // たるみ判定
     if (fs.tension <= 1) fs.slackTime += dt; else fs.slackTime = 0;
@@ -3917,7 +3962,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     // UI更新
     var tf = document.getElementById("tensionFill");
     tf.style.width = Math.max(2, fs.tension / lineMax * 100) + "%";
-    tf.className = fs.tension > lineMax - 12 ? "danger" : (fs.tension > 75 || fs.tension < 22 ? "warn" : "");
+    tf.className = fs.tension > lineMax - 12 ? "danger" : (fs.tension > fs.zoneHi || fs.tension < fs.zoneLo ? "warn" : "");
     document.getElementById("progressFill").style.width = fs.progress + "%";
 
     // 魚の暴れ位置（ラインの先端）
@@ -3930,7 +3975,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
     // 決着
     if (fs.tension >= lineMax) { endFishing("break"); return; }
-    if (fs.slackTime > 1.1) { endFishing("off"); return; }
+    if (now >= fs.fightDeadline) { endFishing("stamina"); return; }
+    if (fs.slackTime > Math.max(0.6, 1.1 - fs.diff * 0.45)) { endFishing("off"); return; }
     if (fs.progress >= 100) { landFish(); return; }
   }
 
@@ -3959,7 +4005,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     late:  { emoji: "💨", title: "アワセ遅れ！", desc: "アタリへの反応が遅れて、魚は消えた…。次は素早くタップ！", kind: "barasi" },
     break: { emoji: "💥", title: "ラインブレイク！", desc: "強い引きに巻き続けて糸が切れた！引きが強い時は指を離していなそう。", kind: "barasi" },
     off:   { emoji: "🫧", title: "バレた…", desc: "糸がたるんで針が外れた。テンションを保ち続けよう。", kind: "barasi" },
-    bouzu: { emoji: "🌿", title: "藻だった…", desc: "アタリに見えたのは流れてきた藻。今日はこんな日もある。", kind: "bouzu" }
+    bouzu: { emoji: "🌿", title: "藻だった…", desc: "アタリに見えたのは流れてきた藻。今日はこんな日もある。", kind: "bouzu" },
+    stamina: { emoji: "🐟", title: "すっぽ抜け…", desc: "長引いた末に主導権を奪われた。グリーンゾーンを保って手早く寄せよう。", kind: "barasi" }
   };
 
   function endFishing(failKey) {
@@ -4420,6 +4467,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       tension: fs.tension,
       progress: fs.progress,
       money: save.money,
+      diff: fs.diff, zoneLo: fs.zoneLo, zoneHi: fs.zoneHi, bigRun: fs.bigRun,
       pendingSize: fs.pendingSize,
       pendingVariant: fs.pendingVariant,
       unlocked: save.unlocked.slice(),
