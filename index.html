@@ -527,6 +527,7 @@
   .variant-tag { font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; }
   .vt-giant { background: linear-gradient(180deg,#ffd76e,#e09c20); color: #4a3300; }
   .vt-spawn { background: linear-gradient(180deg,#ffb8c8,#e0708e); color: #58101c; }
+  .vt-nushi { background: linear-gradient(180deg,#f0b060,#c05828); color: #3c1400; box-shadow: 0 0 14px rgba(240,150,60,.6); }
   .size-meter {
     width: min(240px, 70%); height: 7px; margin: 0 auto 8px;
     background: rgba(255,255,255,.14); border-radius: 4px; overflow: hidden;
@@ -2070,6 +2071,59 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   };
   function isUnlocked(locId) { return save.unlocked.indexOf(locId) >= 0; }
 
+  // ===== ヌシ（主）: 各釣り場に1体の名前つきボス =====
+  // cond: any / night / rain / mazume
+  var NUSHI = {
+    ishikari:    { name: "石狩の大帝「銀鱗」", fish: "ito",        cm: 128, cond: "night",  quote: "百年をこの大河で生きた" },
+    teshio:      { name: "天塩の主「北の翁」", fish: "ito",        cm: 135, cond: "any",    quote: "天塩に主あり。誰もが知る伝説" },
+    tokachi:     { name: "十勝の暴れ川「鉄背」", fish: "sake",     cm: 96,  cond: "rain",   quote: "鋼のような背を持つ大鮭" },
+    kushiro:     { name: "湿原の霧「朧」",     fish: "ito",        cm: 122, cond: "mazume", quote: "朝霧の中にだけ現れる" },
+    abashiri:    { name: "網走の関守",         fish: "sakuramasu", cm: 66,  cond: "any",    quote: "湖への道を守り続ける" },
+    yubetsu:     { name: "湧別の女王",         fish: "sakuramasu", cm: 68,  cond: "mazume", quote: "桜色の巨体が瀬を駆ける" },
+    shiribetsu:  { name: "羊蹄のヌシ「山映」", fish: "brown",      cm: 84,  cond: "yuu",    quote: "山影が水面に落ちる頃に動く" },
+    saru:        { name: "沙流の岩魚王",       fish: "amemasu",    cm: 78,  cond: "rain",   quote: "雨の日、淵の底から浮上する" },
+    toyohira:    { name: "橋下の影",           fish: "koi",        cm: 95,  cond: "night",  quote: "街の灯を背に泳ぐ大鯉" },
+    toshibetsu:  { name: "清流の隠者",         fish: "ayu",        cm: 32,  cond: "any",    quote: "日本一の清流が育てた大鮎" },
+    mukawa:      { name: "柳葉の女王",         fish: "shishamo",   cm: 21,  cond: "asa",    quote: "群れを率いる伝説のシシャモ" },
+    tokoro:      { name: "常呂の古老",         fish: "amemasu",    cm: 75,  cond: "any",    quote: "オホーツクの風を知る古株" },
+    kanayama:    { name: "かなやまの沼姫",     fish: "koi",        cm: 92,  cond: "yuu",    quote: "夕暮れの湖面を割る巨影" },
+    taisetsu:    { name: "大雪の白主",         fish: "oshorokoma", cm: 40,  cond: "any",    quote: "源流の王。氷水の申し子" },
+    hoheikyo:    { name: "峡谷の黒帝",         fish: "amemasu",    cm: 80,  cond: "night",  quote: "岩壁の底に潜む漆黒" },
+    tokachi_dam: { name: "湖底の竜",           fish: "nijimasu",   cm: 82,  cond: "rain",   quote: "ダム湖の底から突き上げる" },
+    iwaonai:     { name: "岩尾内の重鎮",       fish: "ito",        cm: 118, cond: "any",    quote: "湖に沈んだ森の番人" },
+    nibutani:    { name: "二風谷の長",         fish: "koi",        cm: 90,  cond: "asa",    quote: "朝靄の湖面に現れる長老" },
+    katsurazawa: { name: "桂沢の氷姫",         fish: "wakasagi",   cm: 18,  cond: "any",    quote: "氷の下で肥え太った女王" },
+    chubetsu:    { name: "忠別の朱点",         fish: "oshorokoma", cm: 38,  cond: "mazume", quote: "旭岳の雪解けが生んだ紅" },
+    sanru:       { name: "サンルの遡上王",     fish: "sakuramasu", cm: 70,  cond: "rain",   quote: "堰を越えてきた執念の魚" },
+    izarigawa:   { name: "えにわ湖の古豪",     fish: "nijimasu",   cm: 78,  cond: "yuu",    quote: "何本ものラインを切ってきた" },
+    shumarinai:  { name: "朱鞠内の大帝",       fish: "ito",        cm: 142, cond: "night",  quote: "日本最大。すべての釣り人の夢" }
+  };
+  function nushiCondMet(cond) {
+    var t = state.time || timeInfo();
+    if (cond === "any") return true;
+    if (cond === "night") return t.night;
+    if (cond === "mazume") return t.mazume;
+    if (cond === "asa") return t.key === "asa";
+    if (cond === "yuu") return t.key === "yuu";
+    if (cond === "rain") return effWeather() === "rain";
+    return false;
+  }
+
+  // 隠しスポット: 朱鞠内湖（地図の切れ端3枚で解禁）
+  var HIDDEN_LOC = {
+    id: "shumarinai", name: "朱鞠内湖", type: "dam", region: "道北",
+    lon: 142.15, lat: 44.32, signature: "ito",
+    desc: "地図にない幻の湖。日本最大のイトウが潜むという。",
+    fish: { ito: 6, amemasu: 22, wakasagi: 20, ugui: 18, sakuramasu: 8 }
+  };
+  function unlockHiddenSpot() {
+    if (LOCATIONS.some(function (l) { return l.id === "shumarinai"; })) return;
+    LOCATIONS.push(HIDDEN_LOC);
+    if (save.unlocked.indexOf("shumarinai") < 0) save.unlocked.push("shumarinai");
+    persistSave();
+    buildMap();
+  }
+
   var RARITY_LABEL = { common: "コモン", uncommon: "アンコモン", rare: "レア", legend: "レジェンド" };
   var RARITY_GLOW = {
     common: "radial-gradient(circle, #8b98a066 0%, transparent 70%)",
@@ -2109,7 +2163,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       zukan: {},
       comp: { day: 0, best: 0, paid: 0 },
       mapPieces: 0,
-      tripBest: 0
+      tripBest: 0,
+      nushi: {}
     };
   }
   function loadSave() {
@@ -2198,7 +2253,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     { id: "itoh1", name: "イトウハンター", check: function (s) { return s.records.ito && s.records.ito.count >= 1; } },
     { id: "itoh3", name: "イトウマスター", check: function (s) { return s.records.ito && s.records.ito.count >= 3; } },
     { id: "allloc", name: "北海道制覇", check: function (s) { return s.unlocked.length >= 22; } },
-    { id: "comp", name: "図鑑コンプリート", check: function (s) { return Object.keys(s.zukan).length >= 16; } }
+    { id: "comp", name: "図鑑コンプリート", check: function (s) { return Object.keys(s.zukan).length >= 16; } },
+    { id: "champ", name: "本日の優勝者", check: function () { return false; } },
+    { id: "nushi3", name: "ヌシ狩り", check: function () { return false; } },
+    { id: "nushiAll", name: "全てのヌシを制す者", check: function () { return false; } }
   ];
   function evalTitles() {
     TITLES.forEach(function (t) {
@@ -2754,7 +2812,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     katsurazawa: { mt: "hills",   damSide: "right", tower: true },
     chubetsu:    { mt: "alps",    damSide: "left",  tower: true, snowy: true },
     sanru:       { mt: "hills",   damSide: "right", tower: false },
-    izarigawa:   { mt: "hills",   damSide: "left",  tower: true }
+    izarigawa:   { mt: "hills",   damSide: "left",  tower: true },
+    shumarinai:  { mt: "alps",    damSide: "left",  tower: false, snowy: true }
   };
 
   var RIVER_WIDTHS = {
@@ -3856,6 +3915,11 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         blip(1047, "triangle", 0.26, 0.6, 0.42);
       },
       fail: function () { blip(330, "triangle", 0.25, 0.3, 0); blip(247, "triangle", 0.25, 0.42, 0.18); },
+      drone: function () {
+        blip(55, "sawtooth", 0.34, 1.6, 0);
+        blip(41, "sine", 0.3, 1.8, 0.1);
+        blip(110, "triangle", 0.14, 1.2, 0.3);
+      },
       ambience: function (type) {
         if (!ensure()) return;
         this.stopAmbience();
@@ -4210,8 +4274,15 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         evShow("🗺", "古い地図の切れ端", "もう地図は完成している。切れ端は骨董屋行きだ。<b>+500円</b>", [{ label: "OK", fn: function () { evClose(); cb(); } }]);
       } else {
         save.mapPieces++; persistSave();
-        evShow("🗺", "古い地図の切れ端", "岸辺の流木に挟まっていた…何かの地図の一部だ。（" + save.mapPieces + "/3枚）<br>全部集めると<b>隠しスポット</b>が見つかるかもしれない。", [
-          { label: "しまっておく", fn: function () { evClose(); cb(); } }]);
+        if (save.mapPieces >= 3) {
+          unlockHiddenSpot();
+          evShow("🗺", "地図が完成した！", "三枚の切れ端がつながった——描かれていたのは<b>朱鞠内湖</b>。日本最大のイトウが潜む幻の湖だ。<br>地図に新しい釣り場が現れた！", [
+            { label: "行ってみたい…！", fn: function () { evClose(); cb(); } }]);
+          SFX.jingle();
+        } else {
+          evShow("🗺", "古い地図の切れ端", "岸辺の流木に挟まっていた…何かの地図の一部だ。（" + save.mapPieces + "/3枚）<br>全部集めると<b>隠しスポット</b>が見つかるかもしれない。", [
+            { label: "しまっておく", fn: function () { evClose(); cb(); } }]);
+        }
       }
     } },
     { id: "rest", w: 6, run: function (cb) {
@@ -4246,6 +4317,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     chosen.run(cb);
   }
 
+  window.__forceNushi = function () { window.__nushiForce = true; };
   window.__forceEvent = function (id, cb) {
     var ev = EVENTS.filter(function (e) { return e.id === id; })[0];
     if (ev) ev.run(cb || function () { proceedTrip(); });
@@ -4306,6 +4378,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fs.tension = 55; fs.progress = 0; fs.holding = false;
     fs.slackTime = 0; fs.pulling = false;
     fs.castZone = "mid";
+    fs.isNushi = false;
     document.getElementById("fightUi").classList.remove("show");
     document.getElementById("castMeter").classList.remove("hidden");
     setStageText("狙いを定めて タップ！");
@@ -4337,7 +4410,28 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (state.selectedLureId === "glow_minnow" && state.time && state.time.night) bouzuRate = Math.min(bouzuRate, 0.07);
     if (state.daily && state.daily.hotLoc === state.selectedLocationId) bouzuRate = Math.max(0.05, bouzuRate - 0.05);
     state.pendingFishId = drawFish(state.selectedLocationId, state.selectedLureId, bouzuRate);
-    if (state.pendingFishId) {
+    // ヌシ出現判定（未討伐・条件一致・低確率）
+    fs.isNushi = false;
+    var nu = NUSHI[state.selectedLocationId];
+    if (nu && !save.nushi[state.selectedLocationId] && nushiCondMet(nu.cond)) {
+      var nuRate = state.selectedLocationId === "shumarinai" ? 0.10 : 0.05;
+      if (window.__nushiForce || Math.random() < nuRate) {
+        window.__nushiForce = false;
+        state.pendingFishId = nu.fish;
+        fs.isNushi = true;
+      }
+    }
+    if (fs.isNushi) {
+      var sr3 = BAL.sizes[nu.fish] || [10, 40];
+      fs.pendingSize = nu.cm;
+      fs.pendingSizeRatio = Math.min(1.2, (nu.cm - sr3[0]) / (sr3[1] - sr3[0]));
+      fs.pendingVariant = "nushi";
+      // 専用演出: 暗転バナー＋ドローン＋強シェイク
+      SFX.drone();
+      buzz([120, 80, 200]);
+      cv.shakeAmp = 8;
+      showToast('<div style="font-size:12px;letter-spacing:.2em;color:#f0b060;">— ヌシ —</div><div style="font-size:18px;">' + nu.name + '</div><div style="font-size:11px;color:#b8d2d4;">「' + nu.quote + '」</div>', 2200);
+    } else if (state.pendingFishId) {
       var roll = rollSize(state.pendingFishId);
       fs.pendingSize = roll.cm;
       fs.pendingSizeRatio = roll.ratio;
@@ -4393,12 +4487,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fs.fightPullMul = 0.8 + szr * 0.7;   // デカいほど引きが強い
     var fo = BAL.fightOverride[fs.fightFishId];
     if (fo) { fs.fightStamMul *= fo.stam; fs.fightPullMul *= fo.pull; }
+    if (fs.isNushi) { fs.fightStamMul *= 1.15; fs.fightPullMul *= 1.1; }
     var gs = gearStats();
     fs.lineMax = gs.lineMax;
     fs.reelMul = gs.reel;
     // 難易度 D (0..1): レア度とサイズで決まる
     var fRar = (FISH[fs.fightFishId] || {}).rarity || "common";
     fs.diff = Math.min(1, 0.12 + (RARITY_IDX[fRar] || 0) * 0.22 + Math.min(1.2, szr) * 0.32 + (fo ? 0.12 : 0));
+    if (fs.isNushi) fs.diff = 1.15; // ヌシは規格外
     fs.zoneW = 42 - fs.diff * 24;            // グリーンゾーン幅 42→18
     // ゾーン可動域はライン限界に近づきすぎない範囲に制限
     fs.zoneWander = Math.max(0, Math.min((fs.diff - 0.42) * 38, 76 - fs.zoneW / 2 - 52));
@@ -4408,7 +4504,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fs.fightDeadline = performance.now() + 45000; // 長引くとすっぽ抜け
     // 「走り」(ビッグラン): レア以上・大物で発生
     fs.bigRun = false;
-    fs.nextBigRunAt = fs.diff > 0.38 ? performance.now() + 2600 + Math.random() * 2600 : Infinity;
+    fs.nextBigRunAt = fs.diff > 0.38 ? performance.now() + (fs.isNushi ? 1500 : 2600 + Math.random() * 2600) : Infinity;
     fs.tension = 55; fs.progress = 0;
     fs.slackTime = 0; fs.holding = false;
     fs.pulling = false;
@@ -4723,14 +4819,29 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       }
       trip.duel = null;
     }
-    var rec = recordCatch(fishId, cm, variant, earn);
+    var nushiMsg = "";
+    if (fs.isNushi) {
+      var nuLoc = state.selectedLocationId;
+      var nuDef = NUSHI[nuLoc];
+      save.nushi[nuLoc] = true;
+      var bounty = nuDef.cm * 100;
+      save.money += bounty;
+      save.totals.earned += bounty;
+      if (Object.keys(save.nushi).length >= 3 && save.titles.indexOf("nushi3") < 0) save.titles.push("nushi3");
+      if (Object.keys(save.nushi).length >= Object.keys(NUSHI).length && save.titles.indexOf("nushiAll") < 0) save.titles.push("nushiAll");
+      persistSave(); updateStatusBar();
+      nushiMsg = nuDef.name + " を討伐！ 報奨金 +" + bounty.toLocaleString() + "円";
+      variant = "nushi";
+      fs.isNushi = false;
+    }
+    var rec = recordCatch(fishId, cm, variant === "nushi" ? null : variant, earn);
     state.lastCaughtFishId = fishId;
     state.lastCatchCm = cm;
     state.lastResultKind = "catch";
     if (trip) {
       tripAddCatch(fishId, cm, ratio, variant, earn);
       var fRar2 = FISH[fishId].rarity;
-      var showFull = rec.isNew || rec.isRecord || variant || fRar2 === "rare" || fRar2 === "legend";
+      var showFull = rec.isNew || rec.isRecord || variant || fRar2 === "rare" || fRar2 === "legend" || nushiMsg;
       if (!showFull) {
         showToast('<div>' + FISH[fishId].name + ' <b>' + cm.toFixed(1) + 'cm</b></div><div class="ct-earn">+' + earn.toLocaleString() + '円</div>' + duelMsg, 1400);
         afterCastResolved(false);
@@ -4740,7 +4851,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var ncb = document.getElementById("nextCastBtn");
       if (ncb) ncb.textContent = trip.castsLeft > 0 ? "次のキャストへ（残り" + trip.castsLeft + "投）" : "釣行結果へ";
     }
-    renderResultCatch(fishId, { isNew: rec.isNew, isRecord: rec.isRecord, cm: cm, ratio: ratio, variant: variant, earn: earn });
+    renderResultCatch(fishId, { isNew: rec.isNew, isRecord: rec.isRecord, cm: cm, ratio: ratio, variant: variant, earn: earn, nushiMsg: nushiMsg });
     showScreen("screen-result");
   }
 
@@ -4767,7 +4878,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var szEl = document.getElementById("resultSize");
     szEl.textContent = info.cm ? info.cm.toFixed(1) + " cm" : "";
     var vt = document.getElementById("resultVariantTag");
-    if (info.variant === "giant") { vt.textContent = "👑 大物"; vt.className = "variant-tag vt-giant"; }
+    if (info.variant === "nushi") { vt.textContent = "🐲 ヌシ"; vt.className = "variant-tag vt-nushi"; }
+    else if (info.variant === "giant") { vt.textContent = "👑 大物"; vt.className = "variant-tag vt-giant"; }
     else if (info.variant === "spawn") { vt.textContent = "🌸 婚姻色"; vt.className = "variant-tag vt-spawn"; }
     else { vt.className = "variant-tag hidden"; }
     var meter = document.getElementById("resultSizeMeter");
@@ -4787,6 +4899,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var loc = getLocation(state.selectedLocationId);
     var lure = LURES[state.selectedLureId];
     document.getElementById("resultMeta").textContent =
+      (info.nushiMsg ? "🐲 " + info.nushiMsg + "　" : "") +
       (loc ? loc.name : "") + (lure ? "　×　" + lure.name : "") + (state.time ? "　·　" + state.time.label : "");
     document.getElementById("resultDesc").textContent = fish.desc;
   }
@@ -4892,6 +5005,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         '<div class="hall-row"><span>総収入</span><b>' + save.totals.earned.toLocaleString() + ' 円</b></div>' +
         '<div class="hall-row"><span>最大魚</span><b>' + (maxFish ? (FISH[maxFish] ? FISH[maxFish].name : maxFish) + " " + maxCm.toFixed(1) + "cm" : "—") + '</b></div>' +
         '<div class="hall-row"><span>解禁済み</span><b>' + save.unlocked.length + ' / ' + LOCATIONS.length + ' ヶ所</b></div>' +
+        '<div class="hall-row"><span>🐲 ヌシ討伐</span><b>' + Object.keys(save.nushi || {}).length + ' / ' + Object.keys(NUSHI).length + '</b></div>' +
         (earned ? '<div class="hall-titles">' + earned + '</div>' : "");
     }
     var breakdown = document.getElementById("rarityBreakdown");
@@ -5029,6 +5143,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
   // ===== 初期化 =====
   state.daily = dailyInfo();
+  if (save.mapPieces >= 3) {
+    if (!LOCATIONS.some(function (l) { return l.id === "shumarinai"; })) LOCATIONS.push(HIDDEN_LOC);
+    if (save.unlocked.indexOf("shumarinai") < 0) save.unlocked.push("shumarinai");
+  }
   buildMap();
   document.getElementById("titleFishArt").innerHTML = renderFish("ito", { uid: "t" });
   updateStatusBar();
