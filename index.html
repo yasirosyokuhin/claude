@@ -638,6 +638,93 @@
   .hall-titles { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .title-chip { font-size: 11px; font-weight: 800; background: linear-gradient(180deg,#ffe9b0,#f2cf7a); color: #6b4f00; padding: 3px 10px; border-radius: 999px; }
 
+  .casts-badge {
+    font-size: 12px; font-weight: 800; color: var(--accent-dark);
+    background: #e4f0ec; border-radius: 999px; padding: 4px 10px; white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .cast-meter {
+    position: absolute; left: 24px; right: 24px; bottom: 64px; z-index: 5;
+    pointer-events: none;
+  }
+  .cm-label { text-align: center; font-size: 12px; font-weight: 800; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); margin-bottom: 5px; }
+  .cm-track {
+    position: relative; height: 16px; border-radius: 8px; overflow: hidden;
+    background: rgba(4,14,18,.7); box-shadow: inset 0 2px 4px rgba(0,0,0,.5);
+    display: flex;
+  }
+  .cm-near { width: 28%; background: rgba(220,120,80,.4); }
+  .cm-mid { width: 44%; background: rgba(120,200,160,.28); }
+  .cm-far { width: 28%; background: rgba(255,214,90,.45); }
+  #cmFill {
+    position: absolute; top: 2px; bottom: 2px; left: 0; width: 5px;
+    background: #ffffff; border-radius: 3px; box-shadow: 0 0 8px rgba(255,255,255,.9);
+  }
+  .cast-toast {
+    position: absolute; left: 50%; top: 40%;
+    transform: translate(-50%, -50%);
+    z-index: 8;
+    background: linear-gradient(180deg, rgba(8,22,28,.88), rgba(8,22,28,.78));
+    border: 1px solid rgba(255,255,255,.2);
+    color: #fff; font-weight: 800; font-size: 15px;
+    padding: 12px 20px; border-radius: 14px;
+    text-align: center; line-height: 1.6;
+    animation: hudIn .2s ease;
+    max-width: 84%;
+    pointer-events: none;
+  }
+  .cast-toast .ct-earn { color: #9fe6c8; font-size: 13px; }
+  .cast-toast .ct-fail { color: #f0a898; }
+  .event-overlay {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(6, 20, 26, .55);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    animation: hudIn .2s ease;
+  }
+  .event-card {
+    width: min(86%, 380px);
+    background: linear-gradient(180deg, #ffffff, #eef6f2);
+    border-radius: 20px; padding: 22px 18px 18px; text-align: center;
+    box-shadow: 0 18px 50px rgba(4, 18, 24, .45);
+    animation: evPop .3s cubic-bezier(.2,1.4,.4,1);
+  }
+  @keyframes evPop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .ev-icon { font-size: 54px; line-height: 1; margin-bottom: 8px; filter: drop-shadow(0 4px 6px rgba(20,40,35,.25)); }
+  .ev-title { font-size: 19px; font-weight: 900; color: var(--ink); margin-bottom: 6px; letter-spacing: .03em; }
+  .ev-text { font-size: 13.5px; color: var(--sub-ink); line-height: 1.75; margin-bottom: 14px; }
+  .ev-actions { display: flex; flex-direction: column; gap: 9px; }
+  .ev-hold-btn {
+    background: linear-gradient(180deg, #4a5a68, #2e3c48); color: #fff;
+    border: none; border-radius: 14px; padding: 16px; font-size: 15px; font-weight: 800;
+    cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none;
+  }
+  .ev-hold-btn .hold-prog { display: block; height: 5px; background: rgba(255,255,255,.25); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .ev-hold-btn .hold-prog b { display: block; height: 100%; width: 0%; background: #8fe6b0; border-radius: 3px; }
+  .trip-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center;
+    background: linear-gradient(180deg, #12333e 0%, #0d2833 60%, #0a2029 100%);
+    border-radius: 20px; padding: 22px 14px 18px; box-shadow: 0 14px 34px rgba(8,30,38,.35); }
+  .trip-head { font-size: 13px; letter-spacing: .3em; text-indent: .3em; color: #8fb0b8; font-weight: 800; }
+  .trip-loc { font-size: 22px; font-weight: 900; color: #f4faf8; margin: 2px 0 10px; }
+  .trip-comp { font-size: 12.5px; font-weight: 800; color: #ffe9a8; background: rgba(255,214,90,.12);
+    border: 1px solid rgba(255,214,90,.35); padding: 5px 14px; border-radius: 999px; margin-bottom: 10px; }
+  .trip-catches { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 10px; min-height: 40px; }
+  .trip-catches .tc { width: 72px; background: rgba(255,255,255,.07); border-radius: 10px; padding: 4px 2px; }
+  .trip-catches .tc svg { width: 100%; height: auto; display: block; }
+  .trip-catches .tc .tc-cm { font-size: 10px; color: #b8d2d4; font-variant-numeric: tabular-nums; }
+  .trip-catches .none { color: #7d9aa2; font-size: 13px; padding: 12px; }
+  .trip-lines { width: 100%; max-width: 340px; font-size: 12.5px; color: #b8d2d4; margin-bottom: 8px; }
+  .trip-lines div { display: flex; justify-content: space-between; padding: 2px 6px; }
+  .trip-lines b { color: #e8f2f0; font-variant-numeric: tabular-nums; }
+  .trip-score-row { display: flex; align-items: baseline; gap: 12px; margin: 4px 0 2px; color: #8fb0b8; font-size: 13px; }
+  .trip-score-row b { font-size: 34px; color: #ffe9a8; font-variant-numeric: tabular-nums; text-shadow: 0 2px 12px rgba(255,210,80,.3); }
+  .trip-earn { font-size: 15px; font-weight: 800; color: #9fe6c8; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+  .comp-board { width: 100%; max-width: 340px; background: rgba(255,255,255,.06); border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; }
+  .comp-board .cb-head { font-size: 12px; font-weight: 800; color: #ffe9a8; margin-bottom: 6px; letter-spacing: .06em; }
+  .comp-board .cb-row { display: flex; justify-content: space-between; font-size: 12.5px; color: #b8d2d4; padding: 2px 4px; }
+  .comp-board .cb-row.me { color: #ffe9a8; font-weight: 800; background: rgba(255,214,90,.10); border-radius: 6px; }
+  .comp-board .cb-row b { font-variant-numeric: tabular-nums; }
+
   .hidden { display: none !important; }
   .sr-note { font-size: 12px; color: var(--sub-ink); }
 </style>
@@ -743,6 +830,8 @@
   <section id="screen-fish" class="screen">
     <div class="topbar">
       <h2 style="font-size:16px;margin:0;" id="fishLocName"></h2>
+      <span id="castsLeftBadge" class="casts-badge"></span>
+      <button class="btn-back" data-action="end-trip" style="margin-left:auto;">納竿</button>
     </div>
     <div id="fishStage" class="fish-stage">
       <canvas id="stageCanvas"></canvas>
@@ -761,6 +850,14 @@
           <div class="fight-hint">長押しで巻く！ 引きが強い時は離してしのげ！</div>
         </div>
       </div>
+      <div id="castMeter" class="cast-meter hidden">
+        <div class="cm-label">タップでキャスト！ 沖ほど大物</div>
+        <div class="cm-track">
+          <div class="cm-near"></div><div class="cm-mid"></div><div class="cm-far"></div>
+          <div id="cmFill"></div>
+        </div>
+      </div>
+      <div id="castToast" class="cast-toast hidden"></div>
       <div class="stage-text" id="stageText">キャスト中…</div>
       <button id="muteBtn" class="mute-btn" type="button">🔊</button>
     </div>
@@ -785,10 +882,9 @@
       <div class="result-meta" id="resultMeta"></div>
       <div class="earn-line" id="resultEarn"></div>
       <div class="result-desc" id="resultDesc"></div>
-      <div class="btn-row" style="width:100%;">
-        <button class="btn" data-action="retry-same">もう一度ここで釣る</button>
-        <button class="btn secondary" data-action="change-place">場所を変える</button>
-        <button class="btn secondary" data-action="shop">釣具店へ</button>
+      <div class="btn-row" style="width:100%;" id="resultBtnRow">
+        <button class="btn" data-action="next-cast" id="nextCastBtn">次のキャストへ</button>
+        <button class="btn secondary" data-action="end-trip-from-result">納竿する</button>
       </div>
     </div>
     <div id="resultFail" class="result-wrap hidden">
@@ -796,7 +892,8 @@
       <div class="result-fail-title" id="failTitle"></div>
       <div class="result-fail-desc" id="failDesc"></div>
       <div class="btn-row" style="width:100%;">
-        <button class="btn" data-action="retry-same">もう一度</button>
+        <button class="btn" data-action="next-cast">次のキャストへ</button>
+        <button class="btn secondary" data-action="end-trip-from-result">納竿する</button>
       </div>
     </div>
   </section>
@@ -813,6 +910,35 @@
     <div id="shopLures" class="choice-list"></div>
     <div class="section-label">⚙️ 強化</div>
     <div id="shopUpgrades" class="choice-list"></div>
+  </section>
+
+  <!-- 5.7 道中イベント -->
+  <div id="eventOverlay" class="event-overlay hidden">
+    <div class="event-card">
+      <div class="ev-icon" id="evIcon">🐻</div>
+      <div class="ev-title" id="evTitle"></div>
+      <div class="ev-text" id="evText"></div>
+      <div class="ev-actions" id="evActions"></div>
+    </div>
+  </div>
+
+  <!-- 5.8 釣行リザルト -->
+  <section id="screen-trip-result" class="screen">
+    <div class="trip-wrap">
+      <div class="trip-head">🎣 釣行終了</div>
+      <div class="trip-loc" id="tripLocName"></div>
+      <div id="tripCompBanner" class="trip-comp hidden"></div>
+      <div class="trip-catches" id="tripCatches"></div>
+      <div class="trip-lines" id="tripLines"></div>
+      <div class="trip-score-row"><span>釣行スコア</span><b id="tripScore">0</b></div>
+      <div class="trip-earn" id="tripEarn"></div>
+      <div id="compBoard" class="comp-board hidden"></div>
+      <div class="btn-row" style="width:100%;">
+        <button class="btn" data-action="trip-again">もう一度釣行する</button>
+        <button class="btn secondary" data-action="change-place">場所を変える</button>
+        <button class="btn secondary" data-action="back-to-title">タイトルへ</button>
+      </div>
+    </div>
   </section>
 
   <!-- 6. 図鑑 -->
@@ -1980,7 +2106,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       records: {},
       totals: { catches: 0, earned: 0, barashi: 0 },
       titles: [],
-      zukan: {}
+      zukan: {},
+      comp: { day: 0, best: 0, paid: 0 },
+      mapPieces: 0,
+      tripBest: 0
     };
   }
   function loadSave() {
@@ -2023,6 +2152,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (state.time && state.time.mazume) exp -= 0.3;
     if (state.selectedLureId === "oomono") exp -= 0.35;
     if (state.daily && state.daily.hotLoc === state.selectedLocationId) exp -= 0.2;
+    if (fs.castZone === "far") exp -= 0.3;
     var variant = null;
     var vr = Math.random();
     if (vr < BAL.variantGiantRate) variant = "giant";
@@ -2058,7 +2188,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var f2 = ids[(Math.floor(hash2(dayInt, 37) * ids.length) + 3) % ids.length];
     if (f2 === f1) f2 = ids[(ids.indexOf(f1) + 5) % ids.length];
     var hotLoc = LOCATIONS[Math.floor(hash2(dayInt, 53) * LOCATIONS.length) % LOCATIONS.length].id;
-    return { weather: weather, hot: [f1, f2], hotLoc: hotLoc, dayInt: dayInt };
+    var compLoc = LOCATIONS[Math.floor(hash2(dayInt, 71) * LOCATIONS.length) % LOCATIONS.length].id;
+    return { weather: weather, hot: [f1, f2], hotLoc: hotLoc, compLoc: compLoc, dayInt: dayInt };
   }
 
   var TITLES = [
@@ -2093,7 +2224,13 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       '<div class="dc-row">' + wx.emoji + ' ' + wx.label +
       (dl.weather === "rain" ? '（イワナ類の活性UP）' : '') + '</div>' +
       '<div class="dc-row">🔥 荒食い: <b>' + hotNames + '</b></div>' +
-      '<div class="dc-row">📍 狙い目: <b>' + (hl ? hl.name : "") + '</b>' + (isUnlocked(dl.hotLoc) ? '' : '（未解禁）') + '</div>';
+      '<div class="dc-row">📍 狙い目: <b>' + (hl ? hl.name : "") + '</b>' + (isUnlocked(dl.hotLoc) ? '' : '（未解禁）') + '</div>' +
+      (function () {
+        var cl = getLocation(dl.compLoc);
+        ensureCompDay();
+        var st = save.comp.best > 0 ? "現在 " + compRank(save.comp.best, compBoard(dl.dayInt)) + " 位" : "未参加";
+        return '<div class="dc-row">🏆 今日の大会: <b>' + (cl ? cl.name : "") + '</b>（' + st + '・無料開放）</div>';
+      })();
   }
 
   function updateStatusBar() {
@@ -2140,11 +2277,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (variant === "spawn") r.sp = true;
     if (variant === "giant") r.gi = true;
     save.totals.catches++;
-    save.totals.earned += earn;
-    save.money += earn;
     evalTitles();
     persistSave();
-    updateStatusBar();
     return { isNew: isNew, isRecord: isRecord };
   }
 
@@ -2270,7 +2404,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         parts.push('<circle class="marker-dot" data-loc-id="' + loc.id + '" cx="' + x + '" cy="' + y + '" r="9"></circle>');
       }
       parts.push('<circle class="marker-hit" data-loc-id="' + loc.id + '" cx="' + x + '" cy="' + y + '" r="18"></circle>');
-      if (lockedCls) {
+      var isCompLoc = state.daily && state.daily.compLoc === loc.id;
+      if (isCompLoc) {
+        parts.push('<text x="' + x + '" y="' + (xy[1] - 12).toFixed(1) + '" text-anchor="middle" font-size="15" pointer-events="none">🏆</text>');
+      } else if (lockedCls) {
         parts.push('<text class="lock-label" x="' + x + '" y="' + (xy[1] + 4).toFixed(1) + '" text-anchor="middle" font-size="13" pointer-events="none">🔒</text>');
       }
       parts.push('</g>');
@@ -2453,6 +2590,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     document.getElementById("infoSignatureArt").innerHTML = renderFish(loc.signature, { uid: "card" });
     document.getElementById("infoSignature").textContent = sigFish ? sigFish.name : loc.signature;
     var locked = !isUnlocked(locId);
+    var isCompToday = state.daily && state.daily.compLoc === locId;
+    if (locked && isCompToday) locked = false; // 大会当日は無料開放
+    var descEl = document.getElementById("infoDesc");
+    if (isCompToday) descEl.textContent = "🏆 本日大会開催（無料開放中）！ " + loc.desc;
     var goBtn = document.querySelector('button[data-action="go-tackle"]');
     var unBtn = document.getElementById("unlockBtn");
     goBtn.classList.toggle("hidden", locked);
@@ -3036,7 +3177,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       ctx.globalAlpha = 1;
     }
 
-    var wx = (state.daily && state.daily.weather) || "sun";
+    var wx = effWeather();
     var ly = t.key === "yuu" ? 100 : t.key === "asa" ? 74 : 52;
     var glowG = ctx.createRadialGradient(pal.lx, ly, 4, pal.lx, ly, 96);
     glowG.addColorStop(0, "rgba(" + pal.glow + ",0.55)");
@@ -3747,6 +3888,369 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
   }
 
+  // ===== 釣行（トリップ）システム =====
+  var TRIP_CASTS = 8;
+  var TRIP_RARITY_PTS = { common: 1, uncommon: 2, rare: 4, legend: 10 };
+  var trip = null;
+
+  function effWeather() {
+    if (trip && trip.rain) return "rain";
+    return (state.daily && state.daily.weather) || "sun";
+  }
+
+  function startTrip() {
+    trip = {
+      locId: state.selectedLocationId,
+      castsLeft: TRIP_CASTS,
+      catches: [], kinds: {},
+      earned: 0, score: 0,
+      noBarashi: true, big: false,
+      events: 0, buffs: {}, rain: false,
+      duel: null, over: false
+    };
+    updateCastsBadge();
+  }
+
+  function updateCastsBadge() {
+    var el = document.getElementById("castsLeftBadge");
+    if (el) el.textContent = trip ? "🎣 残り " + trip.castsLeft + " 投" : "";
+  }
+
+  function tripAddCatch(fishId, cm, ratio, variant, earn) {
+    var f = FISH[fishId];
+    var vMul = variant === "giant" ? 1.8 : variant === "spawn" ? 1.5 : 1;
+    var pts = Math.round(cm * (TRIP_RARITY_PTS[f.rarity] || 1) * vMul);
+    trip.catches.push({ id: fishId, cm: cm, variant: variant, earn: earn, pts: pts });
+    trip.kinds[fishId] = true;
+    trip.earned += earn;
+    trip.score += pts;
+    if (variant === "giant" || ratio > 0.85) trip.big = true;
+  }
+
+  function showToast(html, ms) {
+    var t = document.getElementById("castToast");
+    t.innerHTML = html;
+    t.classList.remove("hidden");
+    clearTimeout(state.toastTimer);
+    state.toastTimer = setTimeout(function () { t.classList.add("hidden"); }, ms || 1600);
+  }
+
+  // キャスト消費後の共通ルーティング
+  function afterCastResolved(showedFullResult) {
+    trip.castsLeft--;
+    updateCastsBadge();
+    if (showedFullResult) return; // フル結果画面のボタンから継続
+    setTimeout(function () {
+      proceedTrip();
+    }, 1500);
+  }
+
+  function proceedTrip() {
+    if (!trip) return;
+    if (trip.over || trip.castsLeft <= 0) { showTripResult(); return; }
+    maybeEvent(function () {
+      startFishingSequence();
+    });
+  }
+
+  // ===== 本日の大会 =====
+  var NPC_NAMES = [
+    "岩見沢の名人 熊谷", "余市のベテラン 佐々木", "旭川の職人 高橋", "帯広の強豪 松田",
+    "釧路の漁師 大西", "函館の紳士 石川", "小樽の親方 村瀬", "札幌の学生 ゆうと",
+    "ニセコのガイド アンナ", "観光客のトム", "苫小牧の常連 木村", "網走の鉄人 佐藤",
+    "名寄の猛者 吉田", "美幌の若手 りく", "千歳の週末組 中島", "稚内の古豪 菅原"
+  ];
+  function compBoard(dayInt) {
+    var rows = [];
+    for (var i = 0; i < 10; i++) {
+      var nm = NPC_NAMES[Math.floor(hash2(dayInt, 100 + i) * NPC_NAMES.length) % NPC_NAMES.length];
+      while (rows.some(function (r) { return r.name === nm; })) {
+        nm = NPC_NAMES[(NPC_NAMES.indexOf(nm) + 1) % NPC_NAMES.length];
+      }
+      var tier = i < 2 ? 5200 + hash2(dayInt, 200 + i) * 3800
+        : i < 6 ? 1800 + hash2(dayInt, 200 + i) * 3400
+        : 500 + hash2(dayInt, 200 + i) * 1400;
+      rows.push({ name: nm, score: Math.round(tier / 10) * 10 });
+    }
+    rows.sort(function (a, b) { return b.score - a.score; });
+    return rows;
+  }
+  var COMP_PRIZE = [0, 5000, 3000, 2000, 1000, 1000, 500, 500, 500, 500, 500];
+  function compRank(best, board) {
+    var r = 1;
+    for (var i = 0; i < board.length; i++) if (board[i].score > best) r++;
+    return r;
+  }
+  function ensureCompDay() {
+    var d = state.daily || dailyInfo();
+    if (save.comp.day !== d.dayInt) {
+      save.comp = { day: d.dayInt, best: 0, paid: 0 };
+      persistSave();
+    }
+  }
+
+  // ===== 釣行リザルト =====
+  function showTripResult() {
+    if (!trip) { showScreen("screen-map"); return; }
+    resetFishStage();
+    var loc = getLocation(trip.locId);
+    // ボーナス
+    var kindN = Object.keys(trip.kinds).length;
+    var bonus = kindN * 100 + (trip.big ? 300 : 0) + (trip.noBarashi && trip.catches.length > 0 ? 250 : 0);
+    var total = trip.score + bonus;
+    // 精算
+    save.money += trip.earned;
+    save.totals.earned += trip.earned;
+    if (total > (save.tripBest || 0)) save.tripBest = total;
+    // 大会
+    var isComp = state.daily && trip.locId === state.daily.compLoc;
+    var prizeMsg = "";
+    var board = null, rank = 0;
+    if (isComp) {
+      ensureCompDay();
+      if (total > save.comp.best) save.comp.best = total;
+      board = compBoard(state.daily.dayInt);
+      rank = compRank(save.comp.best, board);
+      var due = COMP_PRIZE[Math.min(rank, 10)] || 0;
+      if (rank <= 10 && due > save.comp.paid) {
+        var delta = due - save.comp.paid;
+        save.comp.paid = due;
+        save.money += delta;
+        prizeMsg = "🏆 現在 " + rank + " 位！ 賞金 +" + delta.toLocaleString() + "円";
+        if (rank === 1 && save.titles.indexOf("champ") < 0) save.titles.push("champ");
+      }
+    }
+    evalTitles();
+    persistSave();
+    updateStatusBar();
+    // 描画
+    document.getElementById("tripLocName").textContent = loc ? loc.name : "";
+    var cb = document.getElementById("tripCompBanner");
+    cb.classList.toggle("hidden", !isComp);
+    if (isComp) cb.textContent = prizeMsg || ("🏆 本日の大会会場 — 現在 " + rank + " 位");
+    var tc = document.getElementById("tripCatches");
+    if (trip.catches.length === 0) {
+      tc.innerHTML = '<div class="none">釣果なし…また来よう</div>';
+    } else {
+      tc.innerHTML = trip.catches.map(function (c, i) {
+        return '<div class="tc">' + renderFish(c.id, { uid: "tr" + i, variant: c.variant }) +
+          '<div class="tc-cm">' + c.cm.toFixed(1) + 'cm</div></div>';
+      }).join("");
+    }
+    document.getElementById("tripLines").innerHTML =
+      '<div><span>釣果ポイント</span><b>' + trip.score.toLocaleString() + '</b></div>' +
+      '<div><span>種類ボーナス（' + kindN + '種）</span><b>+' + (kindN * 100) + '</b></div>' +
+      (trip.big ? '<div><span>大物ボーナス</span><b>+300</b></div>' : '') +
+      (trip.noBarashi && trip.catches.length > 0 ? '<div><span>ノーバラシ</span><b>+250</b></div>' : '');
+    document.getElementById("tripScore").textContent = total.toLocaleString();
+    document.getElementById("tripEarn").textContent = "市場で売却 + " + trip.earned.toLocaleString() + " 円";
+    var bd = document.getElementById("compBoard");
+    bd.classList.toggle("hidden", !isComp);
+    if (isComp && board) {
+      var rowsHtml = "";
+      var inserted = false;
+      var shown = board.slice();
+      for (var bi = 0; bi < shown.length; bi++) {
+        if (!inserted && save.comp.best >= shown[bi].score) {
+          rowsHtml += '<div class="cb-row me"><span>' + (bi + 1) + '位 あなた</span><b>' + save.comp.best.toLocaleString() + '</b></div>';
+          inserted = true;
+        }
+        rowsHtml += '<div class="cb-row"><span>' + (bi + (inserted ? 2 : 1)) + '位 ' + shown[bi].name + '</span><b>' + shown[bi].score.toLocaleString() + '</b></div>';
+      }
+      if (!inserted) rowsHtml += '<div class="cb-row me"><span>11位 あなた</span><b>' + save.comp.best.toLocaleString() + '</b></div>';
+      bd.innerHTML = '<div class="cb-head">🏆 本日の大会リーダーボード</div>' + rowsHtml;
+    }
+    var done = trip;
+    trip = null;
+    updateCastsBadge();
+    state.lastTrip = done;
+    showScreen("screen-trip-result");
+  }
+
+  // ===== 道中イベント =====
+  function evClose() {
+    document.getElementById("eventOverlay").classList.add("hidden");
+  }
+  function evShow(icon, title, text, actions) {
+    document.getElementById("evIcon").textContent = icon;
+    document.getElementById("evTitle").textContent = title;
+    document.getElementById("evText").innerHTML = text;
+    var box = document.getElementById("evActions");
+    box.innerHTML = "";
+    actions.forEach(function (a) {
+      if (a.custom) { box.appendChild(a.custom); return; }
+      var b = document.createElement("button");
+      b.className = "btn" + (a.secondary ? " secondary" : "");
+      b.textContent = a.label;
+      b.addEventListener("click", function () { a.fn(); });
+      box.appendChild(b);
+    });
+    document.getElementById("eventOverlay").classList.remove("hidden");
+  }
+
+  function loseLastCatch() {
+    var c = trip.catches.pop();
+    if (c) {
+      trip.earned -= c.earn;
+      trip.score -= c.pts;
+      trip.kinds = {};
+      trip.catches.forEach(function (x) { trip.kinds[x.id] = true; });
+    }
+    return c;
+  }
+
+  var EVENTS = [
+    { id: "bear", w: 10, run: function (cb) {
+      var holdBtn = document.createElement("button");
+      holdBtn.className = "ev-hold-btn";
+      holdBtn.innerHTML = '動くな…（3秒 長押し）<span class="hold-prog"><b id="holdProg"></b></span>';
+      var holdT = null, prog = 0, iv = null;
+      function fail() {
+        clearInterval(iv);
+        var lost = loseLastCatch();
+        trip.over = true;
+        evShow("🐻", "ヒグマに気づかれた！", (lost ? FISH[lost.id].name + "を置いて" : "") + "急いで撤収した。今日の釣行はここまで…", [
+          { label: "納竿する", fn: function () { evClose(); cb(); } }
+        ]);
+        buzz(200);
+      }
+      holdBtn.addEventListener("pointerdown", function (e) {
+        e.preventDefault();
+        iv = setInterval(function () {
+          prog += 50;
+          var pb = document.getElementById("holdProg");
+          if (pb) pb.style.width = Math.min(100, prog / 3000 * 100) + "%";
+          if (prog >= 3000) {
+            clearInterval(iv);
+            evShow("🐻", "ヒグマは去った…", "息を殺してやり過ごした。ヒグマは川上へ消えていった。", [
+              { label: "釣りを続ける", fn: function () { evClose(); cb(); } }
+            ]);
+            SFX.jingle();
+          }
+        }, 50);
+      });
+      holdBtn.addEventListener("pointerup", function () { if (prog < 3000) fail(); });
+      holdBtn.addEventListener("pointercancel", function () { if (prog < 3000) fail(); });
+      evShow("🐻", "ヒグマ出現！！", "対岸の茂みからヒグマが現れた。動いたら気づかれる——", [{ custom: holdBtn }]);
+      SFX.bite(); buzz([80, 60, 120]);
+    } },
+    { id: "eagle", w: 8, cond: function () { return trip.catches.length > 0; }, run: function (cb) {
+      var taps = 0, deadline = null;
+      var tapBtn = document.createElement("button");
+      tapBtn.className = "ev-hold-btn";
+      tapBtn.textContent = "追い払え！（3回タップ）";
+      tapBtn.addEventListener("click", function () {
+        if (!deadline) deadline = Date.now() + 2000;
+        taps++;
+        tapBtn.textContent = "追い払え！（あと" + Math.max(0, 3 - taps) + "回）";
+        if (taps >= 3) {
+          if (Date.now() <= deadline) {
+            evShow("🦅", "守り切った！", "オジロワシは諦めて飛び去った。", [{ label: "続ける", fn: function () { evClose(); cb(); } }]);
+            SFX.jingle();
+          } else {
+            var lost = loseLastCatch();
+            evShow("🦅", "獲物を奪われた…", (lost ? FISH[lost.id].name + " " + lost.cm.toFixed(1) + "cmを" : "") + "さらわれてしまった。", [{ label: "くやしい…", fn: function () { evClose(); cb(); } }]);
+          }
+        }
+      });
+      evShow("🦅", "オジロワシ襲来！", "いけすの魚が狙われている！", [{ custom: tapBtn }]);
+      buzz(60);
+    } },
+    { id: "meister", w: 9, run: function (cb) {
+      var mode = Math.random();
+      if (mode < 0.4) {
+        var tmr = dailyInfo(); // 今日
+        var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+        var tInt = tomorrow.getFullYear() * 10000 + (tomorrow.getMonth() + 1) * 100 + tomorrow.getDate();
+        var tLoc = LOCATIONS[Math.floor(hash2(tInt, 71) * LOCATIONS.length) % LOCATIONS.length];
+        evShow("👴", "地元の名人", "「明日の大会は<b>" + tLoc.name + "</b>でやるらしいぞ。先に装備を整えとくといい」", [
+          { label: "ありがたい！", fn: function () { evClose(); cb(); } }]);
+      } else if (mode < 0.7) {
+        var unowned = Object.keys(LURES).filter(function (l) { return save.gear.lures.indexOf(l) < 0; });
+        if (unowned.length === 0) { evShow("👴", "地元の名人", "「いい道具を揃えたな。あとは腕だ」", [{ label: "どうも！", fn: function () { evClose(); cb(); } }]); return; }
+        var lid = unowned[Math.floor(Math.random() * unowned.length)];
+        var price = Math.round((LURES[lid].price || 1000) * 0.5 / 100) * 100;
+        evShow("👴", "地元の名人", "「使わなくなった<b>" + LURES[lid].name + "</b>、" + price.toLocaleString() + "円でどうだ」（定価の半額）", [
+          { label: "買う（" + price.toLocaleString() + "円）", fn: function () {
+            if (save.money >= price) { save.money -= price; save.gear.lures.push(lid); persistSave(); updateStatusBar(); SFX.jingle(); }
+            evClose(); cb();
+          } },
+          { label: "遠慮しておく", secondary: true, fn: function () { evClose(); cb(); } }]);
+      } else {
+        var wager = Math.min(1000, save.money);
+        if (wager < 200) { evShow("👴", "地元の名人", "「金がないなら勝負にならんな。まず釣って稼げ」", [{ label: "はい…", fn: function () { evClose(); cb(); } }]); return; }
+        evShow("👴", "名人の一本勝負", "「次の一匹、わしのよりデカけりゃ<b>賭け金2倍</b>で返す」（賭け金 " + wager.toLocaleString() + "円）", [
+          { label: "受けて立つ！", fn: function () {
+            save.money -= wager; persistSave(); updateStatusBar();
+            trip.duel = { wager: wager };
+            evClose(); cb();
+          } },
+          { label: "やめておく", secondary: true, fn: function () { evClose(); cb(); } }]);
+      }
+    } },
+    { id: "squall", w: 7, cond: function () { return !trip.rain && effWeather() !== "rain"; }, run: function (cb) {
+      evShow("🌦", "夕立が来た！", "空が急に暗くなり、雨が川面を叩き始めた。<b>魚の活性が上がる</b>——続けるか？", [
+        { label: "続ける（活性UP）", fn: function () { trip.rain = true; evClose(); cb(); } },
+        { label: "納竿する", secondary: true, fn: function () { trip.over = true; evClose(); cb(); } }]);
+    } },
+    { id: "school", w: 7, run: function (cb) {
+      trip.buffs.school = 2;
+      evShow("⚡", "群れが入った！", "水面がざわつき、魚影の群れが差してきた。<b>次の2投は入れ食い</b>だ！", [
+        { label: "急いで投げる！", fn: function () { evClose(); cb(); } }]);
+    } },
+    { id: "toolbox", w: 6, run: function (cb) {
+      var coins = 300 + Math.floor(Math.random() * 6) * 100;
+      save.money += coins; persistSave(); updateStatusBar();
+      evShow("🎒", "流れ着いた道具箱", "上流から流れてきた古い道具箱。中に小銭が入っていた。<b>+" + coins.toLocaleString() + "円</b>", [
+        { label: "ラッキー", fn: function () { evClose(); cb(); } }]);
+    } },
+    { id: "map", w: 5, run: function (cb) {
+      if (save.mapPieces >= 3) {
+        save.money += 500; persistSave(); updateStatusBar();
+        evShow("🗺", "古い地図の切れ端", "もう地図は完成している。切れ端は骨董屋行きだ。<b>+500円</b>", [{ label: "OK", fn: function () { evClose(); cb(); } }]);
+      } else {
+        save.mapPieces++; persistSave();
+        evShow("🗺", "古い地図の切れ端", "岸辺の流木に挟まっていた…何かの地図の一部だ。（" + save.mapPieces + "/3枚）<br>全部集めると<b>隠しスポット</b>が見つかるかもしれない。", [
+          { label: "しまっておく", fn: function () { evClose(); cb(); } }]);
+      }
+    } },
+    { id: "rest", w: 6, run: function (cb) {
+      trip.buffs.focus = 1;
+      evShow("🍙", "ひと休み", "おにぎりと熱いお茶。集中力が戻ってきた。<b>次のアタリはアワセ猶予+50%</b>", [
+        { label: "よし、やるか", fn: function () { evClose(); cb(); } }]);
+    } },
+    { id: "warden", w: 4, run: function (cb) {
+      if (state.selectedLureId === "salmon_rig") {
+        save.money += 500; persistSave(); updateStatusBar();
+        evShow("🚤", "河川監視員", "「ちゃんとした仕掛けで狙ってるね。マナーの良い釣り人に地域振興券を進呈！」<b>+500円</b>", [
+          { label: "どうも！", fn: function () { evClose(); cb(); } }]);
+      } else {
+        evShow("🚤", "河川監視員", "「サケを狙うなら決められた仕掛けでな。ルールを守って楽しんでくれよ」", [
+          { label: "はい！", fn: function () { evClose(); cb(); } }]);
+      }
+    } },
+    { id: "deer", w: 5, run: function (cb) {
+      save.money += 200; persistSave(); updateStatusBar();
+      evShow("🦌", "エゾシカの親子", "対岸にエゾシカの親子。しばし竿を置いて見とれた。写真がSNSでプチバズり。<b>+200円</b>", [
+        { label: "いい日だ", fn: function () { evClose(); cb(); } }]);
+    } }
+  ];
+
+  function maybeEvent(cb) {
+    if (!trip || trip.events >= 2 || Math.random() > 0.25) { cb(); return; }
+    var pool = EVENTS.filter(function (ev) { return !ev.cond || ev.cond(); });
+    var totW = pool.reduce(function (s, ev) { return s + ev.w; }, 0);
+    var r = Math.random() * totW, acc = 0, chosen = pool[0];
+    for (var i = 0; i < pool.length; i++) { acc += pool[i].w; if (r < acc) { chosen = pool[i]; break; } }
+    trip.events++;
+    chosen.run(cb);
+  }
+
+  window.__forceEvent = function (id, cb) {
+    var ev = EVENTS.filter(function (e) { return e.id === id; })[0];
+    if (ev) ev.run(cb || function () { proceedTrip(); });
+  };
+
   // ===== 釣りフェーズ管理 =====
   var FIGHT_STAMINA = { common: 4.2, uncommon: 5.8, rare: 7.2, legend: 8.5 };
   var FIGHT_PULL = { common: 0.75, uncommon: 0.95, rare: 1.15, legend: 1.45 };
@@ -3763,7 +4267,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     pendingSize: 0, pendingSizeRatio: 0, pendingVariant: null,
     fightStamMul: 1, fightPullMul: 1,
     diff: 0, zoneLo: 35, zoneHi: 75, zoneW: 40, zoneWander: 0, zonePhase: 0,
-    bigRun: false, nextBigRunAt: 0, bigRunEndAt: 0
+    bigRun: false, nextBigRunAt: 0, bigRunEndAt: 0,
+    aimT: 0, aimV: 0.5, castZone: "mid"
   };
 
   function setStageText(txt, big) {
@@ -3794,24 +4299,41 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     state.biteActive = false;
     state.pendingFishId = undefined;
 
-    fs.phase = "cast";
+    fs.phase = "aim";
+    fs.aimT = 0;
     fs.castT = 0;
     fs.idleT = 0;
     fs.tension = 55; fs.progress = 0; fs.holding = false;
     fs.slackTime = 0; fs.pulling = false;
+    fs.castZone = "mid";
     document.getElementById("fightUi").classList.remove("show");
-    setStageText("キャスト！");
-    SFX.whoosh();
+    document.getElementById("castMeter").classList.remove("hidden");
+    setStageText("狙いを定めて タップ！");
+    updateCastsBadge();
+    clearFishingTimers();
+    startStageLoop();
+  }
 
+  // エイム確定 → キャスト実行
+  function launchCast() {
+    var v = fs.aimV || 0.5;
+    fs.castZone = v >= 0.72 ? "far" : v < 0.28 ? "near" : "mid";
+    document.getElementById("castMeter").classList.add("hidden");
+    fs.phase = "cast";
+    fs.castT = 0;
+    setStageText(fs.castZone === "far" ? "沖に向かってフルキャスト！" : fs.castZone === "near" ? "手前にポチャン…" : "キャスト！");
+    SFX.whoosh();
     var waitMs = state.time.mazume ? (800 + Math.random() * 1700) : (1200 + Math.random() * 2800);
+    if (trip && trip.buffs.school > 0) waitMs = 300;
     clearFishingTimers();
     state.biteTimer = setTimeout(function () { triggerBite(); }, 750 + waitMs);
-    startStageLoop();
   }
 
   function triggerBite() {
     if (fs.phase !== "wait" && fs.phase !== "cast") return;
     var bouzuRate = state.time && state.time.mazume ? 0.08 : 0.15;
+    if (fs.castZone === "near") bouzuRate += 0.10;
+    if (trip && trip.buffs.school > 0) { bouzuRate = 0; trip.buffs.school--; }
     if (state.selectedLureId === "glow_minnow" && state.time && state.time.night) bouzuRate = Math.min(bouzuRate, 0.07);
     if (state.daily && state.daily.hotLoc === state.selectedLocationId) bouzuRate = Math.max(0.05, bouzuRate - 0.05);
     state.pendingFishId = drawFish(state.selectedLocationId, state.selectedLureId, bouzuRate);
@@ -3838,6 +4360,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var bwFish = FISH[state.pendingFishId];
       winMs = Math.max(750, 1300 - (RARITY_IDX[bwFish.rarity] || 0) * 150 - (fs.pendingSizeRatio || 0) * 150);
     }
+    if (trip && trip.buffs.focus > 0) { winMs *= 1.5; trip.buffs.focus--; }
     state.biteTimeoutTimer = setTimeout(function () {
       if (state.biteActive) {
         state.biteActive = false;
@@ -4021,6 +4544,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (failKey === "break" || failKey === "off") buzz(120);
     state.lastResultKind = info.kind;
     if (info.kind === "barasi") { save.totals.barashi++; persistSave(); }
+    if (trip) {
+      if (info.kind === "barasi") trip.noBarashi = false;
+      setTimeout(function () {
+        showToast('<div class="ct-fail">' + info.emoji + " " + info.title + '</div>', 1400);
+        afterCastResolved(false);
+      }, failKey === "late" ? 250 : 650);
+      return;
+    }
     setTimeout(function () {
       renderResultFail(info.emoji, info.title, info.desc);
       showScreen("screen-result");
@@ -4036,7 +4567,13 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var dt = Math.min(0.05, (now - fs.lastTs) / 1000);
       fs.lastTs = now;
 
-      if (fs.phase === "cast") {
+      if (fs.phase === "aim") {
+        fs.aimT += dt;
+        fs.aimV = 0.5 + 0.5 * Math.sin(fs.aimT * 3.4);
+        var cmf = document.getElementById("cmFill");
+        if (cmf) cmf.style.left = "calc(" + (fs.aimV * 100).toFixed(1) + "% - 3px)";
+        fs.rodBend = 0.05;
+      } else if (fs.phase === "cast") {
         fs.castT += dt;
         var p = Math.min(1, fs.castT / 0.7);
         // 竿先(224,208)から着水点(180,288)へ放物線
@@ -4109,6 +4646,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   function onStagePress(e) {
     if (e.target && e.target.id === "muteBtn") return;
     SFX.ensure();
+    if (fs.phase === "aim") {
+      launchCast();
+      return;
+    }
     if (fs.phase === "bite" && state.biteActive) {
       hookset();
       return;
@@ -4142,7 +4683,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var w = base * mult;
       var dl = state.daily;
       if (dl && dl.hot.indexOf(fid) >= 0) w *= 2;
-      if (dl && dl.weather === "rain" && (fid === "amemasu" || fid === "oshorokoma" || fid === "ito")) w *= 1.5;
+      var rainNow = (dl && dl.weather === "rain") || (typeof trip !== "undefined" && trip && trip.rain);
+      if (rainNow && (fid === "amemasu" || fid === "oshorokoma" || fid === "ito")) w *= 1.5;
       if (w > 0) {
         total += w;
         weighted.push({ id: fid, w: w });
@@ -4167,10 +4709,37 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var ratio = fs.pendingSizeRatio || 0;
     var variant = fs.pendingVariant || null;
     var earn = sellPrice(fishId, ratio, variant);
+    // 名人との一本勝負
+    var duelMsg = "";
+    if (trip && trip.duel) {
+      var sr2 = BAL.sizes[fishId] || [10, 40];
+      var npcCm = sr2[0] + (sr2[1] - sr2[0]) * (0.4 + Math.random() * 0.35);
+      if (cm > npcCm) {
+        var backW = trip.duel.wager * 2;
+        save.money += backW; persistSave(); updateStatusBar();
+        duelMsg = '<div class="ct-earn">🤝 名人に勝った！ +' + backW.toLocaleString() + '円</div>';
+      } else {
+        duelMsg = '<div class="ct-fail">🤝 名人の' + npcCm.toFixed(1) + 'cmに敗北…</div>';
+      }
+      trip.duel = null;
+    }
     var rec = recordCatch(fishId, cm, variant, earn);
     state.lastCaughtFishId = fishId;
     state.lastCatchCm = cm;
     state.lastResultKind = "catch";
+    if (trip) {
+      tripAddCatch(fishId, cm, ratio, variant, earn);
+      var fRar2 = FISH[fishId].rarity;
+      var showFull = rec.isNew || rec.isRecord || variant || fRar2 === "rare" || fRar2 === "legend";
+      if (!showFull) {
+        showToast('<div>' + FISH[fishId].name + ' <b>' + cm.toFixed(1) + 'cm</b></div><div class="ct-earn">+' + earn.toLocaleString() + '円</div>' + duelMsg, 1400);
+        afterCastResolved(false);
+        return;
+      }
+      afterCastResolved(true);
+      var ncb = document.getElementById("nextCastBtn");
+      if (ncb) ncb.textContent = trip.castsLeft > 0 ? "次のキャストへ（残り" + trip.castsLeft + "投）" : "釣行結果へ";
+    }
     renderResultCatch(fishId, { isNew: rec.isNew, isRecord: rec.isRecord, cm: cm, ratio: ratio, variant: variant, earn: earn });
     showScreen("screen-result");
   }
@@ -4389,10 +4958,27 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         break;
       case "start-fishing":
         if (state.selectedRodId && state.selectedLureId) {
+          startTrip();
           startFishingSequence();
         }
         break;
+      case "next-cast":
+        if (trip) { proceedTrip(); } else { showScreen("screen-map"); }
+        break;
+      case "end-trip":
+      case "end-trip-from-result":
+        if (trip) { clearFishingTimers(); showTripResult(); } else { showScreen("screen-map"); }
+        break;
+      case "trip-again":
+        if (state.selectedRodId && state.selectedLureId) {
+          startTrip();
+          startFishingSequence();
+        } else {
+          showScreen("screen-map");
+        }
+        break;
       case "retry-same":
+        startTrip();
         startFishingSequence();
         break;
       case "change-place":
@@ -4442,10 +5028,11 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   }
 
   // ===== 初期化 =====
+  state.daily = dailyInfo();
+  buildMap();
   document.getElementById("titleFishArt").innerHTML = renderFish("ito", { uid: "t" });
   updateStatusBar();
   renderDailyCard();
-  buildMap();
   showScreen("screen-title");
 
   // デバッグ用（動作検証のみに使用。ゲーム挙動には影響しない）
@@ -4468,6 +5055,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       progress: fs.progress,
       money: save.money,
       diff: fs.diff, zoneLo: fs.zoneLo, zoneHi: fs.zoneHi, bigRun: fs.bigRun,
+      castZone: fs.castZone,
+      trip: trip ? { castsLeft: trip.castsLeft, catches: trip.catches.length, score: trip.score, earned: trip.earned, events: trip.events, over: trip.over } : null,
+      compBest: save.comp ? save.comp.best : 0,
       pendingSize: fs.pendingSize,
       pendingVariant: fs.pendingVariant,
       unlocked: save.unlocked.slice(),
