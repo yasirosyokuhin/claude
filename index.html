@@ -762,6 +762,65 @@
   .trophy-none { font-size: 12px; color: #8a7450; padding: 8px; text-align: center; }
   .lodge-badge { font-size: 10px; background: #e08830; color: #fff; border-radius: 999px; padding: 2px 7px; margin-left: 4px; }
 
+  .yuki-bubble {
+    position: fixed; left: 8px; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    z-index: 55; display: flex; align-items: flex-end; gap: 4px;
+    max-width: min(88%, 440px);
+    animation: yukiIn .3s cubic-bezier(.2,1.3,.4,1);
+    cursor: pointer;
+  }
+  @keyframes yukiIn { from { transform: translateY(24px) scale(.8); opacity: 0; } to { transform: none; opacity: 1; } }
+  .yb-chara { width: 68px; flex: none; filter: drop-shadow(0 3px 4px rgba(20,40,50,.25)); animation: yukiBob 2.2s ease-in-out infinite; }
+  .yb-chara svg { width: 100%; height: auto; display: block; }
+  @keyframes yukiBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  .yb-text {
+    background: #ffffff; border: 2px solid #d8e2dd; border-radius: 16px 16px 16px 4px;
+    padding: 9px 13px; font-size: 13px; font-weight: 700; color: #3a4a46; line-height: 1.6;
+    box-shadow: 0 6px 18px rgba(20,45,40,.18);
+    margin-bottom: 12px;
+  }
+  .hero-yuki {
+    position: absolute; right: 6px; bottom: 52px; width: 64px; height: 74px;
+    background: none; border: none; padding: 0; cursor: pointer; z-index: 3;
+    filter: drop-shadow(0 3px 4px rgba(10,40,50,.3));
+    animation: yukiBob 2.6s ease-in-out infinite;
+  }
+  .hero-yuki svg { width: 100%; height: auto; display: block; }
+  .yuki-missions { width: 100%; margin-bottom: 16px; }
+  .ym-head { font-weight: 800; color: var(--accent-dark); font-size: 12px; letter-spacing: .06em; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; text-align: left; }
+  .ym-head .ym-mini { width: 26px; }
+  .ym-head .ym-mini svg { width: 100%; height: auto; display: block; }
+  .ym-item {
+    background: linear-gradient(180deg, #ffffff, #f4f9f6);
+    border: 1px solid #dfe9e5; border-radius: 12px;
+    padding: 8px 12px; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px; text-align: left;
+  }
+  .ym-item .ym-txt { flex: 1; font-size: 12px; font-weight: 700; color: var(--ink); }
+  .ym-item .ym-prog { font-size: 11px; color: var(--sub-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ym-item .ym-claim {
+    background: linear-gradient(180deg,#ffd76e,#e8a83c); color: #5c4300;
+    border: none; border-radius: 999px; padding: 6px 12px; font-size: 11.5px; font-weight: 800;
+    cursor: pointer; white-space: nowrap;
+    animation: recPop .4s cubic-bezier(.2,1.6,.4,1);
+  }
+  .ym-item.done-claimed { opacity: .55; }
+  .ym-item.done-claimed .ym-txt { text-decoration: line-through; }
+  .yuki-room-card {
+    background: linear-gradient(180deg, #eaf6fa, #f6fbf8);
+    border-radius: 18px; padding: 18px 14px; text-align: center; margin-bottom: 12px;
+    border: 1px solid #d8e6e2;
+  }
+  .yr-chara { width: 150px; margin: 0 auto; cursor: pointer; animation: yukiBob 2.4s ease-in-out infinite; }
+  .yr-chara svg { width: 100%; height: auto; display: block; }
+  .yr-line { font-size: 13.5px; font-weight: 800; color: #3a4a46; min-height: 40px; padding: 6px 10px; }
+  .yr-level-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--sub-ink); font-weight: 700; margin-bottom: 4px; }
+  .yr-xpbar { height: 9px; background: #d8e6e0; border-radius: 5px; overflow: hidden; }
+  #yrXpFill { height: 100%; width: 0%; background: linear-gradient(90deg, #f6a8b8, #e87a94); border-radius: 5px; transition: width .5s; }
+  .yr-rewards { font-size: 12px; color: var(--sub-ink); line-height: 1.9; text-align: left; }
+  .yr-rewards .got { color: var(--accent-dark); font-weight: 700; }
+  .yr-rewards .lock { opacity: .6; }
+
   .hidden { display: none !important; }
   .sr-note { font-size: 12px; color: var(--sub-ink); }
 </style>
@@ -798,6 +857,7 @@
           </g>
         </svg>
         <div id="titleFishArt" class="hero-fish"></div>
+        <button class="hero-yuki" id="heroYuki" data-action="yuki-room" type="button"></button>
         <div class="hero-text">
           <h1 class="logo-title">北海道つり</h1>
           <div class="logo-sub">HOKKAIDO FISHING ZUKAN</div>
@@ -805,6 +865,7 @@
       </div>
       <div class="sub">実在の川とダムで、実在の魚を追う図鑑釣行</div>
       <div id="dailyCard" class="daily-card"></div>
+      <div id="yukiMissions" class="yuki-missions"></div>
       <div class="title-buttons">
         <button class="btn" data-action="start">▶ 釣りを始める</button>
         <button class="btn secondary" data-action="lodge">🏕 番屋 <span id="lodgeBadge" class="lodge-badge hidden">🔥完成!</span></button>
@@ -950,6 +1011,12 @@
     <div id="shopUpgrades" class="choice-list"></div>
   </section>
 
+  <!-- ユキの吹き出し -->
+  <div id="yukiBubble" class="yuki-bubble hidden">
+    <div class="yb-chara" id="ybChara"></div>
+    <div class="yb-text" id="ybText"></div>
+  </div>
+
   <!-- 5.7 道中イベント -->
   <div id="eventOverlay" class="event-overlay hidden">
     <div class="event-card">
@@ -999,6 +1066,32 @@
     <div class="lodge-card">
       <div class="lodge-head">🏆 トロフィーの壁</div>
       <div id="trophyWall" class="trophy-wall"></div>
+    </div>
+  </section>
+
+  <!-- 5.95 ユキの部屋 -->
+  <section id="screen-yuki" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-action="back-to-title">← 戻る</button>
+      <h2 style="font-size:16px;margin:0;">🐦 ユキの部屋</h2>
+    </div>
+    <div class="yuki-room-card">
+      <div class="yr-chara" id="yrChara"></div>
+      <div class="yr-line" id="yrLine">つんつんしてみて？</div>
+      <div class="yr-level-row"><span>なつき度 Lv.<b id="yrLevel">1</b></span><span id="yrXp"></span></div>
+      <div class="yr-xpbar"><div id="yrXpFill"></div></div>
+    </div>
+    <div class="lodge-card">
+      <div class="lodge-head">👗 きせかえ</div>
+      <div id="yrOutfits" class="tank-picker"></div>
+    </div>
+    <div class="lodge-card">
+      <div class="lodge-head">🎁 なつき度ごほうび</div>
+      <div id="yrRewards" class="yr-rewards"></div>
+    </div>
+    <div class="lodge-card">
+      <div class="lodge-head">📔 おもいで</div>
+      <div id="yrMemories" class="yr-rewards"></div>
     </div>
   </section>
 
@@ -1442,6 +1535,134 @@ const SPECIES_ART={
  kawayatsume:{id:'kawayatsume',seed:165,back:'#4c5648',side:'#7e8468',belly:'#cfcdb0',fin:'#5f6852',special:'lamprey'},
  kajika:{id:'kajika',seed:176,back:'#5d5546',side:'#8d8069',belly:'#d9cfb6',fin:'#6d6250',mottle:'#3f3626',special:'sculpin'},
 };
+
+
+// yukiart — シマエナガの「ユキ」 パラメトリックSVG (fable5)
+// renderYuki({mood:'normal|happy|excited|surprised|sad', outfit:'red|blue|knit|straw|ribbon', uid}) → svg文字列
+function renderYuki(opts){
+  opts = opts || {};
+  var mood = opts.mood || "normal";
+  var outfit = opts.outfit || "red";
+  var id = "yk" + (opts.uid || "");
+  var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140">';
+  s += '<defs>';
+  s += '<radialGradient id="' + id + 'b" cx="0.42" cy="0.34" r="0.9">';
+  s += '<stop offset="0" stop-color="#ffffff"/><stop offset="0.75" stop-color="#fbfaf4"/><stop offset="1" stop-color="#efeee4"/>';
+  s += '</radialGradient>';
+  s += '</defs>';
+
+  // ===== 尾（体の後ろ・シマエナガの長い黒尾）=====
+  s += '<g transform="rotate(32 84 100)">';
+  s += '<rect x="80" y="92" width="9" height="42" rx="4.5" fill="#3a3a40"/>';
+  s += '<rect x="82" y="92" width="2.4" height="40" rx="1.2" fill="#5a5a62"/>';
+  s += '</g>';
+
+  // ===== 羽（気分で角度が変わる）=====
+  var wingUp = mood === "excited";
+  var wingL = wingUp ? -46 : -8;
+  var wingR = wingUp ? 46 : 8;
+  s += '<g transform="rotate(' + wingL + ' 26 84)">';
+  s += '<ellipse cx="24" cy="86" rx="10" ry="19" fill="#b9aca0" transform="rotate(18 24 86)"/>';
+  s += '<ellipse cx="25" cy="82" rx="6" ry="12" fill="#cdc2b6" transform="rotate(18 25 82)"/>';
+  s += '</g>';
+  s += '<g transform="rotate(' + wingR + ' 94 84)">';
+  s += '<ellipse cx="96" cy="86" rx="10" ry="19" fill="#b9aca0" transform="rotate(-18 96 86)"/>';
+  s += '<ellipse cx="95" cy="82" rx="6" ry="12" fill="#cdc2b6" transform="rotate(-18 95 82)"/>';
+  s += '</g>';
+
+  // ===== 体（もふもふの白いまんまる）=====
+  // ふわ毛: 輪郭に沿った小円
+  var fluff = "";
+  for (var a = 0; a < 12; a++) {
+    var ang = a / 12 * Math.PI * 2;
+    var fx = 60 + Math.cos(ang) * 40;
+    var fy = 70 + Math.sin(ang) * 38;
+    fluff += '<circle cx="' + fx.toFixed(1) + '" cy="' + fy.toFixed(1) + '" r="' + (7 + (a % 3) * 2) + '" fill="url(#' + id + 'b)"/>';
+  }
+  s += fluff;
+  s += '<ellipse cx="60" cy="70" rx="42" ry="40" fill="url(#' + id + 'b)"/>';
+  // 頭頂のアホ毛
+  s += '<path d="M 56 30 q 3 -8 6 -1 q 3 -7 6 1" fill="none" stroke="#e8e6da" stroke-width="2.4" stroke-linecap="round"/>';
+
+  // ===== 足 =====
+  s += '<path d="M 50 108 l -2 9 m 2 -9 l 2 9 M 70 108 l -2 9 m 2 -9 l 2 9" stroke="#8a7458" stroke-width="2.2" stroke-linecap="round"/>';
+
+  // ===== 衣装 =====
+  var scarfC = outfit === "blue" ? "#4a7ec4" : "#d84a3c";
+  var scarfD = outfit === "blue" ? "#37639e" : "#b23628";
+  if (outfit === "red" || outfit === "blue") {
+    s += '<path d="M 24 84 Q 60 100 96 84 L 96 92 Q 60 108 24 92 Z" fill="' + scarfC + '"/>';
+    s += '<path d="M 24 84 Q 60 100 96 84" fill="none" stroke="' + scarfD + '" stroke-width="2" opacity="0.5"/>';
+    s += '<rect x="72" y="90" width="10" height="20" rx="4" fill="' + scarfC + '" transform="rotate(-8 77 100)"/>';
+    s += '<path d="M 74 108 l 1.5 4 M 78 108.5 l 0.5 4.5 M 81 108 l -1 4.5" stroke="' + scarfD + '" stroke-width="1.6" stroke-linecap="round"/>';
+  } else if (outfit === "knit") {
+    s += '<path d="M 30 48 Q 34 24 60 22 Q 86 24 90 48 Q 60 40 30 48 Z" fill="#d87a94"/>';
+    s += '<path d="M 30 48 Q 60 40 90 48 L 89 54 Q 60 46 31 54 Z" fill="#eeb6c4"/>';
+    s += '<path d="M 40 42 l 2 -12 M 52 38 l 1 -13 M 66 38 l -1 -13 M 78 42 l -2 -12" stroke="#c4607c" stroke-width="1.6" opacity="0.7"/>';
+    s += '<circle cx="60" cy="20" r="6" fill="#fff6f8"/>';
+  } else if (outfit === "straw") {
+    s += '<ellipse cx="60" cy="40" rx="40" ry="9" fill="#e0c274"/>';
+    s += '<path d="M 36 40 Q 38 22 60 21 Q 82 22 84 40 Q 60 34 36 40 Z" fill="#ecd28c"/>';
+    s += '<path d="M 36 39 Q 60 33 84 39" fill="none" stroke="#c46a4a" stroke-width="4"/>';
+  } else if (outfit === "ribbon") {
+    s += '<g transform="rotate(-14 40 32)">';
+    s += '<path d="M 40 32 l -13 -8 q -4 8 0 15 Z" fill="#e8b83c"/>';
+    s += '<path d="M 40 32 l 13 -8 q 4 8 0 15 Z" fill="#e8b83c"/>';
+    s += '<circle cx="40" cy="32" r="4.5" fill="#c49022"/>';
+    s += '</g>';
+  }
+
+  // ===== 顔 =====
+  // 眉毛的なふわ毛の影(シマエナガの過眼線ほんのり)
+  s += '<path d="M 34 50 q 10 -5 18 -2 M 86 50 q -10 -5 -18 -2" fill="none" stroke="#d8d4c4" stroke-width="3" stroke-linecap="round" opacity="0.7"/>';
+  // ほっぺ
+  var cheekOp = (mood === "happy" || mood === "excited") ? 0.75 : 0.5;
+  s += '<ellipse cx="37" cy="70" rx="7" ry="4.4" fill="#f6b8bc" opacity="' + cheekOp + '"/>';
+  s += '<ellipse cx="83" cy="70" rx="7" ry="4.4" fill="#f6b8bc" opacity="' + cheekOp + '"/>';
+
+  // 目（気分差分）
+  if (mood === "happy") {
+    s += '<path d="M 41 60 q 5 -6 10 0 M 69 60 q 5 -6 10 0" fill="none" stroke="#20242a" stroke-width="3.2" stroke-linecap="round"/>';
+  } else if (mood === "excited") {
+    s += '<circle cx="46" cy="59" r="6" fill="#20242a"/><circle cx="74" cy="59" r="6" fill="#20242a"/>';
+    s += '<path d="M 44 55 l 2 3 l 3 -4 M 72 55 l 2 3 l 3 -4" stroke="#ffffff" stroke-width="1.8" fill="none" stroke-linecap="round"/>';
+    s += '<circle cx="48.5" cy="61" r="1.4" fill="#fff" opacity="0.9"/><circle cx="76.5" cy="61" r="1.4" fill="#fff" opacity="0.9"/>';
+  } else if (mood === "surprised") {
+    s += '<circle cx="46" cy="59" r="7" fill="#ffffff" stroke="#20242a" stroke-width="2.4"/>';
+    s += '<circle cx="74" cy="59" r="7" fill="#ffffff" stroke="#20242a" stroke-width="2.4"/>';
+    s += '<circle cx="46" cy="60" r="2.6" fill="#20242a"/><circle cx="74" cy="60" r="2.6" fill="#20242a"/>';
+  } else if (mood === "sad") {
+    s += '<path d="M 41 58 q 5 4 10 1 M 79 58 q -5 4 -10 1" fill="none" stroke="#20242a" stroke-width="3.2" stroke-linecap="round"/>';
+    s += '<path d="M 49 63 q 2 5 0 8 q -3 -1 -2 -5 Z" fill="#8ec8e8"/>';
+  } else {
+    s += '<circle cx="46" cy="59" r="4.6" fill="#20242a"/><circle cx="74" cy="59" r="4.6" fill="#20242a"/>';
+    s += '<circle cx="47.6" cy="57.4" r="1.5" fill="#fff"/><circle cx="75.6" cy="57.4" r="1.5" fill="#fff"/>';
+  }
+
+  // くちばし
+  if (mood === "surprised" || mood === "excited") {
+    s += '<path d="M 56 66 L 64 66 L 60 71 Z" fill="#5a4a3a"/>';
+    s += '<path d="M 57.5 67 L 62.5 67 L 60 69.6 Z" fill="#e88a8a"/>';
+  } else {
+    s += '<path d="M 56.5 66 L 63.5 66 L 60 70 Z" fill="#5a4a3a"/>';
+  }
+  // 口（happyのみ にっこり）
+  if (mood === "happy") s += '<path d="M 55 74 q 5 4 10 0" fill="none" stroke="#8a7568" stroke-width="2" stroke-linecap="round"/>';
+
+  // ===== エフェクト =====
+  if (mood === "excited") {
+    s += '<text x="98" y="34" font-size="16" fill="#e8a83c">♪</text>';
+    s += '<path d="M 14 40 l 2.5 5 l 5 1 l -4 3.6 l 1 5.4 l -4.5 -2.6 l -4.5 2.6 l 1 -5.4 l -4 -3.6 l 5 -1 Z" fill="#ffd76e" transform="scale(0.75) translate(6 8)"/>';
+  } else if (mood === "surprised") {
+    s += '<text x="94" y="30" font-size="22" font-weight="bold" fill="#e05a3c">！</text>';
+  } else if (mood === "sad") {
+    s += '<path d="M 100 38 q 4 4 1 9 q -5 -1 -4 -6 Z" fill="#a8d0e8"/>';
+  }
+
+  s += '</svg>';
+  return s;
+}
+if (typeof module !== "undefined") module.exports = { renderYuki: renderYuki };
 
 function renderFish(id,opts={}){
   const sp=SPECIES_ART[id];
@@ -2226,7 +2447,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       tripBest: 0,
       nushi: {},
       tank: [],
-      smoker: null
+      smoker: null,
+      yuki: { xp: 0, level: 1, outfit: "red", mp: { day: 0, prog: {}, claimed: [] }, memories: [] }
     };
   }
   function loadSave() {
@@ -2399,6 +2621,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     save.totals.catches++;
     evalTitles();
     persistSave();
+    if (typeof yukiMissionProgress === "function") yukiMissionProgress("catch", { fishId: fishId, cm: cm });
     return { isNew: isNew, isRecord: isRecord };
   }
 
@@ -2412,7 +2635,13 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       SFX.stopAmbience();
       stopStageLoop();
     }
-    if (id === "screen-title" && typeof renderDailyCard === "function") { renderDailyCard(); updateLodgeBadge(); }
+    if (id === "screen-title" && typeof renderDailyCard === "function") {
+      renderDailyCard(); updateLodgeBadge();
+      if (typeof renderYukiMissions === "function") renderYukiMissions();
+      if (typeof yukiGreet === "function") yukiGreet();
+      var hy = document.getElementById("heroYuki");
+      if (hy && typeof renderYuki === "function") hy.innerHTML = renderYuki({ mood: "normal", outfit: save.yuki.outfit, uid: "hero" });
+    }
     if (id !== "screen-lodge" && typeof stopTankLoop === "function") stopTankLoop();
     window.scrollTo(0, 0);
   }
@@ -3978,6 +4207,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         blip(1047, "triangle", 0.26, 0.6, 0.42);
       },
       fail: function () { blip(330, "triangle", 0.25, 0.3, 0); blip(247, "triangle", 0.25, 0.42, 0.18); },
+      chirp: function () { blip(2900, "sine", 0.10, 0.06, 0); blip(3500, "sine", 0.09, 0.07, 0.09); },
       drone: function () {
         blip(55, "sawtooth", 0.34, 1.6, 0);
         blip(41, "sine", 0.3, 1.8, 0.1);
@@ -4187,6 +4417,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       if (!inserted) rowsHtml += '<div class="cb-row me"><span>11位 あなた</span><b>' + save.comp.best.toLocaleString() + '</b></div>';
       bd.innerHTML = '<div class="cb-head">🏆 本日の大会リーダーボード</div>' + rowsHtml;
     }
+    yukiMissionProgress("trip", { score: total, isComp: isComp });
+    if (trip.catches.length === 0) yukiSay(pickLine(YUKI_LINES.bouzuTrip), "sad", 3600, true);
+    else if (isComp && rank <= 3) yukiSay(pickLine(YUKI_LINES.compGood), "excited", 3600, true);
+    else if (trip.catches.length >= 5) yukiSay(pickLine(YUKI_LINES.goodTrip), "happy", 3000, true);
     var done = trip;
     // 燻製候補: 最大の1匹（小屋が空いている場合のみ）
     var smokeBtn = document.getElementById("smokeSendBtn");
@@ -4397,6 +4631,259 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (ev) ev.run(cb || function () { proceedTrip(); });
   };
 
+  // ===== ナビキャラ「ユキ」（シマエナガ） =====
+  var YUKI_XP = [0, 50, 120, 220, 350, 520, 720, 950, 1220, 1520]; // Lv1..10到達値
+  var YUKI_OUTFITS = [
+    { id: "red", name: "赤マフラー", lv: 1 },
+    { id: "blue", name: "青マフラー", lv: 2 },
+    { id: "knit", name: "ニット帽", lv: 4 },
+    { id: "straw", name: "麦わら帽子", lv: 6 },
+    { id: "ribbon", name: "金のリボン", lv: 8 }
+  ];
+  var YUKI_REWARDS = [
+    { lv: 2, txt: "きせかえ「青マフラー」" },
+    { lv: 3, txt: "ユキが番屋に遊びに来る" },
+    { lv: 4, txt: "きせかえ「ニット帽」" },
+    { lv: 5, txt: "ユキのお守り（マズメ時のボウズ率ダウン）" },
+    { lv: 6, txt: "きせかえ「麦わら帽子」" },
+    { lv: 8, txt: "きせかえ「金のリボン」" },
+    { lv: 10, txt: "称号「ユキの相棒」＋特別なセリフ" }
+  ];
+
+  function yuki() { return save.yuki; }
+  function yukiLevel() {
+    var lv = 1;
+    for (var i = 0; i < YUKI_XP.length; i++) if (yuki().xp >= YUKI_XP[i]) lv = i + 1;
+    return Math.min(10, lv);
+  }
+
+  var yukiState = { lastSayAt: 0, timer: null, greeted: false, lastLine: "" };
+
+  function yukiSay(text, mood, ms, priority) {
+    var now = Date.now();
+    if (!priority && now - yukiState.lastSayAt < 8000) return;
+    yukiState.lastSayAt = now;
+    yukiState.lastLine = text;
+    var bub = document.getElementById("yukiBubble");
+    document.getElementById("ybChara").innerHTML = renderYuki({ mood: mood || "normal", outfit: yuki().outfit, uid: "bb" });
+    document.getElementById("ybText").textContent = text;
+    bub.classList.remove("hidden");
+    SFX.chirp && SFX.chirp();
+    clearTimeout(yukiState.timer);
+    yukiState.timer = setTimeout(function () { bub.classList.add("hidden"); }, ms || 3200);
+  }
+  function pickLine(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  var YUKI_LINES = {
+    greetAsa: ["朝マズメっしょ！早起きなまらえらいっ", "朝ごはん前のひと勝負、行くっすか！", "今朝は空気がおいしいっすね〜"],
+    greetHiru: ["こんにちは！今日はどこの川に行くっすか？", "お昼の釣りものんびりでいいっしょ〜", "ユキ、ずっと待ってたっすよ！"],
+    greetYuu: ["夕マズメ！ここからが本番っしょ！", "夕焼けの川、なまらきれいっすよ", "晩ごはんの前にもう一勝負っすか？"],
+    greetYoru: ["夜釣りっすか…ユキ、ちょっと眠いっす…", "夜はデカいのが動くって師匠が言ってたっす", "星がきれいな夜は釣れる気がするっす"],
+    bite: ["きたきたきたーっ！", "アタリっす！！", "今っす！合わせるっす！"],
+    bigRun: ["離すっす！切れちゃうっす！！", "走ったーっ！こらえてっ！", "まだ巻いちゃダメっす！！"],
+    catchSmall: ["かわいいサイズっしょ", "ちっちゃくても一匹は一匹っす！", "はいっ、記念撮影〜"],
+    catchBig: ["なまらデカい！！", "うわわわ、すごいっす！！", "師匠に自慢してくるっす！！"],
+    record: ["ユキ、鳥肌立ったっす…！記録更新っす！", "これ…図鑑に刻むやつっす！！", "今日という日を忘れないっす…！"],
+    newFish: ["初めての魚っす！図鑑が埋まったっす！", "この魚、ユキも初めて見たっす！"],
+    nushi: ["……この気配、ヌシだ。ユキ、見守ってるから…！", "き、来た…この川の主っす…！"],
+    nushiWin: ["や……やったっす!!! 伝説っすよ!!!", "ヌシを獲るなんて…ユキの相棒はすごいっす！"],
+    fail: ["あぁーっ！！…つ、次があるっす", "どんまいっす！魚はまだいるっす！", "今のはデカかったっすね…くやしいっす"],
+    bouzuTrip: ["そういう日もあるっしょ。おしるこ飲んで帰ろ？", "自然が相手っすから。また来ようっす"],
+    goodTrip: ["いい釣行だったっすね〜！", "大漁っしょ！今夜はごちそうっすね！"],
+    compGood: ["すごい順位っす！師匠に自慢してくるっす！", "リーダーボード、駆け上がってるっす！"],
+    levelup: ["ユキ、もっと仲良くなれた気がするっす！", "えへへ…なつき度アップっす！"],
+    poke: ["わわっ、くすぐったいっす！", "なんすか〜？", "つんつんしないでほしいっす〜（もっとして）", "ユキはシマエナガっす。雪の妖精って呼ばれてるっすよ", "師匠はいつか朱鞠内の大帝を獲るって言ってたっす…", "お腹すいたっす。チカの南蛮漬け食べたいっす"],
+    pokeLv10: ["あなたと出会えて、ユキはしあわせ者っす", "ずっと相棒でいてほしいっす！"]
+  };
+
+  function yukiGreet() {
+    if (yukiState.greeted) return;
+    yukiState.greeted = true;
+    var t = state.time || timeInfo();
+    var key = t.key === "asa" ? "greetAsa" : t.key === "yuu" ? "greetYuu" : t.night ? "greetYoru" : "greetHiru";
+    setTimeout(function () { yukiSay(pickLine(YUKI_LINES[key]), "happy", 3600, true); }, 600);
+  }
+
+  function addYukiXp(n) {
+    var before = yukiLevel();
+    yuki().xp += n;
+    var after = yukiLevel();
+    yuki().level = after;
+    if (after > before) {
+      addYukiMemory("なつき度が Lv." + after + " になった");
+      if (after >= 10 && save.titles.indexOf("yukiPal") < 0) save.titles.push("yukiPal");
+      persistSave();
+      setTimeout(function () {
+        evShow("🐦", "なつき度 Lv." + after + "！",
+          '<div style="width:120px;margin:0 auto;">' + renderYuki({ mood: "excited", outfit: yuki().outfit, uid: "lvup" }) + "</div>" +
+          pickLine(YUKI_LINES.levelup) +
+          (YUKI_REWARDS.filter(function (r) { return r.lv === after; }).map(function (r) { return "<br><b>🎁 " + r.txt + "</b>"; }).join("")),
+          [{ label: "やったね！", fn: function () { evClose(); } }]);
+        SFX.jingle();
+      }, 400);
+    } else {
+      persistSave();
+    }
+    updateStatusBar();
+  }
+
+  function addYukiMemory(txt) {
+    yuki().memories.push({ t: Date.now(), txt: txt });
+    if (yuki().memories.length > 30) yuki().memories.shift();
+  }
+
+  // ===== ユキのおねがい（デイリーミッション） =====
+  function yukiMissions(dayInt) {
+    var prog = save.unlocked.length; // 進行度で難易度スケール
+    var sizeTarget = prog < 6 ? 30 : prog < 12 ? 40 : 50;
+    var cntTarget = prog < 6 ? 3 : 5;
+    var scoreTarget = prog < 6 ? 400 : prog < 12 ? 800 : 1400;
+    var pool = [];
+    // 未捕獲以外から種指定（解禁済みの場所の魚から）
+    var candidates = [];
+    LOCATIONS.forEach(function (l) {
+      if (!isUnlocked(l.id)) return;
+      Object.keys(l.fish).forEach(function (fid) {
+        var r = FISH[fid].rarity;
+        if ((r === "common" || r === "uncommon") && candidates.indexOf(fid) < 0) candidates.push(fid);
+      });
+    });
+    var spFish = candidates.length ? candidates[Math.floor(hash2(dayInt, 301) * candidates.length) % candidates.length] : "ugui";
+    var defs = [
+      { id: "cnt", txt: "魚を" + cntTarget + "匹つってきてほしいっす", target: cntTarget, money: 300 + cntTarget * 100, xp: 25 },
+      { id: "size", txt: sizeTarget + "cm超えの大物が見たいっす！", target: 1, money: 600 + sizeTarget * 10, xp: 35, cm: sizeTarget },
+      { id: "species", txt: FISH[spFish].name + "を2匹つってきてっす", target: 2, money: 700, xp: 30, fish: spFish },
+      { id: "score", txt: "釣行スコア" + scoreTarget + "を出してほしいっす", target: 1, money: 800, xp: 35, score: scoreTarget },
+      { id: "comp", txt: "今日の大会に出てみてほしいっす", target: 1, money: 500, xp: 30 },
+      { id: "mazume", txt: "マズメの時間に1匹つるっす（朝5-8時/夕16-19時）", target: 1, money: 600, xp: 30 }
+    ];
+    // シードで3本選ぶ
+    var picks = [];
+    var idx = Math.floor(hash2(dayInt, 311) * defs.length);
+    for (var i = 0; i < 3; i++) {
+      picks.push(defs[(idx + i * 2) % defs.length]);
+    }
+    return picks;
+  }
+
+  function ensureYukiDay() {
+    var d = state.daily || dailyInfo();
+    if (yuki().mp.day !== d.dayInt) {
+      yuki().mp = { day: d.dayInt, prog: {}, claimed: [] };
+      persistSave();
+    }
+  }
+
+  function yukiMissionProgress(kind, payload) {
+    ensureYukiDay();
+    var d = state.daily || dailyInfo();
+    var ms = yukiMissions(d.dayInt);
+    var mp = yuki().mp;
+    var changed = false;
+    ms.forEach(function (m) {
+      if (mp.claimed.indexOf(m.id) >= 0) return;
+      var cur = mp.prog[m.id] || 0;
+      if (cur >= m.target) return;
+      if (kind === "catch") {
+        if (m.id === "cnt") { mp.prog[m.id] = cur + 1; changed = true; }
+        if (m.id === "size" && payload.cm >= m.cm) { mp.prog[m.id] = m.target; changed = true; }
+        if (m.id === "species" && payload.fishId === m.fish) { mp.prog[m.id] = cur + 1; changed = true; }
+        if (m.id === "mazume" && state.time && state.time.mazume) { mp.prog[m.id] = m.target; changed = true; }
+      }
+      if (kind === "trip") {
+        if (m.id === "score" && payload.score >= m.score) { mp.prog[m.id] = m.target; changed = true; }
+        if (m.id === "comp" && payload.isComp) { mp.prog[m.id] = m.target; changed = true; }
+      }
+    });
+    if (changed) {
+      persistSave();
+      var doneNew = ms.some(function (m) { return mp.claimed.indexOf(m.id) < 0 && (mp.prog[m.id] || 0) >= m.target; });
+      if (doneNew) yukiSay("おねがい達成っす！タイトルで受け取ってっす〜", "excited", 3000);
+    }
+  }
+
+  function renderYukiMissions() {
+    var box = document.getElementById("yukiMissions");
+    if (!box) return;
+    ensureYukiDay();
+    var d = state.daily || dailyInfo();
+    var ms = yukiMissions(d.dayInt);
+    var mp = yuki().mp;
+    var html = '<div class="ym-head"><span class="ym-mini">' + renderYuki({ mood: "normal", outfit: yuki().outfit, uid: "mh" }) + '</span>ユキのおねがい（なつき度 Lv.' + yukiLevel() + '）</div>';
+    ms.forEach(function (m) {
+      var cur = Math.min(m.target, mp.prog[m.id] || 0);
+      var claimed = mp.claimed.indexOf(m.id) >= 0;
+      var done = cur >= m.target;
+      html += '<div class="ym-item' + (claimed ? " done-claimed" : "") + '">' +
+        '<div class="ym-txt">' + m.txt + '</div>' +
+        (claimed ? '<span class="ym-prog">✓ 受取済</span>'
+          : done ? '<button class="ym-claim" data-claim="' + m.id + '">受け取る 💰' + m.money + ' ❤' + m.xp + '</button>'
+          : '<span class="ym-prog">' + cur + ' / ' + m.target + '</span>') +
+        '</div>';
+    });
+    box.innerHTML = html;
+    box.querySelectorAll("[data-claim]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var mid = btn.getAttribute("data-claim");
+        var m = ms.filter(function (x) { return x.id === mid; })[0];
+        if (!m || mp.claimed.indexOf(mid) >= 0) return;
+        mp.claimed.push(mid);
+        save.money += m.money;
+        save.totals.earned += m.money;
+        addYukiXp(m.xp);
+        SFX.ensure(); SFX.jingle();
+        if (mp.claimed.length >= 3) {
+          save.money += 500;
+          addYukiXp(50);
+          yukiSay("全部やってくれたんすか！？なまらうれしいっす！！（ボーナス+500円 ❤50）", "excited", 4200, true);
+          addYukiMemory("ユキのおねがいを全達成した");
+        } else {
+          yukiSay("ありがとうっす！だいすきっす！", "happy", 2600, true);
+        }
+        persistSave();
+        updateStatusBar();
+        renderYukiMissions();
+      });
+    });
+  }
+
+  // ===== ユキの部屋 =====
+  function renderYukiRoom() {
+    var lv = yukiLevel();
+    document.getElementById("yrChara").innerHTML = renderYuki({ mood: "happy", outfit: yuki().outfit, uid: "room" });
+    document.getElementById("yrLevel").textContent = lv;
+    var next = YUKI_XP[Math.min(9, lv)];
+    var prev = YUKI_XP[lv - 1];
+    document.getElementById("yrXp").textContent = lv >= 10 ? "MAX" : yuki().xp + " / " + next;
+    document.getElementById("yrXpFill").style.width = lv >= 10 ? "100%" : Math.min(100, (yuki().xp - prev) / (next - prev) * 100) + "%";
+    var oBox = document.getElementById("yrOutfits");
+    oBox.innerHTML = "";
+    YUKI_OUTFITS.forEach(function (o) {
+      var chip = document.createElement("button");
+      var unlocked = lv >= o.lv;
+      chip.className = "tank-chip" + (yuki().outfit === o.id ? " in" : "");
+      chip.textContent = unlocked ? o.name : "🔒" + o.name + "(Lv" + o.lv + ")";
+      chip.disabled = !unlocked;
+      chip.addEventListener("click", function () {
+        yuki().outfit = o.id;
+        persistSave();
+        renderYukiRoom();
+        yukiSay("にあうっすか？", "happy", 2200, true);
+      });
+      oBox.appendChild(chip);
+    });
+    document.getElementById("yrRewards").innerHTML = YUKI_REWARDS.map(function (r) {
+      return '<div class="' + (lv >= r.lv ? "got" : "lock") + '">' + (lv >= r.lv ? "✓" : "🔒") + " Lv." + r.lv + " " + r.txt + "</div>";
+    }).join("");
+    var mems = yuki().memories.slice().reverse().slice(0, 10);
+    document.getElementById("yrMemories").innerHTML = mems.length
+      ? mems.map(function (mm) {
+          var dd = new Date(mm.t);
+          return "<div>" + (dd.getMonth() + 1) + "/" + dd.getDate() + "　" + mm.txt + "</div>";
+        }).join("")
+      : "<div>これから、いっぱい作るっす</div>";
+  }
+
   // ===== 番屋（ロッジ） =====
   var SMOKE_MS = 30 * 60 * 1000; // 30分
   var tankAnim = { raf: null, fish: [] };
@@ -4467,6 +4954,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         '<div><div class="tr-name">' + FISH[r.id].name + ' 自己記録</div><div class="tr-sub">' + r.best.toFixed(1) + 'cm</div></div></div>';
     });
     tw.innerHTML = rows || '<div class="trophy-none">ヌシや記録魚を釣ると、ここに剥製が並ぶ</div>';
+    // ユキのカメオ出演（なつき度Lv3+）
+    var oldCameo = document.getElementById("lodgeYuki");
+    if (oldCameo) oldCameo.remove();
+    if (yukiLevel() >= 3) {
+      var cam = document.createElement("div");
+      cam.id = "lodgeYuki";
+      cam.style.cssText = "position:absolute;width:52px;right:14px;top:-8px;z-index:3;animation:yukiBob 2.4s ease-in-out infinite;filter:drop-shadow(0 3px 3px rgba(40,30,10,.25));pointer-events:none;";
+      cam.innerHTML = renderYuki({ mood: "happy", outfit: yuki().outfit, uid: "lodge" });
+      var firstCard = document.querySelector("#screen-lodge .lodge-card");
+      if (firstCard) { firstCard.style.position = "relative"; firstCard.appendChild(cam); }
+    }
   }
 
   function startTankLoop() {
@@ -4617,6 +5115,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (trip && trip.buffs.school > 0) { bouzuRate = 0; trip.buffs.school--; }
     if (state.selectedLureId === "glow_minnow" && state.time && state.time.night) bouzuRate = Math.min(bouzuRate, 0.07);
     if (state.daily && state.daily.hotLoc === state.selectedLocationId) bouzuRate = Math.max(0.05, bouzuRate - 0.05);
+    if (yukiLevel() >= 5 && state.time && state.time.mazume) bouzuRate = Math.max(0.03, bouzuRate - 0.02);
     state.pendingFishId = drawFish(state.selectedLocationId, state.selectedLureId, bouzuRate);
     // ヌシ出現判定（未討伐・条件一致・低確率）
     fs.isNushi = false;
@@ -4652,6 +5151,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var stage = document.getElementById("fishStage");
     stage.classList.add("biting");
     setStageText(state.pendingFishId ? "！！ アタリ！ タップでアワセ！" : "！ ウキが動いた！ タップ！", true);
+    if (fs.isNushi) yukiSay(pickLine(YUKI_LINES.nushi), "surprised", 2600, true);
+    else if (state.pendingFishId && Math.random() < 0.3) yukiSay(pickLine(YUKI_LINES.bite), "excited", 1500);
     SFX.bite();
     buzz(70);
     cv.shakeAmp = 3;
@@ -4742,6 +5243,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       fs.bigRun = true;
       fs.bigRunEndAt = now + 800 + fs.diff * 700;
       setStageText("走った！ 離してしのげ！！", true);
+      if (Math.random() < 0.5) yukiSay(pickLine(YUKI_LINES.bigRun), "surprised", 1400, true);
       SFX.bite();
       buzz([50, 40, 80]);
       cv.shakeAmp = 7;
@@ -4850,6 +5352,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (info.kind === "barasi") { save.totals.barashi++; persistSave(); }
     if (trip) {
       if (info.kind === "barasi") trip.noBarashi = false;
+      if (info.kind === "barasi" && Math.random() < 0.6) yukiSay(pickLine(YUKI_LINES.fail), "sad", 2200);
       setTimeout(function () {
         showToast('<div class="ct-fail">' + info.emoji + " " + info.title + '</div>', 1400);
         afterCastResolved(false);
@@ -5051,6 +5554,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var fRar2 = FISH[fishId].rarity;
       var showFull = rec.isNew || rec.isRecord || variant || fRar2 === "rare" || fRar2 === "legend" || nushiMsg;
       if (!showFull) {
+        if (Math.random() < 0.18) yukiSay(pickLine(YUKI_LINES.catchSmall), "happy", 1800);
         showToast('<div>' + FISH[fishId].name + ' <b>' + cm.toFixed(1) + 'cm</b></div><div class="ct-earn">+' + earn.toLocaleString() + '円</div>' + duelMsg, 1400);
         afterCastResolved(false);
         return;
@@ -5059,6 +5563,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var ncb = document.getElementById("nextCastBtn");
       if (ncb) ncb.textContent = trip.castsLeft > 0 ? "次のキャストへ（残り" + trip.castsLeft + "投）" : "釣行結果へ";
     }
+    if (nushiMsg) { yukiSay(pickLine(YUKI_LINES.nushiWin), "excited", 4200, true); addYukiMemory(nushiMsg); }
+    else if (rec.isRecord && !rec.isNew) yukiSay(pickLine(YUKI_LINES.record), "excited", 3400, true);
+    else if (rec.isNew) yukiSay(pickLine(YUKI_LINES.newFish), "excited", 3200, true);
+    else if (ratio > 0.85) yukiSay(pickLine(YUKI_LINES.catchBig), "excited", 2600);
     renderResultCatch(fishId, { isNew: rec.isNew, isRecord: rec.isRecord, cm: cm, ratio: ratio, variant: variant, earn: earn, nushiMsg: nushiMsg });
     showScreen("screen-result");
   }
@@ -5324,6 +5832,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         showScreen("screen-lodge");
         renderLodge();
         break;
+      case "yuki-room":
+        showScreen("screen-yuki");
+        renderYukiRoom();
+        break;
       case "smoke-collect":
         if (smokerReady()) {
           var smVal = Math.round(save.smoker.earn * 2.5);
@@ -5353,6 +5865,18 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
   });
 
+  document.getElementById("yukiBubble").addEventListener("click", function () {
+    this.classList.add("hidden");
+  });
+  document.getElementById("yrChara").addEventListener("click", function () {
+    var lines = yukiLevel() >= 10 ? YUKI_LINES.poke.concat(YUKI_LINES.pokeLv10) : YUKI_LINES.poke;
+    var moods = ["happy", "excited", "surprised", "normal"];
+    var mood = moods[Math.floor(Math.random() * moods.length)];
+    document.getElementById("yrChara").innerHTML = renderYuki({ mood: mood, outfit: yuki().outfit, uid: "room" });
+    document.getElementById("yrLine").textContent = pickLine(lines);
+    SFX.ensure(); SFX.chirp();
+  });
+
   window.addEventListener("resize", function () {
     if (currentScreenId() === "screen-fish") initCanvas();
   });
@@ -5379,6 +5903,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
   // ===== 初期化 =====
   state.daily = dailyInfo();
+  if (save.yuki.memories.length === 0) addYukiMemory("ユキとはじめて出会った");
   if (save.mapPieces >= 3) {
     if (!LOCATIONS.some(function (l) { return l.id === "shumarinai"; })) LOCATIONS.push(HIDDEN_LOC);
     if (save.unlocked.indexOf("shumarinai") < 0) save.unlocked.push("shumarinai");
@@ -5412,6 +5937,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       castZone: fs.castZone,
       trip: trip ? { castsLeft: trip.castsLeft, catches: trip.catches.length, score: trip.score, earned: trip.earned, events: trip.events, over: trip.over } : null,
       compBest: save.comp ? save.comp.best : 0,
+      yukiXp: save.yuki.xp, yukiLevel: yukiLevel(), lastYukiLine: yukiState.lastLine,
       pendingSize: fs.pendingSize,
       pendingVariant: fs.pendingVariant,
       unlocked: save.unlocked.slice(),
