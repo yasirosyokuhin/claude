@@ -1073,7 +1073,7 @@
   <section id="screen-yuki" class="screen">
     <div class="topbar">
       <button class="btn-back" data-action="back-to-title">← 戻る</button>
-      <h2 style="font-size:16px;margin:0;">🐦 ユキの部屋</h2>
+      <h2 style="font-size:16px;margin:0;">🎀 ユキの部屋</h2>
     </div>
     <div class="yuki-room-card">
       <div class="yr-chara" id="yrChara"></div>
@@ -1537,126 +1537,169 @@ const SPECIES_ART={
 };
 
 
-// yukiart — シマエナガの「ユキ」 パラメトリックSVG (fable5)
-// renderYuki({mood:'normal|happy|excited|surprised|sad', outfit:'red|blue|knit|straw|ribbon', uid}) → svg文字列
+// yukigirl — 釣りガイドの女の子「ユキ」 ちびキャラSVG (fable5)
+// renderYuki({mood, outfit, uid}) — 旧シマエナガ版と同一API
 function renderYuki(opts){
   opts = opts || {};
   var mood = opts.mood || "normal";
   var outfit = opts.outfit || "red";
   var id = "yk" + (opts.uid || "");
+  var SKIN = "#ffe9da", SKIN_SH = "#f5cdb4";
+  var HAIR = "#efe9dd", HAIR_SH = "#d9d0be", HAIR_LN = "#c4b8a2";
   var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140">';
   s += '<defs>';
-  s += '<radialGradient id="' + id + 'b" cx="0.42" cy="0.34" r="0.9">';
-  s += '<stop offset="0" stop-color="#ffffff"/><stop offset="0.75" stop-color="#fbfaf4"/><stop offset="1" stop-color="#efeee4"/>';
-  s += '</radialGradient>';
+  s += '<linearGradient id="' + id + 'e" x1="0" y1="0" x2="0" y2="1">';
+  s += '<stop offset="0" stop-color="#8fd0d4"/><stop offset="0.55" stop-color="#3f96a4"/><stop offset="1" stop-color="#2a6e80"/>';
+  s += '</linearGradient>';
+  s += '<linearGradient id="' + id + 'h" x1="0" y1="0" x2="0" y2="1">';
+  s += '<stop offset="0" stop-color="#f6f2e8"/><stop offset="1" stop-color="' + HAIR_SH + '"/>';
+  s += '</linearGradient>';
   s += '</defs>';
 
-  // ===== 尾（体の後ろ・シマエナガの長い黒尾）=====
-  s += '<g transform="rotate(32 84 100)">';
-  s += '<rect x="80" y="92" width="9" height="42" rx="4.5" fill="#3a3a40"/>';
-  s += '<rect x="82" y="92" width="2.4" height="40" rx="1.2" fill="#5a5a62"/>';
-  s += '</g>';
+  // ===== 後ろ髪（ボブ・肩まで） =====
+  s += '<path d="M 60 16 C 32 16 24 38 25 58 C 25.5 74 30 86 36 92 C 40 95 44 90 43 82 C 42 74 41 66 42 58 L 78 58 C 79 66 78 74 77 82 C 76 90 80 95 84 92 C 90 86 94.5 74 95 58 C 96 38 88 16 60 16 Z" fill="url(#' + id + 'h)" stroke="' + HAIR_LN + '" stroke-width="1"/>';
 
-  // ===== 羽（気分で角度が変わる）=====
-  var wingUp = mood === "excited";
-  var wingL = wingUp ? -46 : -8;
-  var wingR = wingUp ? 46 : 8;
-  s += '<g transform="rotate(' + wingL + ' 26 84)">';
-  s += '<ellipse cx="24" cy="86" rx="10" ry="19" fill="#b9aca0" transform="rotate(18 24 86)"/>';
-  s += '<ellipse cx="25" cy="82" rx="6" ry="12" fill="#cdc2b6" transform="rotate(18 25 82)"/>';
-  s += '</g>';
-  s += '<g transform="rotate(' + wingR + ' 94 84)">';
-  s += '<ellipse cx="96" cy="86" rx="10" ry="19" fill="#b9aca0" transform="rotate(-18 96 86)"/>';
-  s += '<ellipse cx="95" cy="82" rx="6" ry="12" fill="#cdc2b6" transform="rotate(-18 95 82)"/>';
-  s += '</g>';
-
-  // ===== 体（もふもふの白いまんまる）=====
-  // ふわ毛: 輪郭に沿った小円
-  var fluff = "";
-  for (var a = 0; a < 12; a++) {
-    var ang = a / 12 * Math.PI * 2;
-    var fx = 60 + Math.cos(ang) * 40;
-    var fy = 70 + Math.sin(ang) * 38;
-    fluff += '<circle cx="' + fx.toFixed(1) + '" cy="' + fy.toFixed(1) + '" r="' + (7 + (a % 3) * 2) + '" fill="url(#' + id + 'b)"/>';
+  // ===== 体（ちび2頭身） =====
+  // 脚+ブーツ
+  s += '<rect x="49" y="112" width="8" height="12" rx="3.5" fill="' + SKIN + '"/>';
+  s += '<rect x="63" y="112" width="8" height="12" rx="3.5" fill="' + SKIN + '"/>';
+  s += '<path d="M 47 121 h 12 v 8 q 0 3 -3 3 h -6 q -3 0 -3 -3 Z" fill="#7a5a40"/>';
+  s += '<path d="M 61 121 h 12 v 8 q 0 3 -3 3 h -6 q -3 0 -3 -3 Z" fill="#6d4f38"/>';
+  // ワンピース（クリーム）
+  s += '<path d="M 44 82 C 40 92 38 104 40 114 Q 60 120 80 114 C 82 104 80 92 76 82 Q 60 76 44 82 Z" fill="#f8f3e8" stroke="#e0d6c4" stroke-width="1"/>';
+  // フィッシングベスト（からし色・前開き）
+  s += '<path d="M 44 82 C 41 90 40 100 41 110 L 52 108 C 52 99 52 90 53 82 Q 48 80 44 82 Z" fill="#dca843" stroke="#b8862e" stroke-width="1"/>';
+  s += '<path d="M 76 82 C 79 90 80 100 79 110 L 68 108 C 68 99 68 90 67 82 Q 72 80 76 82 Z" fill="#dca843" stroke="#b8862e" stroke-width="1"/>';
+  s += '<rect x="44" y="94" width="7" height="6" rx="1.5" fill="#c08c30"/>';
+  s += '<rect x="69" y="94" width="7" height="6" rx="1.5" fill="#c08c30"/>';
+  // 腕（そで+手）: excitedは万歳
+  if (mood === "excited") {
+    s += '<path d="M 45 86 Q 34 76 30 64" fill="none" stroke="#f8f3e8" stroke-width="9" stroke-linecap="round"/>';
+    s += '<path d="M 75 86 Q 86 76 90 64" fill="none" stroke="#f8f3e8" stroke-width="9" stroke-linecap="round"/>';
+    s += '<circle cx="29" cy="61" r="5.5" fill="' + SKIN + '"/>';
+    s += '<circle cx="91" cy="61" r="5.5" fill="' + SKIN + '"/>';
+  } else if (mood === "sad") {
+    s += '<path d="M 45 86 Q 40 96 42 106" fill="none" stroke="#f8f3e8" stroke-width="9" stroke-linecap="round"/>';
+    s += '<path d="M 75 86 Q 80 96 78 106" fill="none" stroke="#f8f3e8" stroke-width="9" stroke-linecap="round"/>';
+    s += '<circle cx="42" cy="109" r="5.5" fill="' + SKIN + '"/>';
+    s += '<circle cx="78" cy="109" r="5.5" fill="' + SKIN + '"/>';
+  } else {
+    // 通常: 片手を胸の前・片手は下
+    s += '<path d="M 45 86 Q 41 95 43 104" fill="none" stroke="#f8f3e8" stroke-width="9" stroke-linecap="round"/>';
+    s += '<path d="M 75 86 Q 74 92 66 96" fill="none" stroke="#f8f3e8" stroke-width="9" stroke-linecap="round"/>';
+    s += '<circle cx="43" cy="107" r="5.5" fill="' + SKIN + '"/>';
+    s += '<circle cx="63" cy="97" r="5.5" fill="' + SKIN + '"/>';
   }
-  s += fluff;
-  s += '<ellipse cx="60" cy="70" rx="42" ry="40" fill="url(#' + id + 'b)"/>';
-  // 頭頂のアホ毛
-  s += '<path d="M 56 30 q 3 -8 6 -1 q 3 -7 6 1" fill="none" stroke="#e8e6da" stroke-width="2.4" stroke-linecap="round"/>';
 
-  // ===== 足 =====
-  s += '<path d="M 50 108 l -2 9 m 2 -9 l 2 9 M 70 108 l -2 9 m 2 -9 l 2 9" stroke="#8a7458" stroke-width="2.2" stroke-linecap="round"/>';
-
-  // ===== 衣装 =====
-  var scarfC = outfit === "blue" ? "#4a7ec4" : "#d84a3c";
-  var scarfD = outfit === "blue" ? "#37639e" : "#b23628";
+  // ===== マフラー（衣装: red/blue） =====
+  var scarfC = outfit === "blue" ? "#5a8cc8" : "#e05a48";
+  var scarfD = outfit === "blue" ? "#41699c" : "#b83e30";
   if (outfit === "red" || outfit === "blue") {
-    s += '<path d="M 24 84 Q 60 100 96 84 L 96 92 Q 60 108 24 92 Z" fill="' + scarfC + '"/>';
-    s += '<path d="M 24 84 Q 60 100 96 84" fill="none" stroke="' + scarfD + '" stroke-width="2" opacity="0.5"/>';
-    s += '<rect x="72" y="90" width="10" height="20" rx="4" fill="' + scarfC + '" transform="rotate(-8 77 100)"/>';
-    s += '<path d="M 74 108 l 1.5 4 M 78 108.5 l 0.5 4.5 M 81 108 l -1 4.5" stroke="' + scarfD + '" stroke-width="1.6" stroke-linecap="round"/>';
-  } else if (outfit === "knit") {
-    s += '<path d="M 30 48 Q 34 24 60 22 Q 86 24 90 48 Q 60 40 30 48 Z" fill="#d87a94"/>';
-    s += '<path d="M 30 48 Q 60 40 90 48 L 89 54 Q 60 46 31 54 Z" fill="#eeb6c4"/>';
-    s += '<path d="M 40 42 l 2 -12 M 52 38 l 1 -13 M 66 38 l -1 -13 M 78 42 l -2 -12" stroke="#c4607c" stroke-width="1.6" opacity="0.7"/>';
-    s += '<circle cx="60" cy="20" r="6" fill="#fff6f8"/>';
-  } else if (outfit === "straw") {
-    s += '<ellipse cx="60" cy="40" rx="40" ry="9" fill="#e0c274"/>';
-    s += '<path d="M 36 40 Q 38 22 60 21 Q 82 22 84 40 Q 60 34 36 40 Z" fill="#ecd28c"/>';
-    s += '<path d="M 36 39 Q 60 33 84 39" fill="none" stroke="#c46a4a" stroke-width="4"/>';
-  } else if (outfit === "ribbon") {
-    s += '<g transform="rotate(-14 40 32)">';
-    s += '<path d="M 40 32 l -13 -8 q -4 8 0 15 Z" fill="#e8b83c"/>';
-    s += '<path d="M 40 32 l 13 -8 q 4 8 0 15 Z" fill="#e8b83c"/>';
-    s += '<circle cx="40" cy="32" r="4.5" fill="#c49022"/>';
-    s += '</g>';
+    s += '<path d="M 42 76 Q 60 86 78 76 L 78 84 Q 60 93 42 84 Z" fill="' + scarfC + '"/>';
+    s += '<rect x="64" y="82" width="9" height="18" rx="4" fill="' + scarfC + '" transform="rotate(-10 68 90)"/>';
+    s += '<path d="M 66 99 l 1.5 4 M 70 99.5 l 0.5 4 M 73 98.5 l -1 4" stroke="' + scarfD + '" stroke-width="1.5" stroke-linecap="round"/>';
   }
 
   // ===== 顔 =====
-  // 眉毛的なふわ毛の影(シマエナガの過眼線ほんのり)
-  s += '<path d="M 34 50 q 10 -5 18 -2 M 86 50 q -10 -5 -18 -2" fill="none" stroke="#d8d4c4" stroke-width="3" stroke-linecap="round" opacity="0.7"/>';
-  // ほっぺ
-  var cheekOp = (mood === "happy" || mood === "excited") ? 0.75 : 0.5;
-  s += '<ellipse cx="37" cy="70" rx="7" ry="4.4" fill="#f6b8bc" opacity="' + cheekOp + '"/>';
-  s += '<ellipse cx="83" cy="70" rx="7" ry="4.4" fill="#f6b8bc" opacity="' + cheekOp + '"/>';
+  s += '<ellipse cx="60" cy="50" rx="25" ry="23.5" fill="' + SKIN + '"/>';
+  // 耳
+  s += '<circle cx="35.5" cy="52" r="4" fill="' + SKIN + '"/><circle cx="84.5" cy="52" r="4" fill="' + SKIN + '"/>';
+  // あご影
+  s += '<path d="M 48 70 Q 60 75 72 70 Q 60 71.5 48 70 Z" fill="' + SKIN_SH + '" opacity="0.4"/>';
 
-  // 目（気分差分）
+  // ===== 前髪（ぱっつん風の丸いロブ+サイド） =====
+  s += '<path d="M 60 18 C 36 18 30 34 32 48 C 36 42 40 38 44 40 C 44 33 48 28 53 30 C 55 25 65 25 67 30 C 72 28 76 33 76 40 C 80 38 84 42 88 48 C 90 34 84 18 60 18 Z" fill="url(#' + id + 'h)"/>';
+  s += '<path d="M 32 48 C 33 38 38 34 44 40 C 46 46 44 52 41 56 C 36 54 33 52 32 48 Z" fill="url(#' + id + 'h)"/>';
+  s += '<path d="M 88 48 C 87 38 82 34 76 40 C 74 46 76 52 79 56 C 84 54 87 52 88 48 Z" fill="url(#' + id + 'h)"/>';
+  s += '<path d="M 44 40 C 47 34 52 32 56 36 C 57 41 55 46 51 49 C 47 47 44 44 44 40 Z" fill="url(#' + id + 'h)"/>';
+  s += '<path d="M 76 40 C 73 34 68 32 64 36 C 63 41 65 46 69 49 C 73 47 76 44 76 40 Z" fill="url(#' + id + 'h)"/>';
+  s += '<path d="M 56 36 C 58 31 62 31 64 36 C 64 42 62 46 60 48 C 58 46 56 42 56 36 Z" fill="url(#' + id + 'h)"/>';
+  // サイドの長い房（顔の横）
+  s += '<path d="M 33 50 C 31 62 32 74 35 84 C 38 86 41 84 41 79 C 40 69 39 59 40 51 Z" fill="url(#' + id + 'h)" stroke="' + HAIR_LN + '" stroke-width="0.8"/>';
+  s += '<path d="M 87 50 C 89 62 88 74 85 84 C 82 86 79 84 79 79 C 80 69 81 59 80 51 Z" fill="url(#' + id + 'h)" stroke="' + HAIR_LN + '" stroke-width="0.8"/>';
+  // アホ毛
+  s += '<path d="M 57 17 Q 59 8 64 10 Q 60 12 61 17" fill="none" stroke="' + HAIR_SH + '" stroke-width="2.6" stroke-linecap="round"/>';
+  // ツヤ
+  s += '<path d="M 42 26 Q 52 20 64 22" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.55"/>';
+  // シマエナガの髪飾り（雪の妖精モチーフ）
+  s += '<g transform="translate(76 30) rotate(12)">';
+  s += '<circle cx="0" cy="0" r="6.5" fill="#ffffff" stroke="#d8d2c4" stroke-width="0.8"/>';
+  s += '<circle cx="-2.2" cy="-0.8" r="1.1" fill="#20242a"/><circle cx="2.2" cy="-0.8" r="1.1" fill="#20242a"/>';
+  s += '<path d="M -1.2 1.6 L 1.2 1.6 L 0 3 Z" fill="#5a4a3a"/>';
+  s += '<path d="M 4 4 l 5 6" stroke="#3a3a40" stroke-width="2" stroke-linecap="round"/>';
+  s += '</g>';
+
+  // ===== 表情 =====
+  var browC = "#b8a888";
+  var cheekOp = (mood === "happy" || mood === "excited") ? 0.7 : 0.45;
+  s += '<ellipse cx="40" cy="61" rx="5.5" ry="3.2" fill="#ffb0a8" opacity="' + cheekOp + '"/>';
+  s += '<ellipse cx="80" cy="61" rx="5.5" ry="3.2" fill="#ffb0a8" opacity="' + cheekOp + '"/>';
+
+  function openEye(cx, sparkle) {
+    var e = "";
+    e += '<ellipse cx="' + cx + '" cy="56" rx="6.8" ry="8.2" fill="#ffffff"/>';
+    e += '<ellipse cx="' + cx + '" cy="56.5" rx="5.4" ry="7.2" fill="url(#' + id + 'e)"/>';
+    e += '<ellipse cx="' + cx + '" cy="57.5" rx="2.6" ry="3.6" fill="#173a44"/>';
+    e += '<circle cx="' + (cx - 2) + '" cy="53" r="2.2" fill="#ffffff"/>';
+    e += '<circle cx="' + (cx + 2.4) + '" cy="60" r="1.2" fill="#ffffff" opacity="0.9"/>';
+    if (sparkle) e += '<path d="M ' + (cx + 1) + ' 54 l 1 2 l 2 0.6 l -2 0.8 l -1 2 l -1 -2 l -2 -0.8 l 2 -0.6 Z" fill="#ffffff" opacity="0.95"/>';
+    // 上まつげ
+    e += '<path d="M ' + (cx - 7) + ' 51 Q ' + cx + ' 45.5 ' + (cx + 7) + ' 51" fill="none" stroke="#4a3a30" stroke-width="2.6" stroke-linecap="round"/>';
+    e += '<path d="M ' + (cx + 6) + ' 50 l 2.6 -1.6" stroke="#4a3a30" stroke-width="2" stroke-linecap="round"/>';
+    return e;
+  }
+
   if (mood === "happy") {
-    s += '<path d="M 41 60 q 5 -6 10 0 M 69 60 q 5 -6 10 0" fill="none" stroke="#20242a" stroke-width="3.2" stroke-linecap="round"/>';
+    s += '<path d="M 40 56 Q 46 50 52 56 M 68 56 Q 74 50 80 56" fill="none" stroke="#4a3a30" stroke-width="2.8" stroke-linecap="round"/>';
+    s += '<path d="M 40 39 Q 46 36.5 51 39 M 69 39 Q 74 36.5 80 39" fill="none" stroke="' + browC + '" stroke-width="2" stroke-linecap="round"/>';
+    s += '<path d="M 54 65 Q 60 70.5 66 65" fill="none" stroke="#c46a5a" stroke-width="2.4" stroke-linecap="round"/>';
   } else if (mood === "excited") {
-    s += '<circle cx="46" cy="59" r="6" fill="#20242a"/><circle cx="74" cy="59" r="6" fill="#20242a"/>';
-    s += '<path d="M 44 55 l 2 3 l 3 -4 M 72 55 l 2 3 l 3 -4" stroke="#ffffff" stroke-width="1.8" fill="none" stroke-linecap="round"/>';
-    s += '<circle cx="48.5" cy="61" r="1.4" fill="#fff" opacity="0.9"/><circle cx="76.5" cy="61" r="1.4" fill="#fff" opacity="0.9"/>';
+    s += openEye(46, true) + openEye(74, true);
+    s += '<path d="M 39 38 Q 45 35 51 38 M 69 38 Q 75 35 81 38" fill="none" stroke="' + browC + '" stroke-width="2" stroke-linecap="round"/>';
+    s += '<path d="M 54 64 Q 60 71 66 64 Q 60 67 54 64 Z" fill="#e0685a"/>';
   } else if (mood === "surprised") {
-    s += '<circle cx="46" cy="59" r="7" fill="#ffffff" stroke="#20242a" stroke-width="2.4"/>';
-    s += '<circle cx="74" cy="59" r="7" fill="#ffffff" stroke="#20242a" stroke-width="2.4"/>';
-    s += '<circle cx="46" cy="60" r="2.6" fill="#20242a"/><circle cx="74" cy="60" r="2.6" fill="#20242a"/>';
+    s += '<ellipse cx="46" cy="56" rx="6.5" ry="8" fill="#ffffff" stroke="#4a3a30" stroke-width="2"/>';
+    s += '<ellipse cx="74" cy="56" rx="6.5" ry="8" fill="#ffffff" stroke="#4a3a30" stroke-width="2"/>';
+    s += '<circle cx="46" cy="57" r="2.4" fill="#173a44"/><circle cx="74" cy="57" r="2.4" fill="#173a44"/>';
+    s += '<path d="M 40 37 Q 46 34 51 37 M 69 37 Q 74 34 80 37" fill="none" stroke="' + browC + '" stroke-width="2" stroke-linecap="round"/>';
+    s += '<ellipse cx="60" cy="66.5" rx="3.4" ry="4.2" fill="#c05a4c"/>';
   } else if (mood === "sad") {
-    s += '<path d="M 41 58 q 5 4 10 1 M 79 58 q -5 4 -10 1" fill="none" stroke="#20242a" stroke-width="3.2" stroke-linecap="round"/>';
-    s += '<path d="M 49 63 q 2 5 0 8 q -3 -1 -2 -5 Z" fill="#8ec8e8"/>';
+    s += '<path d="M 40 54 Q 46 58.5 52 55 M 68 55 Q 74 58.5 80 54" fill="none" stroke="#4a3a30" stroke-width="2.8" stroke-linecap="round"/>';
+    s += '<path d="M 41 40 Q 46 42.5 51 41 M 69 41 Q 74 42.5 79 40" fill="none" stroke="' + browC + '" stroke-width="2" stroke-linecap="round"/>';
+    s += '<path d="M 55 67 Q 60 64.5 65 67" fill="none" stroke="#c46a5a" stroke-width="2.2" stroke-linecap="round"/>';
+    s += '<path d="M 50 61 q 2.4 5 0.4 8 q -3.4 -1 -2.6 -5.4 Z" fill="#8ec8e8"/>';
   } else {
-    s += '<circle cx="46" cy="59" r="4.6" fill="#20242a"/><circle cx="74" cy="59" r="4.6" fill="#20242a"/>';
-    s += '<circle cx="47.6" cy="57.4" r="1.5" fill="#fff"/><circle cx="75.6" cy="57.4" r="1.5" fill="#fff"/>';
+    s += openEye(46, false) + openEye(74, false);
+    s += '<path d="M 40 39 Q 46 37 51 39 M 69 39 Q 74 37 80 39" fill="none" stroke="' + browC + '" stroke-width="2" stroke-linecap="round"/>';
+    s += '<path d="M 56 65.5 Q 60 68 64 65.5" fill="none" stroke="#c46a5a" stroke-width="2.2" stroke-linecap="round"/>';
   }
 
-  // くちばし
-  if (mood === "surprised" || mood === "excited") {
-    s += '<path d="M 56 66 L 64 66 L 60 71 Z" fill="#5a4a3a"/>';
-    s += '<path d="M 57.5 67 L 62.5 67 L 60 69.6 Z" fill="#e88a8a"/>';
-  } else {
-    s += '<path d="M 56.5 66 L 63.5 66 L 60 70 Z" fill="#5a4a3a"/>';
+  // ===== 帽子系衣装（髪の上） =====
+  if (outfit === "knit") {
+    s += '<path d="M 32 34 Q 34 12 60 11 Q 86 12 88 34 Q 60 25 32 34 Z" fill="#e0879c"/>';
+    s += '<path d="M 32 34 Q 60 25 88 34 L 87 40 Q 60 32 33 40 Z" fill="#f2bcc8"/>';
+    s += '<path d="M 42 28 l 2 -12 M 54 24 l 1 -13 M 66 24 l -1 -13 M 78 28 l -2 -12" stroke="#c8607c" stroke-width="1.6" opacity="0.7"/>';
+    s += '<circle cx="60" cy="9" r="5.5" fill="#fff6f8"/>';
+  } else if (outfit === "straw") {
+    s += '<ellipse cx="60" cy="27" rx="37" ry="8" fill="#e0c274"/>';
+    s += '<path d="M 38 27 Q 40 10 60 9 Q 80 10 82 27 Q 60 21 38 27 Z" fill="#ecd28c"/>';
+    s += '<path d="M 38 26 Q 60 20 82 26" fill="none" stroke="#c46a4a" stroke-width="3.6"/>';
+  } else if (outfit === "ribbon") {
+    s += '<g transform="rotate(-10 42 22)">';
+    s += '<path d="M 42 22 l -12 -7 q -3.6 7 0 13.5 Z" fill="#e8b83c"/>';
+    s += '<path d="M 42 22 l 12 -7 q 3.6 7 0 13.5 Z" fill="#e8b83c"/>';
+    s += '<circle cx="42" cy="22" r="4" fill="#c49022"/>';
+    s += '</g>';
   }
-  // 口（happyのみ にっこり）
-  if (mood === "happy") s += '<path d="M 55 74 q 5 4 10 0" fill="none" stroke="#8a7568" stroke-width="2" stroke-linecap="round"/>';
 
   // ===== エフェクト =====
   if (mood === "excited") {
-    s += '<text x="98" y="34" font-size="16" fill="#e8a83c">♪</text>';
-    s += '<path d="M 14 40 l 2.5 5 l 5 1 l -4 3.6 l 1 5.4 l -4.5 -2.6 l -4.5 2.6 l 1 -5.4 l -4 -3.6 l 5 -1 Z" fill="#ffd76e" transform="scale(0.75) translate(6 8)"/>';
+    s += '<text x="97" y="30" font-size="15" fill="#e8a83c">♪</text>';
+    s += '<path d="M 16 30 l 2.2 4.4 l 4.4 0.9 l -3.5 3.2 l 0.9 4.7 l -4 -2.3 l -4 2.3 l 0.9 -4.7 l -3.5 -3.2 l 4.4 -0.9 Z" fill="#ffd76e"/>';
   } else if (mood === "surprised") {
-    s += '<text x="94" y="30" font-size="22" font-weight="bold" fill="#e05a3c">！</text>';
+    s += '<text x="96" y="28" font-size="20" font-weight="bold" fill="#e05a3c">！</text>';
   } else if (mood === "sad") {
-    s += '<path d="M 100 38 q 4 4 1 9 q -5 -1 -4 -6 Z" fill="#a8d0e8"/>';
+    s += '<path d="M 102 32 q 3.6 3.6 0.9 8 q -4.5 -0.9 -3.6 -5.4 Z" fill="#a8d0e8"/>';
   }
 
   s += '</svg>';
@@ -4631,7 +4674,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (ev) ev.run(cb || function () { proceedTrip(); });
   };
 
-  // ===== ナビキャラ「ユキ」（シマエナガ） =====
+  // ===== ナビキャラ「ユキ」（番屋の看板娘） =====
   var YUKI_XP = [0, 50, 120, 220, 350, 520, 720, 950, 1220, 1520]; // Lv1..10到達値
   var YUKI_OUTFITS = [
     { id: "red", name: "赤マフラー", lv: 1 },
@@ -4692,7 +4735,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     goodTrip: ["いい釣行だったっすね〜！", "大漁っしょ！今夜はごちそうっすね！"],
     compGood: ["すごい順位っす！師匠に自慢してくるっす！", "リーダーボード、駆け上がってるっす！"],
     levelup: ["ユキ、もっと仲良くなれた気がするっす！", "えへへ…なつき度アップっす！"],
-    poke: ["わわっ、くすぐったいっす！", "なんすか〜？", "つんつんしないでほしいっす〜（もっとして）", "ユキはシマエナガっす。雪の妖精って呼ばれてるっすよ", "師匠はいつか朱鞠内の大帝を獲るって言ってたっす…", "お腹すいたっす。チカの南蛮漬け食べたいっす"],
+    poke: ["わわっ、くすぐったいっす！", "なんすか〜？", "つんつんしないでほしいっす〜（もっとして）", "ユキ、番屋の看板娘っす！おじいちゃんが釣りの師匠なんすよ", "師匠はいつか朱鞠内の大帝を獲るって言ってたっす…", "お腹すいたっす。チカの南蛮漬け食べたいっす"],
     pokeLv10: ["あなたと出会えて、ユキはしあわせ者っす", "ずっと相棒でいてほしいっす！"]
   };
 
@@ -4714,7 +4757,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       if (after >= 10 && save.titles.indexOf("yukiPal") < 0) save.titles.push("yukiPal");
       persistSave();
       setTimeout(function () {
-        evShow("🐦", "なつき度 Lv." + after + "！",
+        evShow("🎀", "なつき度 Lv." + after + "！",
           '<div style="width:120px;margin:0 auto;">' + renderYuki({ mood: "excited", outfit: yuki().outfit, uid: "lvup" }) + "</div>" +
           pickLine(YUKI_LINES.levelup) +
           (YUKI_REWARDS.filter(function (r) { return r.lv === after; }).map(function (r) { return "<br><b>🎁 " + r.txt + "</b>"; }).join("")),
