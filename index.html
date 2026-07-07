@@ -1545,14 +1545,14 @@ function renderYuki(opts){
   var outfit = opts.outfit || "red";
   var id = "yk" + (opts.uid || "");
   var SKIN = "#ffe9da", SKIN_SH = "#f5cdb4";
-  var HAIR = "#efe9dd", HAIR_SH = "#d9d0be", HAIR_LN = "#c4b8a2";
+  var HAIR = "#ece5d5", HAIR_SH = "#cfc3a9", HAIR_LN = "#b3a68c";
   var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140">';
   s += '<defs>';
   s += '<linearGradient id="' + id + 'e" x1="0" y1="0" x2="0" y2="1">';
   s += '<stop offset="0" stop-color="#8fd0d4"/><stop offset="0.55" stop-color="#3f96a4"/><stop offset="1" stop-color="#2a6e80"/>';
   s += '</linearGradient>';
   s += '<linearGradient id="' + id + 'h" x1="0" y1="0" x2="0" y2="1">';
-  s += '<stop offset="0" stop-color="#f6f2e8"/><stop offset="1" stop-color="' + HAIR_SH + '"/>';
+  s += '<stop offset="0" stop-color="#f1ead9"/><stop offset="1" stop-color="' + HAIR_SH + '"/>';
   s += '</linearGradient>';
   s += '</defs>';
 
@@ -1607,26 +1607,29 @@ function renderYuki(opts){
   // あご影
   s += '<path d="M 48 70 Q 60 75 72 70 Q 60 71.5 48 70 Z" fill="' + SKIN_SH + '" opacity="0.4"/>';
 
-  // ===== 前髪（ぱっつん風の丸いロブ+サイド） =====
-  s += '<path d="M 60 18 C 36 18 30 34 32 48 C 36 42 40 38 44 40 C 44 33 48 28 53 30 C 55 25 65 25 67 30 C 72 28 76 33 76 40 C 80 38 84 42 88 48 C 90 34 84 18 60 18 Z" fill="url(#' + id + 'h)"/>';
-  s += '<path d="M 32 48 C 33 38 38 34 44 40 C 46 46 44 52 41 56 C 36 54 33 52 32 48 Z" fill="url(#' + id + 'h)"/>';
-  s += '<path d="M 88 48 C 87 38 82 34 76 40 C 74 46 76 52 79 56 C 84 54 87 52 88 48 Z" fill="url(#' + id + 'h)"/>';
-  s += '<path d="M 44 40 C 47 34 52 32 56 36 C 57 41 55 46 51 49 C 47 47 44 44 44 40 Z" fill="url(#' + id + 'h)"/>';
-  s += '<path d="M 76 40 C 73 34 68 32 64 36 C 63 41 65 46 69 49 C 73 47 76 44 76 40 Z" fill="url(#' + id + 'h)"/>';
-  s += '<path d="M 56 36 C 58 31 62 31 64 36 C 64 42 62 46 60 48 C 58 46 56 42 56 36 Z" fill="url(#' + id + 'h)"/>';
+  // ===== 前髪（スカラップぱっつん・おでこをしっかり覆う） =====
+  s += '<path d="M 31 53 C 26 32 38 15 60 15 C 82 15 94 32 89 53 C 87 60 81 58 79 47 C 77.5 59 69.5 59 68 46 C 66 60 54 60 52 46 C 50.5 59 42.5 59 41 47 C 39 60 32 60 31 53 Z" fill="url(#' + id + 'h)"/>';
+  // 毛流れの筋
+  s += '<path d="M 60 18 C 56 30 54 38 52 45 M 60 18 C 64 30 66 38 68 45 M 45 21 C 43 31 42 39 41 46 M 75 21 C 77 31 78 39 79 46" fill="none" stroke="' + HAIR_LN + '" stroke-width="1" opacity="0.45"/>';
   // サイドの長い房（顔の横）
   s += '<path d="M 33 50 C 31 62 32 74 35 84 C 38 86 41 84 41 79 C 40 69 39 59 40 51 Z" fill="url(#' + id + 'h)" stroke="' + HAIR_LN + '" stroke-width="0.8"/>';
   s += '<path d="M 87 50 C 89 62 88 74 85 84 C 82 86 79 84 79 79 C 80 69 81 59 80 51 Z" fill="url(#' + id + 'h)" stroke="' + HAIR_LN + '" stroke-width="0.8"/>';
   // アホ毛
-  s += '<path d="M 57 17 Q 59 8 64 10 Q 60 12 61 17" fill="none" stroke="' + HAIR_SH + '" stroke-width="2.6" stroke-linecap="round"/>';
-  // ツヤ
-  s += '<path d="M 42 26 Q 52 20 64 22" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.55"/>';
-  // シマエナガの髪飾り（雪の妖精モチーフ）
-  s += '<g transform="translate(76 30) rotate(12)">';
-  s += '<circle cx="0" cy="0" r="6.5" fill="#ffffff" stroke="#d8d2c4" stroke-width="0.8"/>';
-  s += '<circle cx="-2.2" cy="-0.8" r="1.1" fill="#20242a"/><circle cx="2.2" cy="-0.8" r="1.1" fill="#20242a"/>';
-  s += '<path d="M -1.2 1.6 L 1.2 1.6 L 0 3 Z" fill="#5a4a3a"/>';
-  s += '<path d="M 4 4 l 5 6" stroke="#3a3a40" stroke-width="2" stroke-linecap="round"/>';
+  s += '<path d="M 57 16 Q 59 7 64 9 Q 60 11 61 16" fill="none" stroke="' + HAIR_SH + '" stroke-width="2.6" stroke-linecap="round"/>';
+  // 天使の輪（控えめな2本アーチ）
+  s += '<path d="M 41 29 Q 60 20 79 29" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" opacity="0.45"/>';
+  s += '<path d="M 47 34 Q 60 27 73 34" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity="0.3"/>';
+  // シマエナガの髪飾り（白もふ・つぶら寄り目・ちょん嘴・茶の羽・長い黒尾）
+  s += '<g transform="translate(77 28) rotate(8)">';
+  s += '<path d="M 3.5 3.5 L 11 11.5" stroke="#33343a" stroke-width="3.2" stroke-linecap="round"/>';
+  s += '<path d="M 4.4 3.4 L 10.6 10" stroke="#5f5f68" stroke-width="1" stroke-linecap="round"/>';
+  s += '<circle cx="-2.6" cy="-5.2" r="2.4" fill="#ffffff"/><circle cx="1.8" cy="-5.6" r="2.2" fill="#ffffff"/>';
+  s += '<circle cx="0" cy="0" r="7" fill="#ffffff" stroke="#d8d2c4" stroke-width="0.8"/>';
+  s += '<path d="M 2.6 -1.2 Q 8.2 0.6 5.4 5.6 Q 1.4 4.6 1.4 0 Z" fill="#c0ac96"/>';
+  s += '<circle cx="-3" cy="-1.8" r="1.15" fill="#20242a"/><circle cx="0.8" cy="-1.8" r="1.15" fill="#20242a"/>';
+  s += '<circle cx="-2.6" cy="-2.2" r="0.35" fill="#ffffff"/><circle cx="1.2" cy="-2.2" r="0.35" fill="#ffffff"/>';
+  s += '<path d="M -2 0.4 L 0 0.4 L -1 1.9 Z" fill="#4a4038"/>';
+  s += '<circle cx="-5" cy="0.4" r="1" fill="#f6b8bc" opacity="0.8"/>';
   s += '</g>';
 
   // ===== 表情 =====
