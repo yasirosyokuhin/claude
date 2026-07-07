@@ -213,14 +213,24 @@
   .legend-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--river-color); display: inline-block; }
   .legend-diamond { width: 12px; height: 12px; background: var(--dam-color); display: inline-block; transform: rotate(45deg); }
 
-  .marker-dot { fill: var(--river-color); stroke: #fff; stroke-width: 1.5; cursor: pointer; }
+  .marker-dot { fill: var(--river-color); stroke: #fff; stroke-width: 2; cursor: pointer; }
   .loc-marker-group.locked .marker-dot,
-  .loc-marker-group.locked .marker-dam { fill: #8e9ca2; opacity: .8; stroke: #e8eef0; }
+  .loc-marker-group.locked .marker-dam { fill: #8e9ca2; opacity: .85; stroke: #e8eef0; }
+  .loc-marker-group.locked .marker-pulse { display: none; }
   .legend-lock { font-size: 12px; }
   #unlockBtn:disabled { opacity: .5; }
-  .marker-dam { fill: var(--dam-color); stroke: #fff; stroke-width: 1.5; cursor: pointer; }
+  .marker-dam { fill: var(--dam-color); stroke: #fff; stroke-width: 2; cursor: pointer; }
   .marker-hit { fill: transparent; cursor: pointer; }
-  .marker-selected { stroke: #ffd23f; stroke-width: 3; }
+  .marker-selected { stroke: #ffd23f; stroke-width: 3.5; }
+  .marker-pulse {
+    fill: none; stroke: #ffffff; stroke-width: 2.5; pointer-events: none;
+    transform-box: fill-box; transform-origin: center;
+    animation: mpulse 2.4s ease-out infinite;
+  }
+  @keyframes mpulse {
+    0% { transform: scale(.55); opacity: .85; }
+    70%, 100% { transform: scale(1.9); opacity: 0; }
+  }
   .marker-label {
     font-size: 15px;
     fill: var(--ink);
@@ -1565,8 +1575,13 @@ function renderYuki(opts){
   s += '<rect x="63" y="112" width="8" height="12" rx="3.5" fill="' + SKIN + '"/>';
   s += '<path d="M 47 121 h 12 v 8 q 0 3 -3 3 h -6 q -3 0 -3 -3 Z" fill="#7a5a40"/>';
   s += '<path d="M 61 121 h 12 v 8 q 0 3 -3 3 h -6 q -3 0 -3 -3 Z" fill="#6d4f38"/>';
+  // 首（頭と体をつなぐ）
+  s += '<path d="M 54 64 h 12 v 16 q -6 4 -12 0 Z" fill="' + SKIN + '"/>';
+  s += '<path d="M 54 70 q 6 3.5 12 0 l 0 3.2 q -6 3.5 -12 0 Z" fill="' + SKIN_SH + '" opacity="0.45"/>';
   // ワンピース（クリーム）
   s += '<path d="M 44 82 C 40 92 38 104 40 114 Q 60 120 80 114 C 82 104 80 92 76 82 Q 60 76 44 82 Z" fill="#f8f3e8" stroke="#e0d6c4" stroke-width="1"/>';
+  // 肩・襟ぐり（首とワンピースを接続）
+  s += '<path d="M 47 85 Q 46.5 76.5 53 74 Q 60 79 67 74 Q 73.5 76.5 73 85 Q 60 90 47 85 Z" fill="#f8f3e8" stroke="#e0d6c4" stroke-width="1"/>';
   // フィッシングベスト（からし色・前開き）
   s += '<path d="M 44 82 C 41 90 40 100 41 110 L 52 108 C 52 99 52 90 53 82 Q 48 80 44 82 Z" fill="#dca843" stroke="#b8862e" stroke-width="1"/>';
   s += '<path d="M 76 82 C 79 90 80 100 79 110 L 68 108 C 68 99 68 90 67 82 Q 72 80 76 82 Z" fill="#dca843" stroke="#b8862e" stroke-width="1"/>';
@@ -2779,9 +2794,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       drawRiver(id, [RIVER_WAYPOINTS[id]]);
     });
 
-    // 6. マーカー（河川はそのポリライン上の最近傍点へスナップ、ダムはv1座標のまま）
+    // 6. マーカー（マップピン型。河川はポリライン上の最近傍点へスナップ、ダムはv1座標のまま）
     markerPositions = {};
-    LOCATIONS.forEach(function (loc) {
+    var markerList = LOCATIONS.map(function (loc) {
       var xy;
       if (loc.type === "river" && riverProjPoints[loc.id]) {
         var target = project(loc.lon, loc.lat);
@@ -2790,22 +2805,35 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         xy = project(loc.lon, loc.lat);
       }
       markerPositions[loc.id] = xy;
+      return { loc: loc, xy: xy };
+    });
+    // 南（画面下）のピンが手前に重なるようY順で描画
+    markerList.sort(function (a, b) { return a.xy[1] - b.xy[1]; });
+    markerList.forEach(function (mk, idx) {
+      var loc = mk.loc, xy = mk.xy;
       var x = xy[0].toFixed(1), y = xy[1].toFixed(1);
       var isDam = loc.type === "dam";
       var lockedCls = isUnlocked(loc.id) ? "" : " locked";
-      parts.push('<g class="loc-marker-group' + lockedCls + '" data-loc-id="' + loc.id + '" style="filter:drop-shadow(0 2.5px 2px rgba(10,30,40,.4))">');
-      if (isDam) {
-        parts.push('<rect class="marker-dam" data-loc-id="' + loc.id + '" x="' + (xy[0] - 8) + '" y="' + (xy[1] - 8) + '" width="16" height="16" transform="rotate(45 ' + x + ' ' + y + ')"></rect>');
-      } else {
-        parts.push('<circle class="marker-dot" data-loc-id="' + loc.id + '" cx="' + x + '" cy="' + y + '" r="9"></circle>');
-      }
-      parts.push('<circle class="marker-hit" data-loc-id="' + loc.id + '" cx="' + x + '" cy="' + y + '" r="18"></circle>');
       var isCompLoc = state.daily && state.daily.compLoc === loc.id;
-      if (isCompLoc) {
-        parts.push('<text x="' + x + '" y="' + (xy[1] - 12).toFixed(1) + '" text-anchor="middle" font-size="15" pointer-events="none">🏆</text>');
-      } else if (lockedCls) {
-        parts.push('<text class="lock-label" x="' + x + '" y="' + (xy[1] + 4).toFixed(1) + '" text-anchor="middle" font-size="13" pointer-events="none">🔒</text>');
+      var hx = xy[0].toFixed(1), hy = (xy[1] - 26).toFixed(1); // ピン頭の中心
+      parts.push('<g class="loc-marker-group' + lockedCls + '" data-loc-id="' + loc.id + '" style="filter:drop-shadow(0 2.5px 2px rgba(10,30,40,.4))">');
+      // タップ可能を知らせる波紋（解禁済みのみ・時間差で発火）
+      parts.push('<circle class="marker-pulse" cx="' + hx + '" cy="' + hy + '" r="15" style="animation-delay:' + ((idx % 5) * 0.48).toFixed(2) + 's"></circle>');
+      // ピン本体（先端が実座標）
+      parts.push('<path class="' + (isDam ? "marker-dam" : "marker-dot") + '" data-loc-id="' + loc.id + '" d="M ' + x + ' ' + y + ' c -3 -8 -14 -13 -14 -26 a 14 14 0 1 1 28 0 c 0 13 -11 18 -14 26 Z"></path>');
+      // 種別グリフ（河川=丸／ダム=菱形）
+      if (isDam) {
+        parts.push('<rect x="' + (xy[0] - 5.2).toFixed(1) + '" y="' + (xy[1] - 31.2).toFixed(1) + '" width="10.4" height="10.4" fill="#ffffff" opacity="0.95" pointer-events="none" transform="rotate(45 ' + hx + ' ' + hy + ')"></rect>');
+      } else {
+        parts.push('<circle cx="' + hx + '" cy="' + hy + '" r="5.5" fill="#ffffff" opacity="0.95" pointer-events="none"></circle>');
       }
+      if (isCompLoc) {
+        parts.push('<text x="' + x + '" y="' + (xy[1] - 46).toFixed(1) + '" text-anchor="middle" font-size="17" pointer-events="none">🏆</text>');
+      }
+      if (lockedCls) {
+        parts.push('<text class="lock-label" x="' + hx + '" y="' + (xy[1] - 21).toFixed(1) + '" text-anchor="middle" font-size="13" pointer-events="none">🔒</text>');
+      }
+      parts.push('<circle class="marker-hit" data-loc-id="' + loc.id + '" cx="' + x + '" cy="' + (xy[1] - 18).toFixed(1) + '" r="22"></circle>');
       parts.push('</g>');
     });
 
@@ -2969,8 +2997,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var xy = markerPositions[locId] || project(loc.lon, loc.lat);
     var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
     label.setAttribute("class", "marker-label");
-    label.setAttribute("x", (xy[0] + 12).toFixed(1));
-    label.setAttribute("y", (xy[1] - 12).toFixed(1));
+    label.setAttribute("x", (xy[0] + 18).toFixed(1));
+    label.setAttribute("y", (xy[1] - 28).toFixed(1));
     label.setAttribute("data-ax", xy[0].toFixed(1));
     label.setAttribute("data-ay", xy[1].toFixed(1));
     label.textContent = loc.name;
