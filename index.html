@@ -1859,6 +1859,23 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
   var LOCATIONS = [
   {
+    "id": "hassamu",
+    "name": "発寒川",
+    "type": "river",
+    "region": "札幌",
+    "lon": 141.15,
+    "lat": 43.06,
+    "signature": "ugui",
+    "desc": "札幌近郊を流れる小川。ウグイやドジョウが群れる、釣り入門にうってつけの流れ。",
+    "fish": {
+      "ugui": 42,
+      "fukudojo": 24,
+      "funa": 16,
+      "kajika": 10,
+      "amemasu": 5
+    }
+  },
+  {
     "id": "ishikari",
     "name": "石狩川",
     "type": "river",
@@ -2407,7 +2424,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   }
   // 解禁費用（0円=初期開放。道央→道南→十勝→オホーツク→道東→道北の進行曲線）
   var LOCK_COST = {
-    toyohira: 0, ishikari: 0, izarigawa: 0,
+    hassamu: 0, izarigawa: 0,
+    toyohira: 1200, ishikari: 2000,
     shiribetsu: 2000, mukawa: 2500, saru: 3000, nibutani: 3500, katsurazawa: 4000,
     kanayama: 5000, toshibetsu: 6000, hoheikyo: 7000, tokachi: 8000, tokachi_dam: 9000,
     taisetsu: 10000, chubetsu: 12000, yubetsu: 14000, tokoro: 16000, abashiri: 18000,
@@ -2522,7 +2540,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     return {
       money: 0,
       gear: { rods: ["bait_rod"], lures: ["bait"], upgrades: [] },
-      unlocked: ["toyohira", "ishikari", "izarigawa"],
+      unlocked: ["hassamu", "izarigawa"],
       records: {},
       totals: { catches: 0, earned: 0, barashi: 0 },
       titles: [],
@@ -2552,6 +2570,15 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
             if (s.gear.rods.indexOf("bait_rod") < 0) s.gear.rods.unshift("bait_rod");
             if (s.gear.lures.indexOf("bait") < 0) s.gear.lures.unshift("bait");
             s.starterReset = true;
+          }
+          // 入門河川の追加(1回だけ): 旧仕様で無料開放していた石狩川・豊平川・漁川ダムを回収し、
+          // ウグイ・ドジョウ中心の小川「発寒川」から始める（有料で解禁した釣り場・隠し湖は保持）
+          if (!s.beginnerStart) {
+            var oldFree = { toyohira: 1, ishikari: 1, izarigawa: 1 };
+            s.unlocked = (s.unlocked || []).filter(function (id) { return !oldFree[id]; });
+            if (s.unlocked.indexOf("hassamu") < 0) s.unlocked.push("hassamu");
+            if (s.unlocked.indexOf("izarigawa") < 0) s.unlocked.push("izarigawa");
+            s.beginnerStart = true;
           }
           return s;
         }
@@ -3192,6 +3219,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
   // ロケーション別の情景レシピ（実地形に基づく: 羊蹄山・釧路湿原・札幌スカイライン・日高山脈・峡谷…）
   var SCENERY = {
+    hassamu:     { mt: "hills",   width: "narrow", reeds: true },
     ishikari:    { mt: "hills",   width: "wide" },
     teshio:      { mt: "hills",   width: "wide",   birch: true },
     tokachi:     { mt: "alps",    width: "wide" },
