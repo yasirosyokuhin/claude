@@ -532,6 +532,12 @@
   }
   #statusBar .sb-money b { font-variant-numeric: tabular-nums; }
   #statusBar .sb-title { color: var(--accent-dark); font-weight: 700; font-size: 11.5px; }
+  #statusBar .sb-rank { margin-left: auto; color: #6b5a2e; font-weight: 800; font-size: 11.5px; background: linear-gradient(180deg,#ffe9b0,#f2cf7a); padding: 2px 9px; border-radius: 999px; }
+  .rank-bar { background: #fff; border-radius: 14px; padding: 9px 13px; margin: 0 0 10px; box-shadow: 0 1px 4px rgba(40,70,80,.08); }
+  .rank-bar .rk-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; font-weight: 800; color: var(--accent-dark); margin-bottom: 5px; }
+  .rank-bar .rk-head .rk-next { color: var(--sub-ink); font-weight: 700; font-size: 11px; }
+  .rank-bar .rk-track { height: 8px; border-radius: 999px; background: #e7eef0; overflow: hidden; }
+  .rank-bar .rk-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg,#ffd76e,#e0a020); transition: width .5s ease; }
   .result-size-row { display: flex; align-items: baseline; gap: 8px; justify-content: center; margin: 2px 0 4px; }
   #resultSize { font-size: 30px; font-weight: 900; color: #ffe9a8; letter-spacing: .02em; font-variant-numeric: tabular-nums; text-shadow: 0 2px 10px rgba(255,210,80,.25); }
   .variant-tag { font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; }
@@ -840,6 +846,7 @@
   <div id="statusBar">
     <span class="sb-money">💰 <b id="sbMoney">0</b> 円</span>
     <span class="sb-title" id="sbTitle"></span>
+    <span class="sb-rank" id="sbRank"></span>
   </div>
 
   <!-- 1. タイトル -->
@@ -874,6 +881,7 @@
         </div>
       </div>
       <div class="sub">実在の川とダムで、実在の魚を追う図鑑釣行</div>
+      <div id="rankBar" class="rank-bar"></div>
       <div id="dailyCard" class="daily-card"></div>
       <div id="yukiMissions" class="yuki-missions"></div>
       <div class="title-buttons">
@@ -1065,7 +1073,7 @@
     </div>
     <div class="lodge-card">
       <div class="lodge-head">🐟 いけす水槽</div>
-      <div class="lodge-sub">釣った魚を3匹まで泳がせられる（下の魚をタップで入替）</div>
+      <div class="lodge-sub" id="tankSub">釣った魚を3匹まで泳がせられる（下の魚をタップで入替）</div>
       <canvas id="tankCanvas" class="tank-canvas"></canvas>
       <div id="tankPicker" class="tank-picker"></div>
     </div>
@@ -2597,6 +2605,44 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     return null;
   }
 
+  // ===== 釣り人ランク（お金とは別の経験値による成長）=====
+  var RANK_MAX = 20;
+  var RANK_FISH_XP = { common: 3, uncommon: 6, rare: 14, legend: 40 };
+  var RANK_PERKS = {
+    3: "釣行キャスト +1", 5: "釣具店 8%割引", 7: "特別な個体が出やすくなる",
+    10: "釣行キャスト +2・いけす +1", 13: "釣具店 15%割引", 15: "特別な個体がさらに出やすく",
+    17: "いけす +1", 20: "称号「北の釣聖」"
+  };
+  function rankNeed(level) { return Math.round(50 * Math.pow(level - 1, 1.7)); } // level到達に必要な累計XP
+  function rankLevel(xp) { var l = 1; while (l < RANK_MAX && xp >= rankNeed(l + 1)) l++; return l; }
+  function rankLv() { return (save.rank && save.rank.level) || 1; }
+  function rankBonusCasts() { var l = rankLv(); return l >= 10 ? 2 : l >= 3 ? 1 : 0; }
+  function rankShopDiscount() { var l = rankLv(); return l >= 13 ? 0.15 : l >= 5 ? 0.08 : 0; }
+  function rankPrice(p) { return Math.max(0, Math.round((p || 0) * (1 - rankShopDiscount()))); }
+  function rankVariantBonus() { var l = rankLv(); return l >= 15 ? 0.02 : l >= 7 ? 0.01 : 0; }
+  function rankTankMax() { var l = rankLv(); return 3 + (l >= 10 ? 1 : 0) + (l >= 17 ? 1 : 0); }
+  function addRankXp(n) {
+    if (!save.rank) save.rank = { xp: 0, level: 1 };
+    var before = save.rank.level || 1;
+    save.rank.xp += n;
+    var after = rankLevel(save.rank.xp);
+    save.rank.level = after;
+    if (after > before) {
+      if (after >= RANK_MAX && save.titles.indexOf("anglerMax") < 0) save.titles.push("anglerMax");
+      persistSave();
+      var perks = [];
+      for (var L = before + 1; L <= after; L++) if (RANK_PERKS[L]) perks.push(RANK_PERKS[L]);
+      setTimeout(function () {
+        evShow("🎣", "釣り人ランク Lv." + after + "！",
+          "<div>腕を上げましたね！</div>" + (perks.length ? "<br>" + perks.map(function (x) { return "<b>🎁 " + x + "</b>"; }).join("<br>") : ""),
+          [{ label: "よし！", fn: function () { evClose(); } }]);
+        SFX.jingle();
+      }, 700);
+    } else persistSave();
+    updateStatusBar();
+    if (typeof renderRankBar === "function") renderRankBar();
+  }
+
   var SAVE_KEY = "hokkaido_fishing_save_v2";
   function defaultSave() {
     return {
@@ -2616,6 +2662,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       treasures: {},
       junkCleared: 0,
       treasureSetsDone: [],
+      rank: { xp: 0, level: 1 },
       yuki: { xp: 0, level: 1, outfit: "red", mp: { day: 0, prog: {}, claimed: [] }, memories: [] }
     };
   }
@@ -2681,9 +2728,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (state.daily && state.daily.hotLoc === state.selectedLocationId) exp -= 0.2;
     if (fs.castZone === "far") exp -= 0.3;
     var variant = null;
+    var vb = rankVariantBonus();               // 釣り人ランク特典で特別個体が出やすく
+    var giantRate = BAL.variantGiantRate + vb * 0.5;
+    var spawnRate = BAL.variantSpawnRate + vb;
     var vr = Math.random();
-    if (vr < BAL.variantGiantRate) variant = "giant";
-    else if (vr < BAL.variantGiantRate + BAL.variantSpawnRate && SPAWN_ABLE.indexOf(fishId) >= 0) variant = "spawn";
+    if (vr < giantRate) variant = "giant";
+    else if (vr < giantRate + spawnRate && SPAWN_ABLE.indexOf(fishId) >= 0) variant = "spawn";
     var span = sr[1] - sr[0];
     var cm = sr[0] + span * Math.pow(Math.random(), Math.max(1.6, exp));
     if (variant === "giant") cm = sr[1] + span * 0.2 * Math.random();
@@ -2730,7 +2780,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     { id: "nushi3", name: "ヌシ狩り", check: function () { return false; } },
     { id: "nushiAll", name: "全てのヌシを制す者", check: function () { return false; } },
     { id: "cleaner", name: "川の守り人", check: function () { return false; } },
-    { id: "treasureAll", name: "おたからハンター", check: function () { return false; } }
+    { id: "treasureAll", name: "おたからハンター", check: function () { return false; } },
+    { id: "anglerMax", name: "北の釣聖", check: function () { return false; } }
   ];
   function evalTitles() {
     TITLES.forEach(function (t) {
@@ -2770,6 +2821,21 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (el) el.textContent = (save.money || 0).toLocaleString();
     var tl = document.getElementById("sbTitle");
     if (tl) tl.textContent = currentTitleName();
+    var rk = document.getElementById("sbRank");
+    if (rk) rk.textContent = "🎣 Lv." + rankLv();
+  }
+
+  function renderRankBar() {
+    var el = document.getElementById("rankBar");
+    if (!el) return;
+    var lv = rankLv();
+    var xp = (save.rank && save.rank.xp) || 0;
+    var cur = rankNeed(lv), nxt = rankNeed(lv + 1);
+    var pct = lv >= RANK_MAX ? 100 : Math.max(0, Math.min(100, (xp - cur) / (nxt - cur) * 100));
+    var nextTxt = lv >= RANK_MAX ? "最高ランク達成！" : "次のランクまで " + Math.max(0, nxt - xp) + " XP";
+    el.innerHTML =
+      '<div class="rk-head"><span>🎣 釣り人ランク <b>Lv.' + lv + '</b></span><span class="rk-next">' + nextTxt + '</span></div>' +
+      '<div class="rk-track"><div class="rk-fill" style="width:' + pct.toFixed(1) + '%;"></div></div>';
   }
 
   // ===== 投影（経度緯度 → SVG座標）SPEC §2 =====
@@ -2812,6 +2878,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     evalTitles();
     persistSave();
     if (typeof yukiMissionProgress === "function") yukiMissionProgress("catch", { fishId: fishId, cm: cm });
+    // 釣り人ランクXP（サイズ×レア度＋新種/記録/特別個体ボーナス）
+    var fx = (RANK_FISH_XP[FISH[fishId].rarity] || 3) + Math.round(cm / 6);
+    if (isNew) fx += 20;
+    if (isRecord) fx += 6;
+    if (variant === "giant") fx += 12; else if (variant === "spawn") fx += 8;
+    addRankXp(fx);
     return { isNew: isNew, isRecord: isRecord };
   }
 
@@ -2827,6 +2899,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
     if (id === "screen-title" && typeof renderDailyCard === "function") {
       renderDailyCard(); updateLodgeBadge();
+      if (typeof renderRankBar === "function") renderRankBar();
       if (typeof renderYukiMissions === "function") renderYukiMissions();
       if (typeof yukiGreet === "function") yukiGreet();
       var hy = document.getElementById("heroYuki");
@@ -4462,7 +4535,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   function startTrip() {
     trip = {
       locId: state.selectedLocationId,
-      castsLeft: TRIP_CASTS,
+      castsLeft: TRIP_CASTS + rankBonusCasts(),
       catches: [], kinds: {},
       earned: 0, score: 0,
       noBarashi: true, big: false,
@@ -5038,10 +5111,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         save.money += m.money;
         save.totals.earned += m.money;
         addYukiXp(m.xp);
+        addRankXp(15);
         SFX.ensure(); SFX.jingle();
         if (mp.claimed.length >= 3) {
           save.money += 500;
           addYukiXp(50);
+          addRankXp(30);
           yukiSay("全部やってくれたんですか！？すごくうれしいです！！（ボーナス+500円 ❤50）", "excited", 4200, true);
           addYukiMemory("ユキのおねがいを全達成した");
         } else {
@@ -5107,6 +5182,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     // --- 水槽ピッカー ---
     var picker = document.getElementById("tankPicker");
     picker.innerHTML = "";
+    var tsub = document.getElementById("tankSub");
+    if (tsub) tsub.textContent = "釣った魚を" + rankTankMax() + "匹まで泳がせられる（下の魚をタップで入替）";
     save.tank = (save.tank || []).filter(function (id) { return save.zukan[id]; });
     Object.keys(FISH).forEach(function (id) {
       if (!save.zukan[id]) return;
@@ -5117,7 +5194,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       chip.addEventListener("click", function () {
         var i = save.tank.indexOf(id);
         if (i >= 0) save.tank.splice(i, 1);
-        else if (save.tank.length < 3) save.tank.push(id);
+        else if (save.tank.length < rankTankMax()) save.tank.push(id);
         persistSave();
         renderLodge();
       });
@@ -5833,6 +5910,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         mileMsg = "　🎉 川のおそうじ " + save.junkCleared + "個達成！";
       }
       persistSave(); updateStatusBar();
+      addRankXp(1);
       SFX.plop();
       if (Math.random() < 0.4) yukiSay(pickLine(YUKI_LINES.junk), "surprised", 2200);
       resolveItemResult({
@@ -5854,6 +5932,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (isNew) addYukiMemory("おたから発見: " + t.name);
     if (Object.keys(save.treasures).length >= Object.keys(TREASURE).length && save.titles.indexOf("treasureAll") < 0) save.titles.push("treasureAll");
     persistSave(); updateStatusBar();
+    addRankXp(isNew ? 25 : 5);
     SFX.jingle(); buzz(60);
     if (isNew) yukiSay(pickLine(YUKI_LINES.treasureNew), "excited", 3200, true);
     resolveItemResult({
@@ -5939,9 +6018,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   function shopItem(kind, obj, owned, canBuy, reqName) {
     var item = document.createElement("div");
     item.className = "choice-item" + (owned ? " owned" : "");
+    var base = obj.price || 0;
+    var eff = rankPrice(base);
+    var priceStr = eff < base
+      ? '<span style="text-decoration:line-through;opacity:.5;font-size:11px;">' + base.toLocaleString() + '</span> ' + eff.toLocaleString() + '円'
+      : base.toLocaleString() + '円';
     var priceHtml = owned ? '<span class="shop-owned">✓ 所有</span>'
       : reqName ? '<span class="shop-req">要: ' + reqName + '</span>'
-      : '<span class="shop-price' + (canBuy ? "" : " ng") + '">' + (obj.price || 0).toLocaleString() + '円</span>';
+      : '<span class="shop-price' + (canBuy ? "" : " ng") + '">' + priceStr + '</span>';
     item.innerHTML =
       '<div class="ci-emoji">' + (obj.icon || obj.emoji || "⚙️") + '</div>' +
       '<div class="ci-text"><div class="ci-name">' + obj.name + '</div><div class="ci-desc">' + obj.desc + '</div></div>' +
@@ -5956,7 +6040,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     rodsEl.innerHTML = ""; luresEl.innerHTML = ""; upsEl.innerHTML = "";
     RODS.forEach(function (rod) {
       var owned = save.gear.rods.indexOf(rod.id) >= 0;
-      var canBuy = save.money >= (rod.price || 0);
+      var canBuy = save.money >= rankPrice(rod.price || 0);
       var item = shopItem("rod", rod, owned, canBuy, null);
       if (!owned) item.addEventListener("click", function () { buyItem("rod", rod.id, rod.price || 0); });
       rodsEl.appendChild(item);
@@ -5964,7 +6048,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     Object.keys(LURES).forEach(function (lid) {
       var lure = LURES[lid];
       var owned = save.gear.lures.indexOf(lid) >= 0;
-      var canBuy = save.money >= (lure.price || 0);
+      var canBuy = save.money >= rankPrice(lure.price || 0);
       var item = shopItem("lure", lure, owned, canBuy, null);
       if (!owned) item.addEventListener("click", function () { buyItem("lure", lid, lure.price || 0); });
       luresEl.appendChild(item);
@@ -5977,7 +6061,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         var reqUp = UPGRADES.filter(function (u) { return u.id === up.req; })[0];
         reqName = reqUp ? reqUp.name : up.req;
       }
-      var canBuy = !reqMissing && save.money >= up.price;
+      var canBuy = !reqMissing && save.money >= rankPrice(up.price);
       var item = shopItem("upgrade", up, owned, canBuy, reqName);
       if (!owned && !reqMissing) item.addEventListener("click", function () { buyItem("upgrade", up.id, up.price); });
       upsEl.appendChild(item);
@@ -5985,8 +6069,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   }
 
   function buyItem(kind, id, price) {
-    if (save.money < price) { SFX.ensure(); SFX.fail(); return; }
-    save.money -= price;
+    var pay = rankPrice(price);
+    if (save.money < pay) { SFX.ensure(); SFX.fail(); return; }
+    save.money -= pay;
     if (kind === "rod") save.gear.rods.push(id);
     if (kind === "lure") save.gear.lures.push(id);
     if (kind === "upgrade") save.gear.upgrades.push(id);
