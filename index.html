@@ -2544,9 +2544,15 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         if (s && typeof s === "object" && s.gear && s.totals && s.zukan) {
           var d = defaultSave();
           Object.keys(d).forEach(function (k) { if (s[k] === undefined) s[k] = d[k]; });
-          // 進行リワーク: 誰もが「のべ竿＋エサ」の入門装備を持てるよう補完
-          if (s.gear && s.gear.rods && s.gear.rods.indexOf("bait_rod") < 0) s.gear.rods.push("bait_rod");
-          if (s.gear && s.gear.lures && s.gear.lures.indexOf("bait") < 0) s.gear.lures.push("bait");
+          // 進行リワーク移行(1回だけ): 旧仕様で無料配布していたルアーロッド/スプーンを回収し、
+          // 入門装備「のべ竿＋エサ」に戻す（購入した竿・強化・お金は保持）
+          if (!s.starterReset && s.gear) {
+            s.gear.rods = (s.gear.rods || []).filter(function (r) { return r !== "lure_rod"; });
+            s.gear.lures = (s.gear.lures || []).filter(function (l) { return l !== "spoon"; });
+            if (s.gear.rods.indexOf("bait_rod") < 0) s.gear.rods.unshift("bait_rod");
+            if (s.gear.lures.indexOf("bait") < 0) s.gear.lures.unshift("bait");
+            s.starterReset = true;
+          }
           return s;
         }
       }
