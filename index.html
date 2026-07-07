@@ -4812,25 +4812,25 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   function pickLine(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
   var YUKI_LINES = {
-    greetAsa: ["朝マズメっしょ！早起きなまらえらいっ", "朝ごはん前のひと勝負、行くっすか！", "今朝は空気がおいしいっすね〜"],
-    greetHiru: ["こんにちは！今日はどこの川に行くっすか？", "お昼の釣りものんびりでいいっしょ〜", "ユキ、ずっと待ってたっすよ！"],
-    greetYuu: ["夕マズメ！ここからが本番っしょ！", "夕焼けの川、なまらきれいっすよ", "晩ごはんの前にもう一勝負っすか？"],
-    greetYoru: ["夜釣りっすか…ユキ、ちょっと眠いっす…", "夜はデカいのが動くって師匠が言ってたっす", "星がきれいな夜は釣れる気がするっす"],
-    bite: ["きたきたきたーっ！", "アタリっす！！", "今っす！合わせるっす！"],
-    bigRun: ["離すっす！切れちゃうっす！！", "走ったーっ！こらえてっ！", "まだ巻いちゃダメっす！！"],
-    catchSmall: ["かわいいサイズっしょ", "ちっちゃくても一匹は一匹っす！", "はいっ、記念撮影〜"],
-    catchBig: ["なまらデカい！！", "うわわわ、すごいっす！！", "師匠に自慢してくるっす！！"],
-    record: ["ユキ、鳥肌立ったっす…！記録更新っす！", "これ…図鑑に刻むやつっす！！", "今日という日を忘れないっす…！"],
-    newFish: ["初めての魚っす！図鑑が埋まったっす！", "この魚、ユキも初めて見たっす！"],
-    nushi: ["……この気配、ヌシだ。ユキ、見守ってるから…！", "き、来た…この川の主っす…！"],
-    nushiWin: ["や……やったっす!!! 伝説っすよ!!!", "ヌシを獲るなんて…ユキの相棒はすごいっす！"],
-    fail: ["あぁーっ！！…つ、次があるっす", "どんまいっす！魚はまだいるっす！", "今のはデカかったっすね…くやしいっす"],
-    bouzuTrip: ["そういう日もあるっしょ。おしるこ飲んで帰ろ？", "自然が相手っすから。また来ようっす"],
-    goodTrip: ["いい釣行だったっすね〜！", "大漁っしょ！今夜はごちそうっすね！"],
-    compGood: ["すごい順位っす！師匠に自慢してくるっす！", "リーダーボード、駆け上がってるっす！"],
-    levelup: ["ユキ、もっと仲良くなれた気がするっす！", "えへへ…なつき度アップっす！"],
-    poke: ["わわっ、くすぐったいっす！", "なんすか〜？", "つんつんしないでほしいっす〜（もっとして）", "ユキ、番屋の看板娘っす！おじいちゃんが釣りの師匠なんすよ", "師匠はいつか朱鞠内の大帝を獲るって言ってたっす…", "お腹すいたっす。チカの南蛮漬け食べたいっす"],
-    pokeLv10: ["あなたと出会えて、ユキはしあわせ者っす", "ずっと相棒でいてほしいっす！"]
+    greetAsa: ["朝マズメですよ！早起きえらいですね", "朝ごはん前にひと勝負、行きましょう！", "今朝は空気がおいしいですね〜"],
+    greetHiru: ["こんにちは！今日はどこの川へ行きますか？", "お昼の釣りは、のんびりでいいですね〜", "ユキ、ずっと待ってました！"],
+    greetYuu: ["夕マズメ！ここからが本番ですよ！", "夕焼けの川、すごくきれいですね", "晩ごはんの前に、もう一勝負しますか？"],
+    greetYoru: ["夜釣りですか…ユキ、ちょっと眠いです…", "夜は大きいのが動くって、師匠が言ってました", "星がきれいな夜は、釣れる気がします"],
+    bite: ["きたきたきたーっ！", "アタリです！！", "今です！合わせて！"],
+    bigRun: ["離して！切れちゃいます！！", "走ったーっ！こらえて！", "まだ巻いちゃダメです！！"],
+    catchSmall: ["かわいいサイズですね", "小さくても一匹は一匹です！", "はい、記念撮影〜"],
+    catchBig: ["すごく大きい！！", "うわわわ、すごいです！！", "師匠に自慢してきます！！"],
+    record: ["ユキ、鳥肌が立ちました…！記録更新です！", "これ…図鑑に刻むやつです！！", "今日という日を忘れません…！"],
+    newFish: ["初めての魚です！図鑑が埋まりました！", "この魚、ユキも初めて見ました！"],
+    nushi: ["……この気配、ヌシです。ユキ、見守ってますから…！", "き、来た…この川の主です…！"],
+    nushiWin: ["や……やった!!! 伝説ですよ!!!", "ヌシを獲るなんて…相棒はすごいです！"],
+    fail: ["あぁーっ！！…つ、次があります", "どんまいです！魚はまだいます！", "今のは大きかったですね…くやしいです"],
+    bouzuTrip: ["そういう日もあります。おしるこ飲んで帰りましょう？", "自然が相手ですから。また来ましょう"],
+    goodTrip: ["いい釣行でしたね〜！", "大漁ですね！今夜はごちそうですね！"],
+    compGood: ["すごい順位です！師匠に自慢してきます！", "リーダーボード、駆け上がってますね！"],
+    levelup: ["ユキ、もっと仲良くなれた気がします！", "えへへ…なつき度アップです！"],
+    poke: ["わわっ、くすぐったいです！", "なんですか〜？", "つんつんしないでほしいです〜（もっとして）", "ユキ、番屋の看板娘です！おじいちゃんが釣りの師匠なんです", "師匠はいつか朱鞠内の大帝を獲るって言ってました…", "お腹すきました。チカの南蛮漬けが食べたいです"],
+    pokeLv10: ["あなたと出会えて、ユキはしあわせ者です", "ずっと相棒でいてほしいです！"]
   };
 
   function yukiGreet() {
@@ -4887,12 +4887,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     });
     var spFish = candidates.length ? candidates[Math.floor(hash2(dayInt, 301) * candidates.length) % candidates.length] : "ugui";
     var defs = [
-      { id: "cnt", txt: "魚を" + cntTarget + "匹つってきてほしいっす", target: cntTarget, money: 300 + cntTarget * 100, xp: 25 },
-      { id: "size", txt: sizeTarget + "cm超えの大物が見たいっす！", target: 1, money: 600 + sizeTarget * 10, xp: 35, cm: sizeTarget },
-      { id: "species", txt: FISH[spFish].name + "を2匹つってきてっす", target: 2, money: 700, xp: 30, fish: spFish },
-      { id: "score", txt: "釣行スコア" + scoreTarget + "を出してほしいっす", target: 1, money: 800, xp: 35, score: scoreTarget },
-      { id: "comp", txt: "今日の大会に出てみてほしいっす", target: 1, money: 500, xp: 30 },
-      { id: "mazume", txt: "マズメの時間に1匹つるっす（朝5-8時/夕16-19時）", target: 1, money: 600, xp: 30 }
+      { id: "cnt", txt: "魚を" + cntTarget + "匹つってきてほしいです", target: cntTarget, money: 300 + cntTarget * 100, xp: 25 },
+      { id: "size", txt: sizeTarget + "cm超えの大物が見たいです！", target: 1, money: 600 + sizeTarget * 10, xp: 35, cm: sizeTarget },
+      { id: "species", txt: FISH[spFish].name + "を2匹つってきてください", target: 2, money: 700, xp: 30, fish: spFish },
+      { id: "score", txt: "釣行スコア" + scoreTarget + "を出してほしいです", target: 1, money: 800, xp: 35, score: scoreTarget },
+      { id: "comp", txt: "今日の大会に出てみてほしいです", target: 1, money: 500, xp: 30 },
+      { id: "mazume", txt: "マズメの時間に1匹つってください（朝5-8時/夕16-19時）", target: 1, money: 600, xp: 30 }
     ];
     // シードで3本選ぶ
     var picks = [];
@@ -4935,7 +4935,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (changed) {
       persistSave();
       var doneNew = ms.some(function (m) { return mp.claimed.indexOf(m.id) < 0 && (mp.prog[m.id] || 0) >= m.target; });
-      if (doneNew) yukiSay("おねがい達成っす！タイトルで受け取ってっす〜", "excited", 3000);
+      if (doneNew) yukiSay("おねがい達成です！タイトルで受け取ってくださいね〜", "excited", 3000);
     }
   }
 
@@ -4972,10 +4972,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         if (mp.claimed.length >= 3) {
           save.money += 500;
           addYukiXp(50);
-          yukiSay("全部やってくれたんすか！？なまらうれしいっす！！（ボーナス+500円 ❤50）", "excited", 4200, true);
+          yukiSay("全部やってくれたんですか！？すごくうれしいです！！（ボーナス+500円 ❤50）", "excited", 4200, true);
           addYukiMemory("ユキのおねがいを全達成した");
         } else {
-          yukiSay("ありがとうっす！だいすきっす！", "happy", 2600, true);
+          yukiSay("ありがとうございます！だいすきです！", "happy", 2600, true);
         }
         persistSave();
         updateStatusBar();
@@ -5005,7 +5005,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         yuki().outfit = o.id;
         persistSave();
         renderYukiRoom();
-        yukiSay("にあうっすか？", "happy", 2200, true);
+        yukiSay("にあいますか？", "happy", 2200, true);
       });
       oBox.appendChild(chip);
     });
@@ -5018,7 +5018,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           var dd = new Date(mm.t);
           return "<div>" + (dd.getMonth() + 1) + "/" + dd.getDate() + "　" + mm.txt + "</div>";
         }).join("")
-      : "<div>これから、いっぱい作るっす</div>";
+      : "<div>これから、いっぱい作ります</div>";
   }
 
   // ===== 番屋（ロッジ） =====
