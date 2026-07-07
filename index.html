@@ -1117,6 +1117,9 @@
       <div class="rarity-breakdown" id="rarityBreakdown"></div>
     </div>
     <div class="zukan-grid" id="zukanGrid"></div>
+    <div class="section-label" style="margin-top:20px;">💎 たからもの図鑑 <span id="treasureCount" class="zukan-count" style="font-size:14px;"></span></div>
+    <div id="junkCleaner" class="daily-card" style="margin:0 0 8px;"></div>
+    <div class="zukan-grid" id="treasureGrid"></div>
   </section>
 
 </div>
@@ -2535,6 +2538,65 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     big_rod:  { line: 14, reel: 0.1,  sizeExp: -0.4 }
   };
 
+  // ===== 川のアイテム（がらくた & おたから）=====
+  // 1投ごとに低確率で魚の代わりにアイテムが掛かる。がらくた=川のおそうじ、おたから=図鑑収集。
+  var JUNK_ITEMS = [
+    { id: "can",       name: "空き缶",     emoji: "🥫", price: 8 },
+    { id: "boot",      name: "片方の長靴", emoji: "🥾", price: 5 },
+    { id: "driftwood", name: "流木",       emoji: "🪵", price: 12 },
+    { id: "bag",       name: "ビニール袋", emoji: "🛍️", price: 3 },
+    { id: "tire",      name: "古タイヤ",   emoji: "🛞", price: 15 },
+    { id: "goggles",   name: "水中メガネ", emoji: "🥽", price: 10 }
+  ];
+  // region を持つものはその地域でのみ出現。他は全国。w=抽選重み
+  var TREASURE = {
+    kosen:      { name: "古銭",             emoji: "🪙", price: 600,  w: 3, desc: "川底に眠っていた古いお金。歴史のロマン。" },
+    agate:      { name: "めのう",           emoji: "🔶", price: 900,  w: 2.4, set: "gem", desc: "縞模様の美しい石。磨けば光る。" },
+    shell:      { name: "貝殻",             emoji: "🐚", price: 200,  w: 3, desc: "河口まで運ばれてきた海の貝。" },
+    ammonite:   { name: "アンモナイトの化石", emoji: "🌀", price: 2400, w: 1, set: "fossil", desc: "北海道は化石の宝庫。太古の海の記憶。" },
+    sagold:     { name: "砂金",             emoji: "✨", price: 1500, w: 1.2, desc: "わずかにきらめく自然金。ロマンの塊。" },
+    glassfloat: { name: "ガラスの浮き玉",   emoji: "🔮", price: 700,  w: 2.4, desc: "漁で使われた古いガラスの浮き。" },
+    ring:       { name: "指輪",             emoji: "💍", price: 1200, w: 1.2, desc: "誰かが落とした指輪。持ち主は…？" },
+    doki:       { name: "土器のかけら",     emoji: "🏺", price: 800,  w: 2, set: "fossil", desc: "続縄文文化の名残かもしれない。" },
+    oldlure:    { name: "古いルアー",       emoji: "🎣", price: 400,  w: 3, desc: "先人が根がかりで残した一個。コレクションの一つに。" },
+    hisui:      { name: "翡翠（ヒスイ）",   emoji: "💚", price: 1800, w: 3, set: "gem", region: "日高", desc: "日高でまれに見つかる緑の宝石。" },
+    marimo:     { name: "まりも",           emoji: "🟢", price: 2000, w: 2, region: "道東", desc: "阿寒の特別天然記念物。そっと戻したくなる。" },
+    ryuhyo:     { name: "流氷のかけら",     emoji: "🧊", price: 1000, w: 2.4, region: "オホーツク", desc: "オホーツクから流れ着いた氷の欠片。" },
+    kokuyo:     { name: "黒曜石",           emoji: "⬛", price: 1300, w: 2.4, set: "fossil", region: "オホーツク", desc: "白滝の名産。石器の材料になった黒い石。" },
+    coal:       { name: "石炭",             emoji: "🪨", price: 500,  w: 2.4, region: "空知", desc: "空知の大地の恵み。かつて北海道を支えた。" }
+  };
+  var TREASURE_SETS = {
+    gem:    { name: "宝石コレクション", ids: ["agate", "hisui"], bonus: 1500 },
+    fossil: { name: "古代ロマン",       ids: ["ammonite", "doki", "kokuyo"], bonus: 3000 }
+  };
+  function pickTreasure(loc) {
+    var region = loc ? loc.region : "";
+    var pool = [], total = 0;
+    Object.keys(TREASURE).forEach(function (id) {
+      var t = TREASURE[id];
+      if (t.region && t.region !== region) return;
+      var w = t.w || 2;
+      total += w; pool.push({ id: id, w: w });
+    });
+    if (total <= 0) return "kosen";
+    var r = Math.random() * total, acc = 0;
+    for (var i = 0; i < pool.length; i++) { acc += pool[i].w; if (r < acc) return pool[i].id; }
+    return pool[pool.length - 1].id;
+  }
+  function checkTreasureSet(id) {
+    for (var k in TREASURE_SETS) {
+      var st = TREASURE_SETS[k];
+      if (st.ids.indexOf(id) < 0) continue;
+      var have = st.ids.every(function (x) { return save.treasures[x]; });
+      if (have && (save.treasureSetsDone || []).indexOf(k) < 0) {
+        save.treasureSetsDone = save.treasureSetsDone || [];
+        save.treasureSetsDone.push(k);
+        return { name: st.name, bonus: st.bonus };
+      }
+    }
+    return null;
+  }
+
   var SAVE_KEY = "hokkaido_fishing_save_v2";
   function defaultSave() {
     return {
@@ -2551,6 +2613,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       nushi: {},
       tank: [],
       smoker: null,
+      treasures: {},
+      junkCleared: 0,
+      treasureSetsDone: [],
       yuki: { xp: 0, level: 1, outfit: "red", mp: { day: 0, prog: {}, claimed: [] }, memories: [] }
     };
   }
@@ -2663,7 +2728,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     { id: "comp", name: "図鑑コンプリート", check: function (s) { return Object.keys(s.zukan).length >= 16; } },
     { id: "champ", name: "本日の優勝者", check: function () { return false; } },
     { id: "nushi3", name: "ヌシ狩り", check: function () { return false; } },
-    { id: "nushiAll", name: "全てのヌシを制す者", check: function () { return false; } }
+    { id: "nushiAll", name: "全てのヌシを制す者", check: function () { return false; } },
+    { id: "cleaner", name: "川の守り人", check: function () { return false; } },
+    { id: "treasureAll", name: "おたからハンター", check: function () { return false; } }
   ];
   function evalTitles() {
     TITLES.forEach(function (t) {
@@ -4763,6 +4830,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   }
 
   window.__forceNushi = function () { window.__nushiForce = true; };
+  window.__forceItem = function (kind, id) { window.__itemForce = { kind: kind, id: id }; };
   window.__forceEvent = function (id, cb) {
     var ev = EVENTS.filter(function (e) { return e.id === id; })[0];
     if (ev) ev.run(cb || function () { proceedTrip(); });
@@ -4830,6 +4898,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     compGood: ["すごい順位です！師匠に自慢してきます！", "リーダーボード、駆け上がってますね！"],
     levelup: ["ユキ、もっと仲良くなれた気がします！", "えへへ…なつき度アップです！"],
     poke: ["わわっ、くすぐったいです！", "なんですか〜？", "つんつんしないでほしいです〜（もっとして）", "ユキ、番屋の看板娘です！おじいちゃんが釣りの師匠なんです", "師匠はいつか朱鞠内の大帝を獲るって言ってました…", "お腹すきました。チカの南蛮漬けが食べたいです"],
+    junk: ["あはは、それはゴミですね〜", "川がきれいになりました！えらい！", "長靴…片方だけって切ないですね"],
+    treasureNew: ["わぁ！おたから発見です！！", "これは図鑑ものですよ…！キラキラ〜", "すごいの引き当てましたね！ユキびっくり！"],
     pokeLv10: ["あなたと出会えて、ユキはしあわせ者です", "ずっと相棒でいてほしいです！"]
   };
 
@@ -5253,7 +5323,21 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (state.selectedLureId === "glow_minnow" && state.time && state.time.night) bouzuRate = Math.min(bouzuRate, 0.07);
     if (state.daily && state.daily.hotLoc === state.selectedLocationId) bouzuRate = Math.max(0.05, bouzuRate - 0.05);
     if (yukiLevel() >= 5 && state.time && state.time.mazume) bouzuRate = Math.max(0.03, bouzuRate - 0.02);
-    state.pendingFishId = drawFish(state.selectedLocationId, state.selectedLureId, bouzuRate);
+    // 川のアイテム抽選（魚の代わりに掛かる）: おたから3.5% / がらくた10%
+    state.pendingItem = null;
+    if (window.__itemForce) {
+      state.pendingItem = window.__itemForce.id
+        ? window.__itemForce
+        : { kind: window.__itemForce.kind, id: window.__itemForce.kind === "junk" ? JUNK_ITEMS[0].id : pickTreasure(getLocation(state.selectedLocationId)) };
+      window.__itemForce = null;
+    }
+    var itemRoll = state.pendingItem ? 1 : Math.random();
+    if (itemRoll < 0.035) {
+      state.pendingItem = { kind: "treasure", id: pickTreasure(getLocation(state.selectedLocationId)) };
+    } else if (itemRoll < 0.135) {
+      state.pendingItem = { kind: "junk", id: JUNK_ITEMS[Math.floor(Math.random() * JUNK_ITEMS.length)].id };
+    }
+    state.pendingFishId = state.pendingItem ? null : drawFish(state.selectedLocationId, state.selectedLureId, bouzuRate);
     // ヌシ出現判定（未討伐・条件一致・低確率）
     fs.isNushi = false;
     var nu = NUSHI[state.selectedLocationId];
@@ -5261,6 +5345,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var nuRate = state.selectedLocationId === "shumarinai" ? 0.10 : 0.05;
       if (window.__nushiForce || Math.random() < nuRate) {
         window.__nushiForce = false;
+        state.pendingItem = null; // ヌシはアイテムより優先
         state.pendingFishId = nu.fish;
         fs.isNushi = true;
       }
@@ -5317,6 +5402,15 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     spawnSplash();
     SFX.splash();
     buzz([30, 40, 40]);
+    if (state.pendingItem) {
+      // 川のアイテム（がらくた／おたから）
+      fs.phase = "junk";
+      clearFishShadow();
+      setStageText("…何か掛かった…");
+      var it = state.pendingItem; state.pendingItem = null;
+      setTimeout(function () { handleItem(it); }, 700);
+      return;
+    }
     if (!state.pendingFishId) {
       // 藻・ゴミ
       fs.phase = "junk";
@@ -5722,6 +5816,80 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     showScreen("screen-result");
   }
 
+  // ===== 川のアイテム取得 =====
+  function handleItem(it) {
+    state.lastResultKind = "item";
+    state.lastCaughtFishId = null;
+    if (it.kind === "junk") {
+      var j = null;
+      for (var i = 0; i < JUNK_ITEMS.length; i++) if (JUNK_ITEMS[i].id === it.id) j = JUNK_ITEMS[i];
+      if (!j) j = JUNK_ITEMS[0];
+      save.money += j.price; save.totals.earned += j.price;
+      save.junkCleared = (save.junkCleared || 0) + 1;
+      var mileMsg = "";
+      if (save.junkCleared === 10 || save.junkCleared === 30 || save.junkCleared === 60) {
+        addYukiXp(20);
+        if (save.junkCleared >= 30 && save.titles.indexOf("cleaner") < 0) save.titles.push("cleaner");
+        mileMsg = "　🎉 川のおそうじ " + save.junkCleared + "個達成！";
+      }
+      persistSave(); updateStatusBar();
+      SFX.plop();
+      if (Math.random() < 0.4) yukiSay(pickLine(YUKI_LINES.junk), "surprised", 2200);
+      resolveItemResult({
+        emoji: j.emoji, title: j.name + "を拾った",
+        desc: "川のおそうじ +1（累計 " + save.junkCleared + " 個）" + mileMsg,
+        earn: j.price, isNew: false, treasure: false
+      });
+      return;
+    }
+    // おたから
+    var t = TREASURE[it.id] || TREASURE.kosen;
+    var isNew = !save.treasures[it.id];
+    save.treasures[it.id] = true;
+    save.money += t.price; save.totals.earned += t.price;
+    var setBonus = checkTreasureSet(it.id);
+    var earn = t.price + (setBonus ? setBonus.bonus : 0);
+    if (setBonus) { save.money += setBonus.bonus; save.totals.earned += setBonus.bonus; }
+    addYukiXp(isNew ? 30 : 8);
+    if (isNew) addYukiMemory("おたから発見: " + t.name);
+    if (Object.keys(save.treasures).length >= Object.keys(TREASURE).length && save.titles.indexOf("treasureAll") < 0) save.titles.push("treasureAll");
+    persistSave(); updateStatusBar();
+    SFX.jingle(); buzz(60);
+    if (isNew) yukiSay(pickLine(YUKI_LINES.treasureNew), "excited", 3200, true);
+    resolveItemResult({
+      emoji: t.emoji, title: (isNew ? "✨ おたから発見！ " : "") + t.name,
+      desc: t.desc + (setBonus ? "　🎉 「" + setBonus.name + "」コンプ！ +" + setBonus.bonus.toLocaleString() + "円" : ""),
+      earn: earn, isNew: isNew, treasure: true
+    });
+  }
+
+  function resolveItemResult(r) {
+    if (trip) {
+      if (r.treasure && r.isNew) {
+        afterCastResolved(true);
+        var ncb = document.getElementById("nextCastBtn");
+        if (ncb) ncb.textContent = trip.castsLeft > 0 ? "次のキャストへ（残り" + trip.castsLeft + "投）" : "釣行結果へ";
+        renderResultItemFull(r);
+        showScreen("screen-result");
+        return;
+      }
+      showToast('<div>' + r.emoji + " " + r.title + '</div><div class="ct-earn">+' + r.earn.toLocaleString() + '円</div>', 1500);
+      afterCastResolved(false);
+      return;
+    }
+    renderResultItemFull(r);
+    showScreen("screen-result");
+  }
+
+  function renderResultItemFull(r) {
+    document.getElementById("resultCatch").classList.add("hidden");
+    document.getElementById("resultFail").classList.remove("hidden");
+    document.getElementById("failEmoji").textContent = r.emoji;
+    document.getElementById("failTitle").textContent = r.title;
+    document.getElementById("failDesc").innerHTML =
+      r.desc + '<div class="earn-line" style="margin-top:10px;">+ ' + r.earn.toLocaleString() + ' 円</div>';
+  }
+
   function renderResultCatch(fishId, info) {
     info = info || {};
     var isNew = !!info.isNew;
@@ -5893,6 +6061,40 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           '<div class="zi-rarity">未捕獲</div>';
       }
       grid.appendChild(item);
+    });
+    renderTreasureZukan();
+  }
+
+  function renderTreasureZukan() {
+    var tIds = Object.keys(TREASURE);
+    var got = tIds.filter(function (id) { return !!(save.treasures && save.treasures[id]); }).length;
+    var tc = document.getElementById("treasureCount");
+    if (tc) tc.textContent = got + " / " + tIds.length;
+    var jc = document.getElementById("junkCleaner");
+    if (jc) jc.innerHTML =
+      '<div class="dc-row">🧹 川のおそうじ: <b>' + (save.junkCleared || 0) + '</b> 個ひろった</div>' +
+      '<div class="dc-row">🗺 地図の切れ端: <b>' + (save.mapPieces || 0) + ' / 3</b>' + ((save.mapPieces || 0) >= 3 ? '（幻の湖 解禁済み）' : '') + '</div>';
+    var tg = document.getElementById("treasureGrid");
+    if (!tg) return;
+    tg.innerHTML = "";
+    tIds.forEach(function (id) {
+      var t = TREASURE[id];
+      var owned = !!(save.treasures && save.treasures[id]);
+      var item = document.createElement("div");
+      item.className = "zukan-item" + (owned ? "" : " locked");
+      if (owned) {
+        item.innerHTML =
+          '<div class="zi-art" style="font-size:38px;line-height:64px;">' + t.emoji + '</div>' +
+          '<div class="zi-name">' + t.name + '</div>' +
+          '<div class="zi-stats">' + t.price.toLocaleString() + '円</div>' +
+          '<div class="zi-rarity">' + (t.region ? t.region + '限定' : 'おたから') + '</div>';
+      } else {
+        item.innerHTML =
+          '<div class="zi-art" style="font-size:38px;line-height:64px;opacity:.25;">❓</div>' +
+          '<div class="zi-name">？？？</div>' +
+          '<div class="zi-rarity">未発見</div>';
+      }
+      tg.appendChild(item);
     });
   }
 
@@ -6079,6 +6281,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       yukiXp: save.yuki.xp, yukiLevel: yukiLevel(), lastYukiLine: yukiState.lastLine,
       pendingSize: fs.pendingSize,
       pendingVariant: fs.pendingVariant,
+      treasures: Object.keys(save.treasures || {}),
+      junkCleared: save.junkCleared || 0,
       unlocked: save.unlocked.slice(),
       mapZoom: { s: mapZoom.s, tx: mapZoom.tx, ty: mapZoom.ty }
     };
