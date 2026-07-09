@@ -111,6 +111,76 @@
       "emoji": "🐟",
       "rarity": "rare",
       "desc": "本物のシシャモは鵡川など北海道太平洋岸だけの固有種。"
+    },
+    "himemasu": {
+      "name": "ヒメマス",
+      "reading": "ひめます",
+      "emoji": "🐟",
+      "rarity": "rare",
+      "desc": "ベニザケの湖沼残留型。冷たい湖にすむ銀色の魚体は「湖の宝石」。産卵期は真っ赤に染まる。"
+    },
+    "karafutomasu": {
+      "name": "カラフトマス",
+      "reading": "からふとます",
+      "emoji": "🐟",
+      "rarity": "rare",
+      "desc": "オホーツクの川に群れで遡上するサケの仲間。背が盛り上がったオスは「セッパリマス」と呼ばれる。"
+    },
+    "kawamasu": {
+      "name": "カワマス",
+      "reading": "かわます",
+      "emoji": "🐟",
+      "rarity": "rare",
+      "desc": "北米原産のブルックトラウト。一部の湖沼に定着。橙色の腹と白い鰭の縁、青い縁取りの赤い斑が美しい。"
+    },
+    "chika": {
+      "name": "チカ",
+      "reading": "ちか",
+      "emoji": "🐟",
+      "rarity": "uncommon",
+      "desc": "ワカサギによく似た汽水の魚。河口や港で群れる。天ぷらや南蛮漬けが絶品。"
+    },
+    "tomiyo": {
+      "name": "トミヨ",
+      "reading": "とみよ",
+      "emoji": "🐟",
+      "rarity": "uncommon",
+      "desc": "とげを持つ小魚。湧き水の細流にすみ、水草で巣を作る。エゾトミヨ等トミヨ属を1つに統合。"
+    },
+    "itoyo": {
+      "name": "イトヨ",
+      "reading": "いとよ",
+      "emoji": "🐟",
+      "rarity": "common",
+      "desc": "背に3本のとげ。春に川へのぼり、オスは喉が婚姻色で赤く染まる。巣を作って卵を守る。"
+    },
+    "sunayatsume": {
+      "name": "スナヤツメ",
+      "reading": "すなやつめ",
+      "emoji": "🐟",
+      "rarity": "uncommon",
+      "desc": "小型のヤツメウナギ。砂にもぐって暮らす。目立たないが、きれいな流れのしるし。"
+    },
+    "ukigori": {
+      "name": "ウキゴリ",
+      "reading": "うきごり",
+      "emoji": "🐟",
+      "rarity": "common",
+      "desc": "川底にすむハゼの仲間。中流から河口までごく普通。ウキゴリ類を1つに統合。"
+    },
+    "ezohotoke": {
+      "name": "エゾホトケドジョウ",
+      "reading": "えぞほとけどじょう",
+      "emoji": "🐟",
+      "rarity": "rare",
+      "desc": "湿原の泥底にすむ小さなドジョウ。数が減っている希少種のため、釣れたらそっとリリース（売却0円）。"
+    },
+    "numagarei": {
+      "name": "ヌマガレイ",
+      "reading": "ぬまがれい",
+      "emoji": "🐟",
+      "rarity": "rare",
+      "desc": "海のカレイなのに川へのぼる変わり者。ひれの黒いしま模様が目印。河口でまれに掛かる。"
     }
   },
   "locations": [
@@ -128,7 +198,11 @@
         "fukudojo": 24,
         "funa": 16,
         "kajika": 10,
-        "amemasu": 5
+        "amemasu": 5,
+        "tomiyo": 12,
+        "itoyo": 8,
+        "ukigori": 8,
+        "sunayatsume": 6
       }
     },
     {
@@ -149,7 +223,10 @@
         "funa": 16,
         "koi": 14,
         "kawayatsume": 4,
-        "ito": 1
+        "ito": 1,
+        "chika": 6,
+        "numagarei": 5,
+        "ukigori": 6
       }
     },
     {
@@ -169,7 +246,9 @@
         "oshorokoma": 8,
         "fukudojo": 10,
         "sake": 18,
-        "kawayatsume": 4
+        "kawayatsume": 4,
+        "itoyo": 5,
+        "numagarei": 5
       }
     },
     {
@@ -189,7 +268,8 @@
         "sakuramasu": 12,
         "funa": 14,
         "kawayatsume": 4,
-        "ito": 1
+        "ito": 1,
+        "ukigori": 5
       }
     },
     {
@@ -208,7 +288,8 @@
         "ugui": 26,
         "sake": 16,
         "funa": 12,
-        "kawayatsume": 5
+        "kawayatsume": 5,
+        "ezohotoke": 4
       }
     },
     {
@@ -226,7 +307,10 @@
         "ugui": 26,
         "wakasagi": 18,
         "sake": 16,
-        "funa": 14
+        "funa": 14,
+        "karafutomasu": 8,
+        "chika": 10,
+        "itoyo": 5
       }
     },
     {
@@ -244,7 +328,8 @@
         "ugui": 24,
         "sake": 16,
         "nijimasu": 12,
-        "oshorokoma": 8
+        "oshorokoma": 8,
+        "karafutomasu": 10
       }
     },
     {
@@ -281,7 +366,8 @@
         "ugui": 24,
         "kajika": 12,
         "sake": 14,
-        "nijimasu": 12
+        "nijimasu": 12,
+        "sunayatsume": 5
       }
     },
     {
@@ -299,7 +385,10 @@
         "amemasu": 18,
         "ugui": 26,
         "nijimasu": 12,
-        "fukudojo": 10
+        "fukudojo": 10,
+        "tomiyo": 8,
+        "itoyo": 6,
+        "ukigori": 6
       }
     },
     {
@@ -317,7 +406,8 @@
         "sakuramasu": 18,
         "ugui": 24,
         "kajika": 12,
-        "sake": 12
+        "sake": 12,
+        "sunayatsume": 6
       }
     },
     {
@@ -335,7 +425,10 @@
         "amemasu": 20,
         "ugui": 24,
         "sake": 18,
-        "kajika": 10
+        "kajika": 10,
+        "chika": 10,
+        "numagarei": 4,
+        "ukigori": 5
       }
     },
     {
@@ -353,7 +446,9 @@
         "sakuramasu": 14,
         "sake": 18,
         "nijimasu": 12,
-        "funa": 12
+        "funa": 12,
+        "karafutomasu": 10,
+        "chika": 6
       }
     },
     {
@@ -389,7 +484,9 @@
         "amemasu": 22,
         "nijimasu": 16,
         "ugui": 22,
-        "sakuramasu": 10
+        "sakuramasu": 10,
+        "himemasu": 8,
+        "kawamasu": 5
       }
     },
     {
@@ -406,7 +503,8 @@
         "nijimasu": 18,
         "ugui": 24,
         "sakuramasu": 12,
-        "oshorokoma": 8
+        "oshorokoma": 8,
+        "kawamasu": 5
       }
     },
     {
@@ -459,7 +557,9 @@
         "nijimasu": 14,
         "koi": 18,
         "funa": 18,
-        "sakuramasu": 8
+        "sakuramasu": 8,
+        "ukigori": 6,
+        "ezohotoke": 4
       }
     },
     {
@@ -494,7 +594,8 @@
         "amemasu": 22,
         "nijimasu": 16,
         "ugui": 22,
-        "sakuramasu": 10
+        "sakuramasu": 10,
+        "himemasu": 8
       }
     },
     {
@@ -732,7 +833,7 @@
     }
   ],
   "meta": {
-    "fishCount": 16,
+    "fishCount": 26,
     "riverCount": 12,
     "damCount": 10,
     "note": "国土交通省 河川水辺の国勢調査（河川環境データベース）を参考に、ゲーム用に再構成したデータです。",
@@ -745,7 +846,8 @@
     },
     "sakeNote": "サケはレア扱い。通常ルアーでは掛かりにくく、ゲーム内の高額仕掛け「サーモン仕掛け」で狙う設計。",
     "gameSystems": "釣行ラン制(8投)・本日の大会(NPCリーダーボード)・道中イベント10種・ヌシ23体・隠しスポット朱鞠内湖・番屋(水槽/燻製/トロフィー)",
-    "progression": "のべ竿(小物)→ルアー/フライ→大物ロッドと竿を強化して大物・レア魚に挑む。入門河川・発寒川から始まり、豊平川(1200円)→石狩川(2000円)…天塩川(50000円)と解禁。"
+    "progression": "のべ竿(小物)→ルアー/フライ→大物ロッドと竿を強化して大物・レア魚に挑む。入門河川・発寒川から始まり、豊平川(1200円)→石狩川(2000円)…天塩川(50000円)と解禁。",
+    "fishNote": "v2で10種追加（計26種）。チカ・ヌマガレイなど汽水種は河口域、ヒメマス・カワマスは湖沼定着種としてゲーム用に配置。トミヨ属・ウキゴリ類は1エントリに統合。"
   },
   "rivers": {
     "ishikari": [

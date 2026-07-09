@@ -1121,7 +1121,7 @@
     </div>
     <div id="hallTotals" class="hall card"></div>
     <div class="zukan-summary">
-      <div class="zukan-count" id="zukanCount">0 / 16</div>
+      <div class="zukan-count" id="zukanCount">0 / 26</div>
       <div class="rarity-breakdown" id="rarityBreakdown"></div>
     </div>
     <div class="zukan-grid" id="zukanGrid"></div>
@@ -1286,7 +1286,11 @@ const SPAWN_TINT={
  nijimasu:{side:'#b4808e',back:'#3f4a44'},
  brown:{side:'#b8923e',back:'#4c3a20'},
  ito:{side:'#b06a56',back:'#663f38',fin:'#96473a'},
- ugui:{side:'#88a06a',back:'#44543c'}
+ ugui:{side:'#88a06a',back:'#44543c'},
+ himemasu:{back:'#3f5a3a',side:'#c04030',belly:'#d8705a',fin:'#a03024'},
+ karafutomasu:{back:'#4c4038',side:'#a06a5e',belly:'#d0b0a0',fin:'#5c4038'},
+ kawamasu:{side:'#8a7a4e',belly:'#e07038'},
+ itoyo:{side:'#9ab4b4',belly:'#e05a3c'}
 };
 function fishSVG(sp, opts={}){
   if(opts.variant==='spawn'&&SPAWN_TINT[sp.id]){
@@ -1486,6 +1490,48 @@ function sculpinSVG(sp,opts={}){
   return s;
 }
 
+// --- special: flatfish (numagarei) ---------------------------------------
+function flatfishSVG(sp,opts={}){
+  const sil=opts.silhouette, id='f'+sp.id+(opts.uid||'');
+  const rng=mulberry(sp.seed||9);
+  // 上から見たカレイ: 楕円の体＋周縁のひれ＋小さな尾
+  const body=`M 26 62 C 30 42 62 30 108 30 C 154 30 186 42 196 58 C 198 60 198 64 196 66 C 186 82 154 94 108 94 C 62 94 30 82 26 62 Z`;
+  const backDark=shadeHex(sp.back,-0.3);
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120"><defs>
+   <radialGradient id="${id}g" cx="0.42" cy="0.45" r="0.75">
+     <stop offset="0" stop-color="${sp.side}"/><stop offset="0.72" stop-color="${sp.back}"/><stop offset="1" stop-color="${backDark}"/>
+   </radialGradient>
+   <clipPath id="${id}c"><path d="${body}"/></clipPath></defs>`;
+  const fin=sil?'#26343b':sp.fin;
+  s+=`<path d="M 34 48 C 60 24 160 24 190 52 L 186 60 C 156 36 64 36 40 56 Z" fill="${fin}" opacity="0.95"/>`;
+  s+=`<path d="M 34 76 C 60 100 160 100 190 72 L 186 64 C 156 88 64 88 40 68 Z" fill="${fin}" opacity="0.95"/>`;
+  s+=`<path d="M 194 56 C 210 50 222 52 228 62 C 222 72 210 74 194 68 Z" fill="${fin}"/>`;
+  if(!sil){
+    s+=`<g opacity="0.55">`;
+    for(let i=0;i<6;i++){const x=52+i*24;
+      s+=`<path d="M ${x} 30 l 10 14 l -14 2 Z" fill="${sp.mottle}"/>`;
+      s+=`<path d="M ${x} 94 l 10 -14 l -14 -2 Z" fill="${sp.mottle}"/>`;}
+    s+=`</g>`;
+    s+=`<path d="M 198 56 L 226 58 M 198 62 L 229 62 M 198 68 L 226 66" stroke="#00000028" stroke-width="0.9" fill="none"/>`;
+  }
+  s+=`<path d="${body}" fill="${sil?'#26343b':`url(#${id}g)`}" stroke="${sil?'#26343b':'#00000030'}" stroke-width="1"/>`;
+  if(!sil){
+    s+=`<g clip-path="url(#${id}c)">`;
+    for(let i=0;i<30;i++){const x=40+rng()*140,y=38+rng()*48,r=1+rng()*3.4;
+      s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${sp.mottle}" opacity="${(0.2+rng()*0.3).toFixed(2)}"/>`;}
+    for(let i=0;i<20;i++){const x=40+rng()*140,y=38+rng()*48;
+      s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(0.5+rng()*0.9).toFixed(1)}" fill="${shadeHex(sp.belly,0.05)}" opacity="${(0.25+rng()*0.3).toFixed(2)}"/>`;}
+    s+=`<ellipse cx="104" cy="80" rx="70" ry="8" fill="#ffffff" opacity="0.10"/>`;
+    s+=`<path d="M 52 62 L 192 62" stroke="#00000022" stroke-width="1"/>`;
+    s+=`</g>`;
+    s+=`<circle cx="52" cy="50" r="4.6" fill="#141a1e"/><circle cx="52" cy="50" r="3.8" fill="#8a825e"/><circle cx="52" cy="50" r="2" fill="#05080a"/><circle cx="50.8" cy="48.8" r="1" fill="#fff" opacity="0.85"/>`;
+    s+=`<circle cx="62" cy="42" r="4.2" fill="#141a1e"/><circle cx="62" cy="42" r="3.4" fill="#8a825e"/><circle cx="62" cy="42" r="1.8" fill="#05080a"/><circle cx="60.9" cy="40.9" r="0.9" fill="#fff" opacity="0.85"/>`;
+    s+=`<path d="M 36 62 q 6 6 14 6" fill="none" stroke="#00000055" stroke-width="1.8"/>`;
+  }
+  s+=`</svg>`;
+  return s;
+}
+
 // --- species table --------------------------------------------------------
 const SPECIES_ART={
  sake:{id:'sake',seed:11,back:'#3f5a52',side:'#9fb3ac',belly:'#e8ede9',fin:'#42544e',adipose:true,
@@ -1555,6 +1601,40 @@ const SPECIES_ART={
    layers:[{t:'band',color:'#b2b6a6',op:0.55,w:5},{t:'spots',n:16,color:'#6e7466',rMin:0.5,rMax:1,yMin:-1,yMax:-0.3,op:0.6}]},
  kawayatsume:{id:'kawayatsume',seed:165,back:'#4c5648',side:'#7e8468',belly:'#cfcdb0',fin:'#5f6852',special:'lamprey'},
  kajika:{id:'kajika',seed:176,back:'#5d5546',side:'#8d8069',belly:'#d9cfb6',fin:'#6d6250',mottle:'#3f3626',special:'sculpin'},
+ himemasu:{id:'himemasu',seed:198,back:'#3a5a68',side:'#b8cdd4',belly:'#f2f6f6',fin:'#4a6470',adipose:true,
+   sheen:'#dce9ec',eyeRing:'#c4d2d4',irid:true,scaleR:2.4,scaleOp:0.10,
+   body:{len:164,depth:22,pedH:6.5,tail:'fork',tailLen:24,dorsalW:25,dorsalH:13,eye:4.4},
+   layers:[{t:'band',color:'#a8bcc4',op:0.35,w:6}]},
+ karafutomasu:{id:'karafutomasu',seed:209,back:'#46606a',side:'#b0c2c4',belly:'#eef2f0',fin:'#4c6068',adipose:true,
+   sheen:'#d4e2e2',eyeRing:'#bcccce',kype:true,irid:true,
+   body:{len:178,depth:26,pedH:7,tail:'fork',tailLen:26,dorsalW:27,dorsalH:13,jawDrop:4,eye:4.5},
+   layers:[{t:'spots',n:12,color:'#2e3c40',rMin:1.6,rMax:3,yMin:-1,yMax:-0.35,op:0.8},
+     {t:'spots',n:8,color:'#2e3c40',rMin:1.6,rMax:2.8,yMin:-0.8,yMax:0.5,op:0.8,onTail:true}]},
+ kawamasu:{id:'kawamasu',seed:220,back:'#3c4a34',side:'#7a8258',belly:'#e8b070',fin:'#d8703a',adipose:true,
+   sheen:'#a8ac80',eyeRing:'#c4b488',finEdge:'#f8f4ec',scaleOp:0.08,
+   body:{len:174,depth:25,pedH:7,tail:'trunc',tailLen:23,dorsalW:26,dorsalH:13,eye:4.5},
+   layers:[{t:'spots',n:30,color:'#d8dcb8',rMin:0.9,rMax:1.7,yMin:-1,yMax:-0.25,op:0.75},
+     {t:'spots',n:9,color:'#cc4838',rMin:1,rMax:1.5,halo:'#7a9ac4',yMin:-0.1,yMax:0.55,op:0.95},
+     {t:'parr',n:8,color:'#39442e',op:0.3}]},
+ chika:{id:'chika',seed:231,back:'#6e7e88',side:'#c2ccd2',belly:'#f2f4f5',fin:'#8e9aa2',adipose:true,
+   sheen:'#e6ecef',eyeRing:'#ccd4d8',irid:true,scaleR:2,scaleOp:0.08,
+   body:{len:156,depth:14,pedH:5,tail:'fork',tailLen:20,dorsalW:20,dorsalH:10,eye:4},
+   layers:[{t:'band',color:'#9fabb4',op:0.55,w:5}]},
+ tomiyo:{id:'tomiyo',seed:242,back:'#5a6248',side:'#9aa27c',belly:'#e8e6cc',fin:'#6e7458',
+   sheen:'#bcc09c',eyeRing:'#c0b888',
+   body:{len:118,depth:17,pedH:4.5,tail:'round',tailLen:14,dorsalW:16,dorsalH:8,eye:5},
+   layers:[{t:'spots',n:18,color:'#454c34',rMin:1,rMax:2,yMin:-1,yMax:0.6,op:0.5}]},
+ itoyo:{id:'itoyo',seed:253,back:'#5a6a74',side:'#aebcc4',belly:'#eef2f4',fin:'#7a8a92',irid:true,
+   sheen:'#dae4e8',eyeRing:'#c8d2d6',
+   body:{len:124,depth:18,pedH:4.5,tail:'round',tailLen:15,dorsalW:16,dorsalH:8,eye:5},
+   layers:[{t:'band',color:'#8a98a2',op:0.4,w:5}]},
+ sunayatsume:{id:'sunayatsume',seed:264,back:'#5c5a48',side:'#8e8a70',belly:'#d8d2b8',fin:'#6e6a54',special:'lamprey'},
+ ukigori:{id:'ukigori',seed:275,back:'#4c5244',side:'#8a8a6e',belly:'#d6d0b4',fin:'#5e6250',mottle:'#33382a',special:'sculpin'},
+ ezohotoke:{id:'ezohotoke',seed:286,back:'#6a5a44',side:'#a08a64',belly:'#e6d8b8',fin:'#7a6a4e',barbels:true,scales:false,
+   sheen:'#c0aa80',eyeRing:'#b8a070',
+   body:{len:130,depth:16,pedH:5,tail:'round',tailLen:16,dorsalW:16,dorsalH:8,snout:1,eye:4.2},
+   layers:[{t:'spots',n:40,color:'#4c3e2a',rMin:0.5,rMax:1.1,yMin:-1,yMax:0.7,op:0.55}]},
+ numagarei:{id:'numagarei',seed:297,back:'#6b5f44',side:'#93835c',belly:'#e8e0c8',fin:'#c8a04a',mottle:'#3c3628',special:'flatfish'},
 };
 
 
@@ -1741,6 +1821,7 @@ function renderFish(id,opts={}){
   if(!sp) return '';
   if(sp.special==='lamprey') return lampreySVG(sp,opts);
   if(sp.special==='sculpin') return sculpinSVG(sp,opts);
+  if(sp.special==='flatfish') return flatfishSVG(sp,opts);
   return fishSVG(sp,opts);
 }
 
@@ -1865,7 +1946,27 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     "emoji": "🐟",
     "rarity": "rare",
     "desc": "本物のシシャモは鵡川など北海道太平洋岸だけの固有種。"
-  }
+  },
+  "himemasu":     { "name": "ヒメマス",     "reading": "ひめます",     "emoji": "🐟", "rarity": "rare",
+    "desc": "ベニザケの湖沼残留型。冷たい湖にすむ銀色の魚体は「湖の宝石」。産卵期は真っ赤に染まる。" },
+  "karafutomasu": { "name": "カラフトマス", "reading": "からふとます", "emoji": "🐟", "rarity": "rare",
+    "desc": "オホーツクの川に群れで遡上するサケの仲間。背が盛り上がったオスは「セッパリマス」と呼ばれる。" },
+  "kawamasu":     { "name": "カワマス",     "reading": "かわます",     "emoji": "🐟", "rarity": "rare",
+    "desc": "北米原産のブルックトラウト。一部の湖沼に定着。橙色の腹と白い鰭の縁、青い縁取りの赤い斑が美しい。" },
+  "chika":        { "name": "チカ",         "reading": "ちか",         "emoji": "🐟", "rarity": "uncommon",
+    "desc": "ワカサギによく似た汽水の魚。河口や港で群れる。天ぷらや南蛮漬けが絶品。" },
+  "tomiyo":       { "name": "トミヨ",       "reading": "とみよ",       "emoji": "🐟", "rarity": "uncommon",
+    "desc": "とげを持つ小魚。湧き水の細流にすみ、水草で巣を作る。エゾトミヨ等トミヨ属を1つに統合。" },
+  "itoyo":        { "name": "イトヨ",       "reading": "いとよ",       "emoji": "🐟", "rarity": "common",
+    "desc": "背に3本のとげ。春に川へのぼり、オスは喉が婚姻色で赤く染まる。巣を作って卵を守る。" },
+  "sunayatsume":  { "name": "スナヤツメ",   "reading": "すなやつめ",   "emoji": "🐟", "rarity": "uncommon",
+    "desc": "小型のヤツメウナギ。砂にもぐって暮らす。目立たないが、きれいな流れのしるし。" },
+  "ukigori":      { "name": "ウキゴリ",     "reading": "うきごり",     "emoji": "🐟", "rarity": "common",
+    "desc": "川底にすむハゼの仲間。中流から河口までごく普通。ウキゴリ類を1つに統合。" },
+  "ezohotoke":    { "name": "エゾホトケドジョウ", "reading": "えぞほとけどじょう", "emoji": "🐟", "rarity": "rare",
+    "desc": "湿原の泥底にすむ小さなドジョウ。数が減っている希少種のため、釣れたらそっとリリース（売却0円）。" },
+  "numagarei":    { "name": "ヌマガレイ",   "reading": "ぬまがれい",   "emoji": "🐟", "rarity": "rare",
+    "desc": "海のカレイなのに川へのぼる変わり者。ひれの黒いしま模様が目印。河口でまれに掛かる。" }
 };
 
   var LOCATIONS = [
@@ -1883,7 +1984,11 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "fukudojo": 24,
       "funa": 16,
       "kajika": 10,
-      "amemasu": 5
+      "amemasu": 5,
+      "tomiyo": 12,
+      "itoyo": 8,
+      "ukigori": 8,
+      "sunayatsume": 6
     }
   },
   {
@@ -1904,7 +2009,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "funa": 16,
       "koi": 14,
       "kawayatsume": 4,
-      "ito": 1
+      "ito": 1,
+      "chika": 6,
+      "numagarei": 5,
+      "ukigori": 6
     }
   },
   {
@@ -1924,7 +2032,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "oshorokoma": 8,
       "fukudojo": 10,
       "sake": 18,
-      "kawayatsume": 4
+      "kawayatsume": 4,
+      "itoyo": 5,
+      "numagarei": 5
     }
   },
   {
@@ -1944,7 +2054,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "sakuramasu": 12,
       "funa": 14,
       "kawayatsume": 4,
-      "ito": 1
+      "ito": 1,
+      "ukigori": 5
     }
   },
   {
@@ -1963,7 +2074,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "ugui": 26,
       "sake": 16,
       "funa": 12,
-      "kawayatsume": 5
+      "kawayatsume": 5,
+      "ezohotoke": 4
     }
   },
   {
@@ -1981,7 +2093,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "ugui": 26,
       "wakasagi": 18,
       "sake": 16,
-      "funa": 14
+      "funa": 14,
+      "karafutomasu": 8,
+      "chika": 10,
+      "itoyo": 5
     }
   },
   {
@@ -1999,7 +2114,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "ugui": 24,
       "sake": 16,
       "nijimasu": 12,
-      "oshorokoma": 8
+      "oshorokoma": 8,
+      "karafutomasu": 10
     }
   },
   {
@@ -2036,7 +2152,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "ugui": 24,
       "kajika": 12,
       "sake": 14,
-      "nijimasu": 12
+      "nijimasu": 12,
+      "sunayatsume": 5
     }
   },
   {
@@ -2054,7 +2171,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "amemasu": 18,
       "ugui": 26,
       "nijimasu": 12,
-      "fukudojo": 10
+      "fukudojo": 10,
+      "tomiyo": 8,
+      "itoyo": 6,
+      "ukigori": 6
     }
   },
   {
@@ -2072,7 +2192,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "sakuramasu": 18,
       "ugui": 24,
       "kajika": 12,
-      "sake": 12
+      "sake": 12,
+      "sunayatsume": 6
     }
   },
   {
@@ -2090,7 +2211,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "amemasu": 20,
       "ugui": 24,
       "sake": 18,
-      "kajika": 10
+      "kajika": 10,
+      "chika": 10,
+      "numagarei": 4,
+      "ukigori": 5
     }
   },
   {
@@ -2108,7 +2232,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "sakuramasu": 14,
       "sake": 18,
       "nijimasu": 12,
-      "funa": 12
+      "funa": 12,
+      "karafutomasu": 10,
+      "chika": 6
     }
   },
   {
@@ -2144,7 +2270,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "amemasu": 22,
       "nijimasu": 16,
       "ugui": 22,
-      "sakuramasu": 10
+      "sakuramasu": 10,
+      "himemasu": 8,
+      "kawamasu": 5
     }
   },
   {
@@ -2161,7 +2289,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "nijimasu": 18,
       "ugui": 24,
       "sakuramasu": 12,
-      "oshorokoma": 8
+      "oshorokoma": 8,
+      "kawamasu": 5
     }
   },
   {
@@ -2214,7 +2343,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "nijimasu": 14,
       "koi": 18,
       "funa": 18,
-      "sakuramasu": 8
+      "sakuramasu": 8,
+      "ukigori": 6,
+      "ezohotoke": 4
     }
   },
   {
@@ -2249,7 +2380,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       "amemasu": 22,
       "nijimasu": 16,
       "ugui": 22,
-      "sakuramasu": 10
+      "sakuramasu": 10,
+      "himemasu": 8
     }
   },
   {
@@ -2302,7 +2434,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     "kajika": 0.5,
     "wakasagi": 0.5,
     "shishamo": 0.6,
-    "fukudojo": 0.4
+    "fukudojo": 0.4,
+    "himemasu": 1.5,
+    "karafutomasu": 0.5,
+    "kawamasu": 1.5,
+    "chika": 0.5,
+    "tomiyo": 0.3,
+    "itoyo": 0.3,
+    "sunayatsume": 0.2,
+    "ukigori": 0.3,
+    "ezohotoke": 0.2,
+    "numagarei": 0.5
   },
   "minnow": {
     "ito": 3,
@@ -2317,7 +2459,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     "koi": 0.5,
     "wakasagi": 0.3,
     "kajika": 0.4,
-    "fukudojo": 0.3
+    "fukudojo": 0.3,
+    "himemasu": 1.2,
+    "karafutomasu": 0.5,
+    "kawamasu": 1.5,
+    "chika": 0.4,
+    "tomiyo": 0.2,
+    "itoyo": 0.2,
+    "sunayatsume": 0.2,
+    "ukigori": 0.3,
+    "ezohotoke": 0.2,
+    "numagarei": 0.6
   },
   "spinner": {
     "sake": 0.15,
@@ -2329,7 +2481,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     "funa": 0.5,
     "koi": 0.5,
     "wakasagi": 0.5,
-    "kajika": 0.6
+    "kajika": 0.6,
+    "himemasu": 1.4,
+    "karafutomasu": 0.4,
+    "kawamasu": 1.5,
+    "chika": 0.5,
+    "tomiyo": 0.3,
+    "itoyo": 0.3,
+    "sunayatsume": 0.2,
+    "ukigori": 0.4,
+    "ezohotoke": 0.2,
+    "numagarei": 0.4
   },
   "fly": {
     "sakuramasu": 1.7,
@@ -2342,7 +2504,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     "ito": 0.4,
     "sake": 0.1,
     "koi": 0.3,
-    "funa": 0.6
+    "funa": 0.6,
+    "himemasu": 1.0,
+    "karafutomasu": 0.3,
+    "kawamasu": 1.5,
+    "chika": 0.8,
+    "tomiyo": 1.0,
+    "itoyo": 1.0,
+    "sunayatsume": 0.6,
+    "ukigori": 0.6,
+    "ezohotoke": 0.6,
+    "numagarei": 0.3
   },
   "bait": {
     "sake": 0.3,
@@ -2357,7 +2529,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     "amemasu": 1.2,
     "ito": 0.5,
     "nijimasu": 0.7,
-    "oshorokoma": 0.9
+    "oshorokoma": 0.9,
+    "himemasu": 0.6,
+    "karafutomasu": 0.3,
+    "kawamasu": 0.7,
+    "chika": 1.6,
+    "tomiyo": 1.5,
+    "itoyo": 1.4,
+    "sunayatsume": 1.5,
+    "ukigori": 1.6,
+    "ezohotoke": 1.6,
+    "numagarei": 1.5
   }
 };
 
@@ -2393,7 +2575,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     LURE_MULTIPLIERS.salmon_rig = {
       sake: 4.5, ito: 1.2, sakuramasu: 1.1, amemasu: 0.7, nijimasu: 0.5, brown: 0.7,
       ugui: 0.3, funa: 0.2, koi: 0.25, wakasagi: 0.1, kajika: 0.2, fukudojo: 0.15,
-      oshorokoma: 0.3, ayu: 0.1, shishamo: 0.3, kawayatsume: 0.4
+      oshorokoma: 0.3, ayu: 0.1, shishamo: 0.3, kawayatsume: 0.4,
+      karafutomasu: 3.5, himemasu: 0.4, kawamasu: 0.5, chika: 0.2, tomiyo: 0.05, itoyo: 0.05, sunayatsume: 0.05, ukigori: 0.1, ezohotoke: 0.05, numagarei: 0.3
     };
   })();
 
@@ -2487,7 +2670,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     id: "shumarinai", name: "朱鞠内湖", type: "dam", region: "道北",
     lon: 142.15, lat: 44.32, signature: "ito",
     desc: "地図にない幻の湖。日本最大のイトウが潜むという。",
-    fish: { ito: 6, amemasu: 22, wakasagi: 20, ugui: 18, sakuramasu: 8 }
+    fish: { ito: 6, amemasu: 22, wakasagi: 20, ugui: 18, sakuramasu: 8, himemasu: 6 }
   };
   function unlockHiddenSpot() {
     if (LOCATIONS.some(function (l) { return l.id === "shumarinai"; })) return;
@@ -2513,23 +2696,28 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       sake: [55, 90], sakuramasu: [25, 60], amemasu: [20, 70], oshorokoma: [12, 32],
       nijimasu: [20, 65], brown: [25, 75], ito: [60, 140], wakasagi: [6, 15],
       ugui: [15, 45], fukudojo: [8, 20], koi: [30, 85], funa: [15, 40],
-      kawayatsume: [30, 58], ayu: [12, 28], shishamo: [10, 18], kajika: [8, 25]
+      kawayatsume: [30, 58], ayu: [12, 28], shishamo: [10, 18], kajika: [8, 25],
+      himemasu: [20, 45], karafutomasu: [40, 65], kawamasu: [20, 55], chika: [8, 22],
+      tomiyo: [4, 9], itoyo: [5, 10], sunayatsume: [10, 18], ukigori: [6, 14],
+      ezohotoke: [4, 8], numagarei: [15, 45]
     },
     price: { common: 120, uncommon: 340, rare: 900, legend: 4200 },
-    priceOverride: { sake: 2800 },                       // サケは高級魚
-    fightOverride: { sake: { stam: 1.3, pull: 1.35 } },  // サケは強烈に走る
+    priceOverride: { sake: 2800, karafutomasu: 1600, ezohotoke: 0 },                       // サケは高級魚
+    fightOverride: { sake: { stam: 1.3, pull: 1.35 }, karafutomasu: { stam: 1.15, pull: 1.2 } },  // サケは強烈に走る
     sizeExpBase: 2.6,       // 大きいほど稀（小さいほど大物が出やすい）
     variantGiantRate: 0.01,
     variantSpawnRate: 0.04
   };
-  var SPAWN_ABLE = ["sake", "sakuramasu", "amemasu", "oshorokoma", "nijimasu", "brown", "ito", "ugui"];
+  var SPAWN_ABLE = ["sake", "sakuramasu", "amemasu", "oshorokoma", "nijimasu", "brown", "ito", "ugui", "himemasu", "karafutomasu", "kawamasu", "itoyo"];
 
   // ===== ロッド進行（RPGサクセス: のべ竿→ルアー/フライ→大物ロッド）=====
   // 魚のクラス: 0=小物(雑魚) / 1=中型(マス) / 2=大物(トロフィー)
   var FISH_TIER = {
     ugui: 0, funa: 0, fukudojo: 0, kajika: 0, wakasagi: 0, koi: 0,
+    chika: 0, tomiyo: 0, itoyo: 0, sunayatsume: 0, ukigori: 0, ezohotoke: 0,
     amemasu: 1, nijimasu: 1, sakuramasu: 1, oshorokoma: 1, brown: 1, ayu: 1, shishamo: 1, kawayatsume: 1,
-    sake: 2, ito: 2
+    himemasu: 1, kawamasu: 1, numagarei: 1,
+    sake: 2, ito: 2, karafutomasu: 2
   };
   // ロッドごとの「掛かりやすさ」倍率 [小物, 中型, 大物]。竿が弱いほど大物は掛からない
   var ROD_TIER_POWER = {
@@ -2775,7 +2963,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     { id: "itoh1", name: "イトウハンター", check: function (s) { return s.records.ito && s.records.ito.count >= 1; } },
     { id: "itoh3", name: "イトウマスター", check: function (s) { return s.records.ito && s.records.ito.count >= 3; } },
     { id: "allloc", name: "北海道制覇", check: function (s) { return s.unlocked.length >= 22; } },
-    { id: "comp", name: "図鑑コンプリート", check: function (s) { return Object.keys(s.zukan).length >= 16; } },
+    { id: "comp", name: "図鑑コンプリート", check: function (s) { return Object.keys(s.zukan).length >= Object.keys(FISH).length; } },
     { id: "champ", name: "本日の優勝者", check: function () { return false; } },
     { id: "nushi3", name: "ヌシ狩り", check: function () { return false; } },
     { id: "nushiAll", name: "全てのヌシを制す者", check: function () { return false; } },
