@@ -369,6 +369,16 @@
     background: linear-gradient(180deg, rgba(110,225,145,.30), rgba(110,225,145,.14));
     border-left: 1px solid rgba(180,255,200,.55); border-right: 1px solid rgba(180,255,200,.55);
   }
+  .gauge-zone.gold {
+    background: linear-gradient(180deg, rgba(255,215,110,.55), rgba(255,180,60,.25));
+    border-left: 1px solid rgba(255,230,160,.9); border-right: 1px solid rgba(255,230,160,.9);
+    box-shadow: 0 0 12px rgba(255,210,90,.65);
+    animation: goldPulse .45s ease-in-out infinite alternate;
+  }
+  @keyframes goldPulse { from { filter: brightness(1); } to { filter: brightness(1.35); } }
+  .next-goal { border-left: 4px solid #e0a020; }
+  .next-goal .ng-title { font-weight: 800; font-size: 13.5px; color: var(--ink); }
+  .next-goal .ng-sub { font-size: 11.5px; color: var(--sub-ink); margin-top: 2px; }
   #tensionFill {
     position: absolute; top: 2px; bottom: 2px; left: 2px; width: 50%;
     border-radius: 6px;
@@ -882,6 +892,7 @@
       </div>
       <div class="sub">実在の川とダムで、実在の魚を追う図鑑釣行</div>
       <div id="rankBar" class="rank-bar"></div>
+      <div id="nextGoal" class="daily-card next-goal"></div>
       <div id="dailyCard" class="daily-card"></div>
       <div id="yukiMissions" class="yuki-missions"></div>
       <div class="title-buttons">
@@ -2915,6 +2926,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (state.selectedLureId === "oomono") exp -= 0.35;
     if (state.daily && state.daily.hotLoc === state.selectedLocationId) exp -= 0.2;
     if (fs.castZone === "far") exp -= 0.3;
+    if (fs.perfect) exp -= 0.15; // ジャストキャストは型が良い
     var variant = null;
     var vb = rankVariantBonus();               // 釣り人ランク特典で特別個体が出やすく
     var giantRate = BAL.variantGiantRate + vb * 0.5;
@@ -3013,6 +3025,67 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (rk) rk.textContent = "🎣 Lv." + rankLv();
   }
 
+  // ===== つぎの目標（常に「次の一手」を1つだけ示すガイド）=====
+  function nextGoal() {
+    var money = save.money;
+    var zk = Object.keys(save.zukan).length;
+    function yen(n) { return n.toLocaleString() + "円"; }
+    if (save.totals.catches < 1)
+      return { i: "🎣", t: "はじめての1匹を釣ろう", s: "「▶ 釣りを始める」→ 発寒川で竿を出そう" };
+    if (!isUnlocked("toyohira")) {
+      var c1 = LOCK_COST.toyohira;
+      return money >= c1
+        ? { i: "🔓", t: "豊平川を解禁しよう（" + yen(c1) + "）", s: "地図で🔒のピンをタップ。サケがのぼる札幌の川" }
+        : { i: "💰", t: "豊平川の解禁費用をためよう", s: "あと" + yen(c1 - money) + "。発寒川の小物を数で稼ごう" };
+    }
+    if (save.gear.rods.indexOf("lure_rod") < 0) {
+      var p1 = rankPrice(3500);
+      return money >= p1
+        ? { i: "🛒", t: "ルアーロッドを買おう（" + yen(p1) + "）", s: "釣具店へ。マス類が本格的に狙えるようになる" }
+        : { i: "💰", t: "ルアーロッドの資金をためよう", s: "あと" + yen(p1 - money) + "。買えばアメマス・ニジマスが本命に" };
+    }
+    if (!isUnlocked("ishikari")) {
+      var c2 = LOCK_COST.ishikari;
+      return money >= c2
+        ? { i: "🔓", t: "石狩川を解禁しよう（" + yen(c2) + "）", s: "北海道一の大河。魚種がいちばん多い" }
+        : { i: "💰", t: "石狩川の解禁費用をためよう", s: "あと" + yen(c2 - money) };
+    }
+    if (zk < 8) return { i: "📖", t: "図鑑を8種まで埋めよう（いま" + zk + "種）", s: "場所と仕掛けを変えると新顔に会える" };
+    if (save.gear.lures.indexOf("salmon_rig") < 0) {
+      var p2 = rankPrice(15000);
+      return money >= p2
+        ? { i: "🛒", t: "サーモン仕掛けを買おう（" + yen(p2) + "）", s: "川のサケはこれでしか本気にならない" }
+        : { i: "💰", t: "サーモン仕掛けの資金をためよう", s: "あと" + yen(p2 - money) + "。目標はサケ！" };
+    }
+    if (!save.zukan.sake) return { i: "🐟", t: "サケを釣り上げよう", s: "サーモン仕掛け×豊平川・石狩川。走りに気をつけて" };
+    if (save.gear.rods.indexOf("big_rod") < 0) {
+      var p3 = rankPrice(20000);
+      return money >= p3
+        ? { i: "🛒", t: "大物ロッドを買おう（" + yen(p3) + "）", s: "イトウ・ヌシに立ち向かう最終装備" }
+        : { i: "💰", t: "大物ロッドの資金をためよう", s: "あと" + yen(p3 - money) };
+    }
+    if (Object.keys(save.nushi || {}).length < 1) return { i: "🐲", t: "はじめてのヌシを討伐しよう", s: "各釣り場に1体。時間帯・天気の条件で現れる" };
+    if (!isUnlocked("teshio")) {
+      var c3 = LOCK_COST.teshio;
+      return money >= c3
+        ? { i: "🔓", t: "イトウの聖地・天塩川を解禁！（" + yen(c3) + "）", s: "日本最大の淡水魚がきみを待つ" }
+        : { i: "💰", t: "天塩川へ、遠征資金をためよう", s: "あと" + yen(c3 - money) + "。大会と燻製も活用しよう" };
+    }
+    if (!save.zukan.ito) return { i: "🐉", t: "幻の魚イトウを釣り上げよう", s: "天塩川×ミノー×大物ロッド。雨の日はさらに熱い" };
+    if ((save.mapPieces || 0) < 3 && !isUnlocked("shumarinai")) return { i: "🗺", t: "地図の切れ端をあつめよう（" + (save.mapPieces || 0) + "/3）", s: "釣行中のイベントでまれに手に入る" };
+    if (zk < Object.keys(FISH).length) return { i: "📖", t: "図鑑コンプまであと" + (Object.keys(FISH).length - zk) + "種！", s: "湖のヒメマス、河口のチカやヌマガレイは探したか？" };
+    if (Object.keys(save.nushi || {}).length < Object.keys(NUSHI).length) return { i: "🐲", t: "すべてのヌシを制覇しよう（" + Object.keys(save.nushi || {}).length + "/" + Object.keys(NUSHI).length + "）", s: "剥製が番屋の壁を埋めていく" };
+    return { i: "👑", t: "きみはもう北の釣聖。大会全勝を目指そう", s: "毎日の大会1位と、たからもの図鑑コンプが残っている" };
+  }
+  function renderNextGoal() {
+    var el = document.getElementById("nextGoal");
+    if (!el) return;
+    var g = nextGoal();
+    el.innerHTML = '<div class="dc-head">🧭 つぎの目標</div>' +
+      '<div class="ng-title">' + g.i + " " + g.t + '</div>' +
+      (g.s ? '<div class="ng-sub">' + g.s + '</div>' : "");
+  }
+
   function renderRankBar() {
     var el = document.getElementById("rankBar");
     if (!el) return;
@@ -3088,6 +3161,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (id === "screen-title" && typeof renderDailyCard === "function") {
       renderDailyCard(); updateLodgeBadge();
       if (typeof renderRankBar === "function") renderRankBar();
+      if (typeof renderNextGoal === "function") renderNextGoal();
       if (typeof renderYukiMissions === "function") renderYukiMissions();
       if (typeof yukiGreet === "function") yukiGreet();
       var hy = document.getElementById("heroYuki");
@@ -4728,14 +4802,15 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       earned: 0, score: 0,
       noBarashi: true, big: false,
       events: 0, buffs: {}, rain: false,
-      duel: null, over: false
+      duel: null, over: false,
+      combo: 0
     };
     updateCastsBadge();
   }
 
   function updateCastsBadge() {
     var el = document.getElementById("castsLeftBadge");
-    if (el) el.textContent = trip ? "🎣 残り " + trip.castsLeft + " 投" : "";
+    if (el) el.textContent = trip ? "🎣 残り " + trip.castsLeft + " 投" + (trip.combo >= 2 ? "　🔥コンボ×" + trip.combo : "") : "";
   }
 
   function tripAddCatch(fishId, cm, ratio, variant, earn) {
@@ -5504,6 +5579,21 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   // ===== 釣りフェーズ管理 =====
   var FIGHT_STAMINA = { common: 4.2, uncommon: 5.8, rare: 7.2, legend: 8.5 };
   var FIGHT_PULL = { common: 0.75, uncommon: 0.95, rare: 1.15, legend: 1.45 };
+
+  // ===== ファイト2.0: 魚ごとの「戦い方」 =====
+  // runner=走る(前兆あり) / jumper=跳ぶ(離して耐える) / bottom=底に張り付く(連打で剥がす)
+  // zigzag=ゾーンが暴れる曲者 / quick=瞬発型(短期決戦・ゴールドチャンス)
+  var FIGHT_STYLE_OF = {
+    sake: "runner", karafutomasu: "runner", sakuramasu: "runner", himemasu: "runner",
+    nijimasu: "jumper", ayu: "jumper", amemasu: "jumper", kawamasu: "jumper",
+    koi: "bottom", kajika: "bottom", ukigori: "bottom", numagarei: "bottom",
+    funa: "bottom", fukudojo: "bottom", ezohotoke: "bottom", kawayatsume: "bottom", sunayatsume: "bottom",
+    ito: "zigzag", brown: "zigzag", oshorokoma: "zigzag",
+    wakasagi: "quick", chika: "quick", tomiyo: "quick", itoyo: "quick", ugui: "quick", shishamo: "quick"
+  };
+  var FIGHT_STYLE_LABEL = {
+    runner: "⚡ 走り屋", jumper: "🌊 ジャンパー", bottom: "🪨 底もの", zigzag: "🌀 曲者", quick: "✨ 瞬発型"
+  };
   var RARITY_IDX = { common: 0, uncommon: 1, rare: 2, legend: 3 };
 
   var fs = {
@@ -5569,10 +5659,18 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   function launchCast() {
     var v = fs.aimV || 0.5;
     fs.castZone = v >= 0.72 ? "far" : v < 0.28 ? "near" : "mid";
+    fs.perfect = v >= 0.95; // ジャストキャスト: バーの端ぴったり
     document.getElementById("castMeter").classList.add("hidden");
     fs.phase = "cast";
     fs.castT = 0;
-    setStageText(fs.castZone === "far" ? "沖に向かってフルキャスト！" : fs.castZone === "near" ? "手前にポチャン…" : "キャスト！");
+    if (fs.perfect) {
+      setStageText("✨ ジャストキャスト！！", true);
+      showToast('<div style="color:#ffe9a8;font-weight:800;">✨ ジャストキャスト！</div>', 900);
+      cv.flash = 0.4;
+      buzz([20, 30, 20]);
+    } else {
+      setStageText(fs.castZone === "far" ? "沖に向かってフルキャスト！" : fs.castZone === "near" ? "手前にポチャン…" : "キャスト！");
+    }
     SFX.whoosh();
     var waitMs = state.time.mazume ? (800 + Math.random() * 1700) : (1200 + Math.random() * 2800);
     if (trip && trip.buffs.school > 0) waitMs = 300;
@@ -5584,6 +5682,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (fs.phase !== "wait" && fs.phase !== "cast") return;
     var bouzuRate = state.time && state.time.mazume ? 0.08 : 0.15;
     if (fs.castZone === "near") bouzuRate += 0.10;
+    if (fs.perfect) bouzuRate = Math.max(0, bouzuRate - 0.08); // ジャストキャストはほぼ確実に食う
     if (trip && trip.buffs.school > 0) { bouzuRate = 0; trip.buffs.school--; }
     if (state.selectedLureId === "glow_minnow" && state.time && state.time.night) bouzuRate = Math.min(bouzuRate, 0.07);
     if (state.daily && state.daily.hotLoc === state.selectedLocationId) bouzuRate = Math.max(0.05, bouzuRate - 0.05);
@@ -5603,6 +5702,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       state.pendingItem = { kind: "junk", id: JUNK_ITEMS[Math.floor(Math.random() * JUNK_ITEMS.length)].id };
     }
     state.pendingFishId = state.pendingItem ? null : drawFish(state.selectedLocationId, state.selectedLureId, bouzuRate);
+    if (window.__fishForce) { state.pendingItem = null; state.pendingFishId = window.__fishForce; window.__fishForce = null; }
     // ヌシ出現判定（未討伐・条件一致・低確率）
     fs.isNushi = false;
     var nu = NUSHI[state.selectedLocationId];
@@ -5667,6 +5767,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     spawnSplash();
     SFX.splash();
     buzz([30, 40, 40]);
+    // ヒットストップ＋白フラッシュ（アワセの手応え）
+    fs.hitStopUntil = performance.now() + 110;
+    cv.flash = 0.85;
+    cv.shakeAmp = Math.max(cv.shakeAmp, 5);
     if (state.pendingItem) {
       // 川のアイテム（がらくた／おたから）
       fs.phase = "junk";
@@ -5714,8 +5818,29 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fs.slackTime = 0; fs.holding = false;
     fs.pulling = false;
     fs.nextPullAt = performance.now() + 600 + Math.random() * 800;
+    // ファイト2.0: 魚の戦い方で戦闘ルールが変わる
+    fs.style = FIGHT_STYLE_OF[fs.fightFishId] || "quick";
+    fs.runTelegraph = false;
+    fs.jumping = false; fs.nextJumpAt = Infinity; fs.jumpHoldT = 0;
+    fs.anchored = false; fs.nextAnchorAt = Infinity; fs.anchorHits = 0;
+    fs.golden = false; fs.nextGoldenAt = Infinity;
+    if (fs.style === "runner") {
+      // 走り屋は必ず走る（小物でも）。前兆(0.7秒)つき
+      fs.nextBigRunAt = performance.now() + 1900 + Math.random() * 2000;
+    } else if (fs.style === "jumper") {
+      fs.nextJumpAt = performance.now() + 2300 + Math.random() * 2400;
+    } else if (fs.style === "bottom") {
+      fs.nextAnchorAt = performance.now() + 2000 + Math.random() * 2400;
+    } else if (fs.style === "zigzag") {
+      fs.zoneWander = Math.max(fs.zoneWander, 12);
+    } else if (fs.style === "quick") {
+      fs.fightStamMul *= 0.55;                    // 短期決戦
+      fs.zoneW += 6; fs.zoneLo = 52 - fs.zoneW / 2; fs.zoneHi = 52 + fs.zoneW / 2;
+      fs.nextGoldenAt = performance.now() + 1600 + Math.random() * 1500;
+    }
     document.getElementById("fightUi").classList.add("show");
-    setStageText("長押しで巻け！", true);
+    var styleHint = { runner: "走り屋だ！走りの前兆を見逃すな", jumper: "ジャンパーだ！跳んだら離せ", bottom: "底ものだ！張り付いたら連打", zigzag: "曲者だ！ゾーンから目を離すな", quick: "瞬発型！ゴールドで一気に巻け" }[fs.style];
+    setStageText("長押しで巻け！（" + styleHint + "）", true);
   }
 
   function fightTick(now, dt) {
@@ -5734,9 +5859,16 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       fs.pulling = false;
       fs.nextPullAt = now + Math.max(280, 500 - fs.diff * 200) + Math.random() * (950 - fs.diff * 400);
     }
-    // ビッグラン（走り）: 掴んだままだと一気にブレイク
+    // ビッグラン（走り）: 掴んだままだと一気にブレイク。走り屋は前兆(⚡)が出る
+    if (fs.style === "runner" && !fs.bigRun && !fs.runTelegraph && now >= fs.nextBigRunAt - 700) {
+      fs.runTelegraph = true;
+      setStageText("⚡ ……来るぞ……！", true);
+      cv.shakeAmp = Math.max(cv.shakeAmp, 2.5);
+      buzz(25);
+    }
     if (!fs.bigRun && now >= fs.nextBigRunAt) {
       fs.bigRun = true;
+      fs.runTelegraph = false;
       fs.bigRunEndAt = now + 800 + fs.diff * 700;
       setStageText("走った！ 離してしのげ！！", true);
       if (Math.random() < 0.5) yukiSay(pickLine(YUKI_LINES.bigRun), "surprised", 1400, true);
@@ -5746,12 +5878,76 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
     if (fs.bigRun && now >= fs.bigRunEndAt) {
       fs.bigRun = false;
-      fs.nextBigRunAt = now + 2800 + Math.random() * 3200;
-      setStageText("長押しで巻け！", true);
+      fs.nextBigRunAt = now + (fs.style === "runner" ? 2200 + Math.random() * 2400 : 2800 + Math.random() * 3200);
+      setStageText("しのいだ！ 長押しで巻け！", true);
     }
-    // グリーンゾーンの移動（大物・レアはゾーンが揺れる）
+    // ジャンパー: 跳んでいる間は「離す」が正解。握りっぱなしだと着水でもぐられる
+    if (fs.style === "jumper") {
+      if (!fs.jumping && now >= fs.nextJumpAt) {
+        fs.jumping = true; fs.jumpEndAt = now + 750; fs.jumpHoldT = 0;
+        setStageText("🌊 跳んだ！ 離せ！！", true);
+        SFX.splash(); buzz(45);
+        burst(fs.fpX || 180, 288, 18, 150, "235,246,250");
+        spawnRipple(fs.fpX || 180, 292, true);
+        cv.shakeAmp = 5;
+      }
+      if (fs.jumping) {
+        if (fs.holding) fs.jumpHoldT += dt;
+        if (now >= fs.jumpEndAt) {
+          fs.jumping = false;
+          fs.nextJumpAt = now + 3200 + Math.random() * 3000;
+          if (fs.jumpHoldT > 0.38) {
+            fs.tension = Math.min((fs.lineMax || 100) - 4, fs.tension + 22);
+            fs.progress = Math.max(0, fs.progress - 10);
+            setStageText("もぐられた！ 体勢を立て直せ！", true);
+            buzz([60, 40, 60]);
+          } else {
+            fs.progress = Math.min(100, fs.progress + 7);
+            setStageText("ナイス対応！ 一気に寄せろ！", true);
+            burst(180, 292, 10, 130, "255,230,150");
+          }
+        }
+      }
+    }
+    // 底もの: 底に張り付いて動かない。連打(4回)で剥がすと進む
+    if (fs.style === "bottom") {
+      if (!fs.anchored && now >= fs.nextAnchorAt) {
+        fs.anchored = true; fs.anchorEndAt = now + 2400; fs.anchorHits = 0;
+        setStageText("🪨 底に張り付いた！ 連打で剥がせ！", true);
+        buzz(40);
+        cv.shakeAmp = 2;
+      }
+      if (fs.anchored && (fs.anchorHits >= 4 || now >= fs.anchorEndAt)) {
+        var pumped = fs.anchorHits >= 4;
+        fs.anchored = false;
+        fs.nextAnchorAt = now + 3400 + Math.random() * 2800;
+        if (pumped) {
+          fs.progress = Math.min(100, fs.progress + 6);
+          setStageText("剥がした！ 巻け巻け！", true);
+          SFX.splash(); buzz([30, 30, 50]);
+          burst(180, 300, 14, 140, "230,244,248");
+        } else {
+          setStageText("浮いてきた…長押しで巻け！", true);
+        }
+      }
+    }
+    // 瞬発型: ゴールドタイム(0.9秒)中は寄せが2.2倍
+    if (fs.style === "quick") {
+      if (!fs.golden && now >= fs.nextGoldenAt) {
+        fs.golden = true; fs.goldenEndAt = now + 900;
+        setStageText("✨ 今だ！ 一気に巻け！！", true);
+        SFX.bite(); buzz(30);
+      }
+      if (fs.golden && now >= fs.goldenEndAt) {
+        fs.golden = false;
+        fs.nextGoldenAt = now + 2600 + Math.random() * 2200;
+        setStageText("長押しで巻け！", true);
+      }
+    }
+    // グリーンゾーンの移動（大物・レアはゾーンが揺れる。曲者は倍速＋小刻み）
     if (fs.zoneWander > 0) {
-      var zc = 52 + Math.sin(now / 1400 + fs.zonePhase) * fs.zoneWander;
+      var zsp = fs.style === "zigzag" ? 640 : 1400;
+      var zc = 52 + Math.sin(now / zsp + fs.zonePhase) * fs.zoneWander + (fs.style === "zigzag" ? Math.sin(now / 210) * 5 : 0);
       fs.zoneLo = zc - fs.zoneW / 2;
       fs.zoneHi = zc + fs.zoneW / 2;
     }
@@ -5759,14 +5955,18 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (zEl) {
       zEl.style.left = (fs.zoneLo / (fs.lineMax || 100) * 100) + "%";
       zEl.style.width = (fs.zoneW / (fs.lineMax || 100) * 100) + "%";
+      zEl.classList.toggle("gold", !!fs.golden);
     }
 
     // テンション物理: 巻く=上昇 / 引き=上昇 / 離す=低下
     var lineMax = fs.lineMax || 100;
     // 走り中は通常の引きを置き換える（重複しない）
     var pullForce = fs.bigRun ? (40 + fs.diff * 22) * pull : (fs.pulling ? 46 * pull : 0);
+    if (fs.anchored) pullForce = 8;         // 張り付き中は死んだ重さだけ
+    if (fs.jumping) pullForce = 0;          // 空中は引かない（握ると危険なだけ）
     // 握れば引きの55%を受け、離せば35%に逃がせる（ドラグでラインを出すイメージ）
     var delta = fs.holding ? (56 + pullForce * 0.55) : (-52 + pullForce * 0.35);
+    if (fs.jumping && fs.holding) delta += 26;  // 跳躍中に握るとテンション急上昇
     if (!fs.holding) delta = Math.min(delta, 18); // 離していればブレイクまで持っていかれない
     fs.tension = Math.max(0, Math.min(lineMax, fs.tension + delta * dt));
 
@@ -5776,13 +5976,16 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       if (now - fs.lastClickAt > 95) { SFX.click(); fs.lastClickAt = now; }
     }
 
-    // 寄せ進行
+    // 寄せ進行（張り付き中はほぼ停滞、ゴールド中は2.2倍）
     var inGreen = fs.tension >= fs.zoneLo && fs.tension <= fs.zoneHi;
     var stamina = (FIGHT_STAMINA[fish.rarity] || 5) * (fs.fightStamMul || 1);
-    fs.progress = Math.max(0, Math.min(100, fs.progress + (inGreen ? (100 / stamina) * (fs.reelMul || 1) : -(3 + fs.diff * 4)) * dt));
+    var progGain = (100 / stamina) * (fs.reelMul || 1);
+    if (fs.anchored) progGain *= 0.15;
+    if (fs.golden) progGain *= 2.2;
+    fs.progress = Math.max(0, Math.min(100, fs.progress + (inGreen ? progGain : -(3 + fs.diff * 4)) * dt));
 
-    // たるみ判定
-    if (fs.tension <= 1) fs.slackTime += dt; else fs.slackTime = 0;
+    // たるみ判定（跳躍中は「離す」が正解なのでノーカウント）
+    if (fs.tension <= 1 && !fs.jumping) fs.slackTime += dt; else if (fs.tension > 1) fs.slackTime = 0;
 
     // UI更新
     var tf = document.getElementById("tensionFill");
@@ -5790,9 +5993,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     tf.className = fs.tension > lineMax - 12 ? "danger" : (fs.tension > fs.zoneHi || fs.tension < fs.zoneLo ? "warn" : "");
     document.getElementById("progressFill").style.width = fs.progress + "%";
 
-    // 魚の暴れ位置（ラインの先端）
+    // 魚の暴れ位置（ラインの先端）。跳躍中は水面から飛び出す
     fs.fpX = 180 + Math.sin(now / 320) * (fs.pulling ? 62 : 34);
     fs.fpY = 296 + Math.sin(now / 210) * (fs.pulling ? 16 : 7);
+    if (fs.jumping) {
+      var jp = 1 - Math.abs((fs.jumpEndAt - now) / 750 * 2 - 1); // 0→1→0
+      fs.fpY -= jp * 34;
+    }
+    if (fs.anchored) { fs.fpX = 180 + Math.sin(now / 900) * 6; fs.fpY = 306; }
     if (fs.pulling && Math.random() < 9 * dt) {
       burst(fs.fpX, fs.fpY - 6, 3, 95, "230,244,248");
       spawnRipple(fs.fpX, fs.fpY - 4, false);
@@ -5848,6 +6056,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (info.kind === "barasi") { save.totals.barashi++; persistSave(); }
     if (trip) {
       if (info.kind === "barasi") trip.noBarashi = false;
+      trip.combo = 0; // バラシ・ボウズでコンボ途切れ
+      updateCastsBadge();
       if (info.kind === "barasi" && Math.random() < 0.6) yukiSay(pickLine(YUKI_LINES.fail), "sad", 2200);
       setTimeout(function () {
         showToast('<div class="ct-fail">' + info.emoji + " " + info.title + '</div>', 1400);
@@ -5906,7 +6116,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           fs.nextIdleRippleAt = now + 320;
         }
       } else if (fs.phase === "fight") {
-        fightTick(now, dt);
+        if (!(fs.hitStopUntil && now < fs.hitStopUntil)) fightTick(now, dt); // ヒットストップ中は物理停止
         if (fs.phase === "fight") fs.rodBend = 0.15 + fs.tension / 100 * 0.85;
       } else if (fs.phase === "land") {
         fs.landT += dt;
@@ -5915,6 +6125,22 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         fs.rodBend = 0.06;
       }
       paintScene(now, dt);
+      // ゲームフィール・オーバーレイ（白フラッシュ／限界の赤ビネット）
+      if (cv.ctx) {
+        if (cv.flash > 0) {
+          cv.ctx.fillStyle = "rgba(255,255,255," + Math.min(0.85, cv.flash).toFixed(2) + ")";
+          cv.ctx.fillRect(0, 0, cv.el.width, cv.el.height);
+          cv.flash -= dt * 4.5;
+        }
+        if (fs.phase === "fight" && fs.tension > (fs.lineMax || 100) - 12) {
+          var da = 0.16 + Math.sin(now / 90) * 0.08;
+          var grd = cv.ctx.createRadialGradient(cv.el.width / 2, cv.el.height / 2, cv.el.height * 0.32, cv.el.width / 2, cv.el.height / 2, cv.el.height * 0.72);
+          grd.addColorStop(0, "rgba(200,30,20,0)");
+          grd.addColorStop(1, "rgba(200,30,20," + da.toFixed(2) + ")");
+          cv.ctx.fillStyle = grd;
+          cv.ctx.fillRect(0, 0, cv.el.width, cv.el.height);
+        }
+      }
     }
     fs.raf = requestAnimationFrame(tick);
   }
@@ -5960,6 +6186,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (fs.phase === "fight") {
       fs.holding = true;
       document.getElementById("fishStage").classList.add("reeling-grip");
+      // 底もの: 張り付き中はタップ連打で剥がす
+      if (fs.anchored) {
+        fs.anchorHits++;
+        SFX.click();
+        buzz(15);
+        burst(180, 302, 4, 90, "230,244,248");
+        cv.shakeAmp = Math.max(cv.shakeAmp, 3);
+      }
     }
   }
 
@@ -6014,6 +6248,16 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var ratio = fs.pendingSizeRatio || 0;
     var variant = fs.pendingVariant || null;
     var earn = sellPrice(fishId, ratio, variant);
+    // コンボ: 釣行中バラシなしで連続キャッチすると売値が伸びる（+6%ずつ、最大+30%）
+    var comboTag = "";
+    if (trip) {
+      trip.combo++;
+      if (trip.combo >= 2) {
+        var comboMul = 1 + Math.min(0.3, (trip.combo - 1) * 0.06);
+        earn = Math.round(earn * comboMul);
+        comboTag = '<div style="color:#ffb85c;font-weight:800;font-size:12px;">🔥 コンボ×' + trip.combo + '（売値+' + Math.round((comboMul - 1) * 100) + '%）</div>';
+      }
+    }
     // 名人との一本勝負
     var duelMsg = "";
     if (trip && trip.duel) {
@@ -6053,7 +6297,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var showFull = rec.isNew || rec.isRecord || variant || fRar2 === "rare" || fRar2 === "legend" || nushiMsg;
       if (!showFull) {
         if (Math.random() < 0.18) yukiSay(pickLine(YUKI_LINES.catchSmall), "happy", 1800);
-        showToast('<div>' + FISH[fishId].name + ' <b>' + cm.toFixed(1) + 'cm</b></div><div class="ct-earn">+' + earn.toLocaleString() + '円</div>' + duelMsg, 1400);
+        showToast('<div>' + FISH[fishId].name + ' <b>' + cm.toFixed(1) + 'cm</b></div><div class="ct-earn">+' + earn.toLocaleString() + '円</div>' + comboTag + duelMsg, 1400);
         afterCastResolved(false);
         return;
       }
@@ -6166,7 +6410,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     document.getElementById("resultNewBadge").classList.toggle("hidden", !isNew);
     // サイズ・変異・収入・記録
     var szEl = document.getElementById("resultSize");
-    szEl.textContent = info.cm ? info.cm.toFixed(1) + " cm" : "";
+    // サイズがルーレットのようにカウントアップ（測る快感）
+    if (info.cm) {
+      var cmTarget = info.cm, t0 = performance.now();
+      szEl.textContent = "0.0 cm";
+      (function cnt() {
+        var k = Math.min(1, (performance.now() - t0) / 700);
+        var ease = 1 - Math.pow(1 - k, 3);
+        szEl.textContent = (cmTarget * ease).toFixed(1) + " cm";
+        if (k < 1) requestAnimationFrame(cnt);
+      })();
+    } else szEl.textContent = "";
     var vt = document.getElementById("resultVariantTag");
     if (info.variant === "nushi") { vt.textContent = "🐲 ヌシ"; vt.className = "variant-tag vt-nushi"; }
     else if (info.variant === "giant") { vt.textContent = "👑 大物"; vt.className = "variant-tag vt-giant"; }
@@ -6188,9 +6442,11 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     rarityEl.className = "rarity-badge rarity-" + fish.rarity;
     var loc = getLocation(state.selectedLocationId);
     var lure = LURES[state.selectedLureId];
+    var styleLb = FIGHT_STYLE_LABEL[FIGHT_STYLE_OF[fishId]] || "";
     document.getElementById("resultMeta").textContent =
       (info.nushiMsg ? "🐲 " + info.nushiMsg + "　" : "") +
-      (loc ? loc.name : "") + (lure ? "　×　" + lure.name : "") + (state.time ? "　·　" + state.time.label : "");
+      (loc ? loc.name : "") + (lure ? "　×　" + lure.name : "") + (state.time ? "　·　" + state.time.label : "") +
+      (styleLb ? "　·　" + styleLb : "");
     document.getElementById("resultDesc").textContent = fish.desc;
   }
 
@@ -6526,6 +6782,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   document.getElementById("titleFishArt").innerHTML = renderFish("ito", { uid: "t" });
   updateStatusBar();
   renderDailyCard();
+  renderNextGoal();
   showScreen("screen-title");
 
   // デバッグ用（動作検証のみに使用。ゲーム挙動には影響しない）
@@ -6548,6 +6805,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       progress: fs.progress,
       money: save.money,
       diff: fs.diff, zoneLo: fs.zoneLo, zoneHi: fs.zoneHi, bigRun: fs.bigRun,
+      style: fs.style, jumping: !!fs.jumping, anchored: !!fs.anchored, golden: !!fs.golden, anchorHits: fs.anchorHits || 0,
       castZone: fs.castZone,
       trip: trip ? { castsLeft: trip.castsLeft, catches: trip.catches.length, score: trip.score, earned: trip.earned, events: trip.events, over: trip.over } : null,
       compBest: save.comp ? save.comp.best : 0,
