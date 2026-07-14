@@ -181,7 +181,9 @@
   }
   .daily-card .dc-head { font-weight: 800; color: var(--accent-dark); font-size: 12px; letter-spacing: .06em; margin-bottom: 2px; }
   .daily-card b { color: var(--accent-dark); }
-  .title-buttons { width: 100%; display: flex; flex-direction: column; gap: 12px; padding: 0 8px; }
+  .title-buttons { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 4px; margin-bottom: 14px; }
+  .title-buttons .btn-start { width: 100%; font-size: 18px; padding: 15px 10px; box-shadow: 0 6px 16px rgba(31,111,109,.28); }
+  .title-buttons .btn-sub { flex: 1; font-size: 13px; padding: 10px 2px; white-space: nowrap; }
   .footer-note {
     text-align: center;
     font-size: 11px;
@@ -891,16 +893,16 @@
         </div>
       </div>
       <div class="sub">実在の川とダムで、実在の魚を追う図鑑釣行</div>
+      <div class="title-buttons">
+        <button class="btn btn-start" data-action="start">▶ 釣りを始める</button>
+        <button class="btn secondary btn-sub" data-action="lodge">🏕 番屋<span id="lodgeBadge" class="lodge-badge hidden">🔥</span></button>
+        <button class="btn secondary btn-sub" data-action="shop">🏪 釣具店</button>
+        <button class="btn secondary btn-sub" data-action="zukan">📖 図鑑</button>
+      </div>
       <div id="rankBar" class="rank-bar"></div>
       <div id="nextGoal" class="daily-card next-goal"></div>
       <div id="dailyCard" class="daily-card"></div>
       <div id="yukiMissions" class="yuki-missions"></div>
-      <div class="title-buttons">
-        <button class="btn" data-action="start">▶ 釣りを始める</button>
-        <button class="btn secondary" data-action="lodge">🏕 番屋 <span id="lodgeBadge" class="lodge-badge hidden">🔥完成!</span></button>
-        <button class="btn secondary" data-action="shop">🏪 釣具店</button>
-        <button class="btn secondary" data-action="zukan">📖 図鑑</button>
-      </div>
     </div>
     <div class="footer-note">
       本作の河川・ダムと生息魚データは、国土交通省「河川水辺の国勢調査（河川環境データベース）」を参考にゲーム用に再構成したものです。魚のサイズ等は扱わず種類のみを対象とし、亜種・型は同一種として扱っています。
