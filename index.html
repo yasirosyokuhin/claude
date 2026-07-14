@@ -4547,6 +4547,19 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         }
         ctx.restore();
         ctx.filter = "none";
+        // 大釣行: 影の上にランク＋絵柄のラベル（狙い撃ち用）
+        if (trip && trip.runMode) {
+          ctx.save();
+          ctx.font = "700 11px system-ui, sans-serif";
+          ctx.textAlign = "center";
+          var lbl = shD.kind === "blob" ? "?" : ((RUN_RANK_OF[shD.id] || "?") + (RUN_SUITS[FIGHT_STYLE_OF[shD.id] || "quick"] || {}).emoji);
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "rgba(6,20,28,0.75)";
+          ctx.strokeText(lbl, shD.x, shD.y + wobS - 13);
+          ctx.fillStyle = "rgba(255,240,200,0.95)";
+          ctx.fillText(lbl, shD.x, shD.y + wobS - 13);
+          ctx.restore();
+        }
       }
     }
     // 掛かった魚の影（ファイト中）
@@ -4906,9 +4919,25 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     zigzag: { emoji: "🌀", color: "#7a4a9e" },
     quick:  { emoji: "✨", color: "#48808a" }
   };
+  // 魚種→ランクは固定（各ランクちょうど2種。狙い撃ちで役を組める）
+  var RUN_RANK_OF = {
+    tomiyo: 1, ezohotoke: 1,
+    itoyo: 2, ukigori: 2,
+    wakasagi: 3, sunayatsume: 3,
+    fukudojo: 4, chika: 4,
+    shishamo: 5, kajika: 5,
+    ayu: 6, oshorokoma: 6,
+    ugui: 7, funa: 7,
+    himemasu: 8, numagarei: 8,
+    nijimasu: 9, kawayatsume: 9,
+    sakuramasu: 10, kawamasu: 10,
+    amemasu: 11, brown: 11,
+    koi: 12, karafutomasu: 12,
+    sake: 13, ito: 13
+  };
   function runCardOf(fishId, cm, ratio, value) {
     var suit = FIGHT_STYLE_OF[fishId] || "quick";
-    var rank = Math.max(1, Math.min(13, 1 + Math.floor(Math.min(1.2, ratio || 0) * 10)));
+    var rank = RUN_RANK_OF[fishId] || 7;
     return { fishId: fishId, cm: cm, rank: rank, suit: suit, value: Math.max(1, value) };
   }
   // 役の判定（手札は最大5枚）
@@ -5193,13 +5222,18 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         var loc = getLocation(ch.locId);
         var t = TIME_DEFS[ch.timeKey];
         var w = WEATHER_INFO[ch.weather];
-        var tops = Object.keys(loc.fish).sort(function (a, b) { return loc.fish[b] - loc.fish[a]; }).slice(0, 3)
-          .map(function (f) { return FISH[f] ? FISH[f].name : f; }).join("・");
+        // 狙える札: ランク順で全魚種（重み上位6）を表示 → 役の計画が立つ
+        var tops = Object.keys(loc.fish).sort(function (a, b) { return loc.fish[b] - loc.fish[a]; }).slice(0, 6)
+          .sort(function (a, b) { return (RUN_RANK_OF[a] || 7) - (RUN_RANK_OF[b] || 7); })
+          .map(function (f) {
+            var su = RUN_SUITS[FIGHT_STYLE_OF[f] || "quick"];
+            return '<b>' + (RUN_RANK_OF[f] || "?") + '</b>' + su.emoji + (FISH[f] ? FISH[f].name : f);
+          }).join("　");
         html += '<button class="run-choice" data-action="run-choose" data-arg="' + i + '">' +
           '<div class="rc-name">' + loc.name + ' <span class="rc-badges">' + w.emoji + t.label + '</span></div>' +
           '<div class="rc-sub">' + tops + '</div></button>';
       });
-      html += '<div class="rc-sub" style="padding:2px 4px;">釣った魚は<b>魚札</b>になる（数字=その種でのサイズ1〜13、絵柄=戦い方⚡🌊🪨🌀✨）。手札5枚で<b>役</b>を作れ！<br>ペア×2｜3カード×4｜ストレート×6｜絵柄揃い×7｜フルハウス×9｜4カード×12｜同種5=入れ食い×25</div>';
+      html += '<div class="rc-sub" style="padding:2px 4px;"><b>数字は魚種ごとに固定</b>（例: ウグイ=7、サケ=13。各数字にちょうど2種）。影のラベルを見て狙い撃て！<br>同じ数字2枚=ペア×2｜3枚=×4｜連番5枚=ストレート×6｜絵柄揃い×7｜フルハウス×9｜4枚=×12｜同種5=入れ食い×25</div>';
       body.innerHTML = html;
     } else if (mode === "shop") {
       if (!run.shopStock) runRollShop();
