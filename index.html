@@ -184,6 +184,32 @@
   .title-buttons { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 4px; margin-bottom: 14px; }
   .title-buttons .btn-start { width: 100%; font-size: 18px; padding: 15px 10px; box-shadow: 0 6px 16px rgba(31,111,109,.28); }
   .title-buttons .btn-sub { flex: 1; font-size: 13px; padding: 10px 2px; white-space: nowrap; }
+  .title-buttons .btn-bigrun {
+    width: 100%; padding: 11px 10px; font-size: 15px;
+    background: linear-gradient(135deg, #3b2a52, #6b3a78 60%, #9c4a68);
+    box-shadow: 0 4px 14px rgba(90,50,120,.35); color: #ffe9c8;
+  }
+  .btn-bigrun .br-sub { display: block; font-size: 10.5px; font-weight: 700; opacity: .85; margin-top: 2px; letter-spacing: .04em; }
+  .run-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .run-chip {
+    border: 1.5px solid #b89ac8; background: linear-gradient(180deg,#fff,#f4ecf8); color: #4a3358;
+    border-radius: 999px; padding: 6px 11px; font-size: 12.5px; font-weight: 800; font-family: inherit;
+  }
+  .run-chip .rc-sell { font-size: 10px; color: #9a7ab0; margin-left: 5px; font-weight: 700; }
+  .run-chip.empty { border-style: dashed; color: #b8a8c4; background: none; font-weight: 700; }
+  .run-choice {
+    display: block; width: 100%; text-align: left; font-family: inherit;
+    background: linear-gradient(180deg, #ffffff, #f6f2fa); border: 1.5px solid #cbb8d8;
+    border-radius: 14px; padding: 12px 14px; margin-bottom: 9px; cursor: pointer;
+    box-shadow: 0 2px 6px rgba(80,50,110,.10);
+  }
+  .run-choice:active { transform: scale(.98); }
+  .run-choice.ng { opacity: .45; }
+  .run-choice.sold { text-align: center; color: #b8a8c4; border-style: dashed; }
+  .run-choice .rc-name { font-weight: 800; font-size: 15px; color: #3a2a48; display: flex; justify-content: space-between; align-items: baseline; }
+  .run-choice .rc-badges { font-size: 12.5px; color: #6b5a80; font-weight: 700; }
+  .run-choice .rc-price { font-size: 13px; color: #8a5aa8; }
+  .run-choice .rc-sub { font-size: 11.5px; color: var(--sub-ink); margin-top: 3px; line-height: 1.5; }
   .footer-note {
     text-align: center;
     font-size: 11px;
@@ -895,6 +921,7 @@
       <div class="sub">実在の川とダムで、実在の魚を追う図鑑釣行</div>
       <div class="title-buttons">
         <button class="btn btn-start" data-action="start">▶ 釣りを始める</button>
+        <button class="btn btn-bigrun" data-action="bigrun">🃏 大釣行 <span class="br-sub">仕掛け札で挑むローグライク連戦</span></button>
         <button class="btn secondary btn-sub" data-action="lodge">🏕 番屋<span id="lodgeBadge" class="lodge-badge hidden">🔥</span></button>
         <button class="btn secondary btn-sub" data-action="shop">🏪 釣具店</button>
         <button class="btn secondary btn-sub" data-action="zukan">📖 図鑑</button>
@@ -1139,8 +1166,20 @@
     </div>
     <div class="zukan-grid" id="zukanGrid"></div>
     <div class="section-label" style="margin-top:20px;">💎 たからもの図鑑 <span id="treasureCount" class="zukan-count" style="font-size:14px;"></span></div>
+    <!-- 大釣行セクションは screen-run（下） -->
     <div id="junkCleaner" class="daily-card" style="margin:0 0 8px;"></div>
     <div class="zukan-grid" id="treasureGrid"></div>
+  </section>
+
+  <!-- 8. 🃏 大釣行（ローグライク連戦） -->
+  <section id="screen-run" class="screen">
+    <div class="topbar">
+      <button class="btn-back" data-action="run-quit">← やめる</button>
+      <h2 style="font-size:16px;margin:0;">🃏 大釣行</h2>
+    </div>
+    <div id="runStatus" class="daily-card" style="margin-bottom:8px;"></div>
+    <div id="runCards"></div>
+    <div id="runBody"></div>
   </section>
 
 </div>
@@ -2864,6 +2903,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       junkCleared: 0,
       treasureSetsDone: [],
       rank: { xp: 0, level: 1 },
+      runBest: 0,
       yuki: { xp: 0, level: 1, outfit: "red", mp: { day: 0, prog: {}, claimed: [] }, memories: [] }
     };
   }
@@ -2981,7 +3021,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     { id: "nushiAll", name: "全てのヌシを制す者", check: function () { return false; } },
     { id: "cleaner", name: "川の守り人", check: function () { return false; } },
     { id: "treasureAll", name: "おたからハンター", check: function () { return false; } },
-    { id: "anglerMax", name: "北の釣聖", check: function () { return false; } }
+    { id: "anglerMax", name: "北の釣聖", check: function () { return false; } },
+    { id: "batoro", name: "大釣行 完遂者", check: function () { return false; } }
   ];
   function evalTitles() {
     TITLES.forEach(function (t) {
@@ -3528,7 +3569,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var rodList = document.getElementById("rodList");
     rodList.innerHTML = "";
     RODS.forEach(function (rod) {
-      if (save.gear.rods.indexOf(rod.id) < 0) return; // 未購入はショップで
+      if (!run && save.gear.rods.indexOf(rod.id) < 0) return; // 未購入はショップで（大釣行は全解放）
       var item = document.createElement("div");
       item.className = "choice-item";
       item.setAttribute("data-rod-id", rod.id);
@@ -3554,7 +3595,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var lureList = document.getElementById("lureList");
     lureList.innerHTML = "";
     rod.lures.forEach(function (lureId) {
-      if (save.gear.lures.indexOf(lureId) < 0) return;
+      if (!run && save.gear.lures.indexOf(lureId) < 0) return;
       var lure = LURES[lureId];
       var item = document.createElement("div");
       item.className = "choice-item";
@@ -4815,33 +4856,309 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   var trip = null;
 
   function effWeather() {
+    if (run && trip && trip.runMode) {
+      if (runHasCard("amagoi")) return "rain";
+      return run.weather || "sun";
+    }
     if (trip && trip.rain) return "rain";
     return (state.daily && state.daily.weather) || "sun";
+  }
+
+  // ===== 🃏 大釣行（釣りバトロ）: 仕掛け札ビルドのローグライク連戦 =====
+  var run = null;
+  var RUN_CASTS = 8;
+  var RUN_QUOTAS = [250, 450, 800, 1400, 2400, 4000, 6500, 10000];
+  function runQuota(round) {
+    if (round <= 8) return RUN_QUOTAS[round - 1];
+    return Math.round(RUN_QUOTAS[7] * Math.pow(1.7, round - 8) / 100) * 100;
+  }
+  var RUN_SALMONIDS = ["amemasu", "nijimasu", "sakuramasu", "oshorokoma", "brown", "himemasu", "kawamasu", "sake", "karafutomasu", "ito"];
+  // 仕掛け札（ジョーカー相当・最大5枚）
+  var RUN_CARDS = {
+    amaotoko:  { name: "雨男",         emoji: "☔", price: 900,  desc: "雨のとき、すべての魚 ×2" },
+    yakousei:  { name: "夜行性",       emoji: "🌙", price: 900,  desc: "夜の魚 ×3／日中の魚 ×0.5" },
+    mazume_h:  { name: "朝夕の狩人",   emoji: "🌅", price: 800,  desc: "マズメ（朝・夕）の魚 ×2" },
+    hiruandon: { name: "昼行灯",       emoji: "☀️", price: 700,  desc: "日中の魚 ×2" },
+    troutblood:{ name: "トラウトの血", emoji: "🐟", price: 1000, desc: "サケ・マス類 ×1.5" },
+    kobitoking:{ name: "小物の王",     emoji: "👑", price: 1200, desc: "20cm以下を釣るたび、この札の倍率+0.5（ラウンド中）" },
+    oomonogui: { name: "大物食い",     emoji: "🦈", price: 1200, desc: "45cm以上 ×3／未満 ×0.8" },
+    haisui:    { name: "背水の陣",     emoji: "⚔️", price: 800,  desc: "バラシの直後に釣った魚 ×4" },
+    rensa:     { name: "連鎖釣り",     emoji: "🔗", price: 900,  desc: "直前と同じ種 ×2.5" },
+    hatsumono: { name: "初物尽くし",   emoji: "🌸", price: 900,  desc: "そのラウンド初の種 ×2" },
+    ittenkake: { name: "一点賭け",     emoji: "🎯", price: 1000, desc: "ラウンドごとの指定種 ×8" },
+    binbou:    { name: "貧乏神",       emoji: "🥾", price: 700,  desc: "がらくたを拾うと、以後の魚 ×2（ラウンド中）" },
+    otakara_t: { name: "おたから体質", emoji: "💎", price: 1100, desc: "丸い影が2倍わき、おたから率も上がる" },
+    kageyomi:  { name: "影読み",       emoji: "👁", price: 900,  desc: "ナイスキャストで掛けた魚 ×2" },
+    gaman:     { name: "我慢くらべ",   emoji: "🧘", price: 900,  desc: "ピクッを2回以上耐えた魚 ×2.5" },
+    nukiage:   { name: "瞬速抜き上げ", emoji: "⚡", price: 800,  desc: "一発抜き上げの魚 ×2" },
+    kakutou:   { name: "大格闘",       emoji: "🥊", price: 800,  desc: "ファイトで獲った魚 ×1.5" },
+    amagoi:    { name: "雨乞いの札",   emoji: "🌧", price: 1300, desc: "つねに雨（雨男などと相性◎）" },
+    gekkou:    { name: "月夜の誘い",   emoji: "🌕", price: 1300, desc: "つねに夜釣りになる" },
+    yokubari:  { name: "欲張りの錘",   emoji: "⚖️", price: 1000, desc: "スコア ×1.5、ただしノルマ +30%" },
+    nushifue:  { name: "ヌシ呼びの笛", emoji: "🐲", price: 1500, desc: "ヌシが現れやすくなり（討伐済でも）、ヌシ ×5" },
+    shonin:    { name: "商人の目",     emoji: "💰", price: 800,  desc: "魚の売却金 +60%（闇市の資金に）" },
+    kazuuchi:  { name: "数撃ちの竿",   emoji: "🎣", price: 1000, desc: "毎ラウンド キャスト +3" },
+    salmonbet: { name: "大河の賭け",   emoji: "🎏", price: 1200, desc: "サケ・カラフトマス・イトウ ×4" }
+  };
+  function runHasCard(id) { return !!(run && run.cards.indexOf(id) >= 0); }
+  var TIME_DEFS = {
+    asa:  { key: "asa",  label: "朝マズメ", mazume: true,  night: false },
+    hiru: { key: "hiru", label: "日中",     mazume: false, night: false },
+    yuu:  { key: "yuu",  label: "夕マズメ", mazume: true,  night: false },
+    yoru: { key: "yoru", label: "夜釣り",   mazume: false, night: true }
+  };
+  function runTimeDef() {
+    var k = runHasCard("gekkou") ? "yoru" : (run ? run.timeKey : "hiru");
+    return TIME_DEFS[k] || TIME_DEFS.hiru;
+  }
+  function runQuotaEff() {
+    var q = runQuota(run.round);
+    if (runHasCard("yokubari")) q = Math.round(q * 1.3);
+    return q;
+  }
+  // 1匹ごとの採点（基礎pts × 札の倍率）。noteは内訳表示用
+  function runScoreCatch(fishId, cm, variant, basePts, flags) {
+    var mult = 1, notes = [];
+    function ap(m, label) { if (m !== 1) { mult *= m; notes.push(label + "×" + m); } }
+    var t = runTimeDef();
+    var wx = effWeather();
+    if (runHasCard("amaotoko") && wx === "rain") ap(2, "☔");
+    if (runHasCard("yakousei")) { if (t.night) ap(3, "🌙"); else if (t.key === "hiru") ap(0.5, "🌙"); }
+    if (runHasCard("mazume_h") && t.mazume) ap(2, "🌅");
+    if (runHasCard("hiruandon") && t.key === "hiru") ap(2, "☀️");
+    if (runHasCard("troutblood") && RUN_SALMONIDS.indexOf(fishId) >= 0) ap(1.5, "🐟");
+    if (runHasCard("kobitoking") && run.cardState.kobito > 0) ap(1 + run.cardState.kobito, "👑");
+    if (runHasCard("oomonogui")) ap(cm >= 45 ? 3 : 0.8, "🦈");
+    if (runHasCard("haisui") && run.lastWasBarashi) ap(4, "⚔️");
+    if (runHasCard("rensa") && run.lastFishId === fishId) ap(2.5, "🔗");
+    if (runHasCard("hatsumono") && flags.firstOfSpecies) ap(2, "🌸");
+    if (runHasCard("ittenkake") && run.betFish === fishId) ap(8, "🎯");
+    if (runHasCard("binbou") && run.cardState.binbou) ap(2, "🥾");
+    if (runHasCard("kageyomi") && flags.nice) ap(2, "👁");
+    if (runHasCard("gaman") && (flags.nibbles || 0) >= 2) ap(2.5, "🧘");
+    if (runHasCard("nukiage") && flags.quick) ap(2, "⚡");
+    if (runHasCard("kakutou") && !flags.quick) ap(1.5, "🥊");
+    if (runHasCard("nushifue") && variant === "nushi") ap(5, "🐲");
+    if (runHasCard("salmonbet") && ["sake", "karafutomasu", "ito"].indexOf(fishId) >= 0) ap(4, "🎏");
+    if (runHasCard("yokubari")) ap(1.5, "⚖️");
+    var pts = Math.max(1, Math.round(basePts * mult));
+    // 札の状態更新（この魚の後から効く）
+    if (runHasCard("kobitoking") && cm <= 20) run.cardState.kobito = (run.cardState.kobito || 0) + 0.5;
+    run.lastFishId = fishId;
+    run.lastWasBarashi = false;
+    return { pts: pts, note: notes.join(" ") };
   }
 
   function startTrip() {
     trip = {
       locId: state.selectedLocationId,
-      castsLeft: TRIP_CASTS + rankBonusCasts(),
+      castsLeft: run ? (RUN_CASTS + (runHasCard("kazuuchi") ? 3 : 0)) : (TRIP_CASTS + rankBonusCasts()),
       catches: [], kinds: {},
       earned: 0, score: 0,
       noBarashi: true, big: false,
       events: 0, buffs: {}, rain: false,
       duel: null, over: false,
-      combo: 0
+      combo: 0,
+      runMode: !!run
     };
     updateCastsBadge();
   }
 
+  // ===== 大釣行: フロー =====
+  function startRun() {
+    run = {
+      round: 1, score: 0, money: 0, cleared: 0,
+      cards: [], cardState: {},
+      timeKey: "hiru", weather: "sun", locId: null,
+      lastFishId: null, lastWasBarashi: false, betFish: null,
+      choices: []
+    };
+    yukiSay("おじいちゃんの道具箱、ぜんぶ使っていいですよ！いってらっしゃい！", "excited", 3000, true);
+    runPickRound();
+  }
+
+  function runPickRound() {
+    run.score = 0;
+    run.cardState.kobito = 0;
+    run.cardState.binbou = false;
+    run.lastFishId = null; run.lastWasBarashi = false;
+    // 3つの「釣り場カード」: 場所×時間帯×天気
+    var pool = LOCATIONS.filter(function (l) { return l.id !== "shumarinai" || isUnlocked("shumarinai"); });
+    var tk = ["asa", "hiru", "yuu", "yoru"];
+    var wx = ["sun", "sun", "cloud", "rain", "rain"];
+    run.choices = [];
+    var used = {};
+    for (var i = 0; i < 3; i++) {
+      var loc = pool[Math.floor(Math.random() * pool.length)];
+      var guard = 0;
+      while (used[loc.id] && guard++ < 20) loc = pool[Math.floor(Math.random() * pool.length)];
+      used[loc.id] = true;
+      run.choices.push({
+        locId: loc.id,
+        timeKey: tk[Math.floor(Math.random() * tk.length)],
+        weather: wx[Math.floor(Math.random() * wx.length)]
+      });
+    }
+    renderRunScreen("pick");
+    showScreen("screen-run");
+  }
+
+  function runChoose(idx) {
+    var ch = run.choices[idx];
+    if (!ch) return;
+    run.timeKey = ch.timeKey;
+    run.weather = ch.weather;
+    run.locId = ch.locId;
+    state.selectedLocationId = ch.locId;
+    // 一点賭けの対象種をこのラウンド用に抽選
+    var loc = getLocation(ch.locId);
+    var fids = Object.keys(loc.fish);
+    run.betFish = fids[Math.floor(Math.random() * fids.length)];
+    renderTackleScreen();
+    showScreen("screen-tackle");
+    if (runHasCard("ittenkake")) {
+      setTimeout(function () {
+        showToast('<div>🎯 一点賭けの対象: <b>' + (FISH[run.betFish] || {}).name + '</b>（×8）</div>', 2400);
+      }, 400);
+    }
+  }
+
+  function runRoundEnd() {
+    clearFishingTimers();
+    resetFishStage();
+    var earnedMul = runHasCard("shonin") ? 1.6 : 1;
+    run.money += Math.round(trip.earned * earnedMul);
+    var quota = runQuotaEff();
+    var pass = run.score >= quota;
+    var wasRound = run.round;
+    trip = null;
+    if (pass) {
+      run.cleared = wasRound;
+      run.round++;
+      SFX.jingle();
+      if (wasRound === 8) {
+        if (save.titles.indexOf("batoro") < 0) save.titles.push("batoro");
+        addYukiMemory("大釣行を完遂した（8ラウンド制覇）");
+        yukiSay("か…完遂です！！おじいちゃんに自慢してきます！！", "excited", 4000, true);
+      }
+      renderRunScreen("shop");
+      showScreen("screen-run");
+    } else {
+      endRun(false);
+    }
+  }
+
+  function endRun(quit) {
+    var cleared = run.cleared;
+    var reward = cleared * 800 + (cleared >= 8 ? 5000 : 0);
+    save.money += reward;
+    save.totals.earned += reward;
+    if (cleared > (save.runBest || 0)) save.runBest = cleared;
+    addRankXp(cleared * 20 + 5);
+    persistSave();
+    updateStatusBar();
+    state.lastRunSummary = { cleared: cleared, reward: reward, quit: quit, round: run.round, score: run.score, quota: runQuotaEff() };
+    run = null;
+    trip = null;
+    renderRunScreen("end");
+    showScreen("screen-run");
+  }
+
+  // 大釣行画面の描画（pick=釣り場選び / shop=闇市 / end=リザルト）
+  function renderRunScreen(mode) {
+    var st = document.getElementById("runStatus");
+    var cardsEl = document.getElementById("runCards");
+    var body = document.getElementById("runBody");
+    if (!st) return;
+    if (run) {
+      st.innerHTML =
+        '<div class="dc-row" style="display:flex;justify-content:space-between;"><b>ラウンド ' + run.round + (run.round <= 8 ? " / 8" : "（エンドレス）") + '</b><span>ノルマ <b>' + runQuotaEff().toLocaleString() + '</b> pt</span></div>' +
+        '<div class="dc-row" style="display:flex;justify-content:space-between;"><span>💰 闇市資金 <b>' + run.money.toLocaleString() + '</b> 円</span><span>自己ベスト R' + (save.runBest || 0) + '</span></div>';
+      var chips = run.cards.map(function (cid, i) {
+        var c = RUN_CARDS[cid];
+        return '<button class="run-chip" data-action="run-sell" data-arg="' + i + '" title="' + c.desc + '">' + c.emoji + " " + c.name + '<span class="rc-sell">売' + Math.round(c.price / 2) + '</span></button>';
+      }).join("");
+      for (var e = run.cards.length; e < 5; e++) chips += '<span class="run-chip empty">空き</span>';
+      cardsEl.innerHTML = '<div class="section-label" style="margin:8px 0 4px;">🃏 仕掛け札（タップで売却）</div><div class="run-chips">' + chips + '</div>';
+    } else { st.innerHTML = ""; cardsEl.innerHTML = ""; }
+    if (mode === "pick") {
+      var html = '<div class="section-label">釣り場カードを選べ</div>';
+      run.choices.forEach(function (ch, i) {
+        var loc = getLocation(ch.locId);
+        var t = TIME_DEFS[ch.timeKey];
+        var w = WEATHER_INFO[ch.weather];
+        var tops = Object.keys(loc.fish).sort(function (a, b) { return loc.fish[b] - loc.fish[a]; }).slice(0, 3)
+          .map(function (f) { return FISH[f] ? FISH[f].name : f; }).join("・");
+        html += '<button class="run-choice" data-action="run-choose" data-arg="' + i + '">' +
+          '<div class="rc-name">' + loc.name + ' <span class="rc-badges">' + w.emoji + t.label + '</span></div>' +
+          '<div class="rc-sub">' + tops + '</div></button>';
+      });
+      body.innerHTML = html;
+    } else if (mode === "shop") {
+      if (!run.shopStock) runRollShop();
+      var sh = '<div class="section-label">🏮 ユキの闇市 — ラウンド' + (run.round - 1) + ' 突破！</div>';
+      run.shopStock.forEach(function (cid, i) {
+        if (!cid) { sh += '<div class="run-choice sold">売り切れ</div>'; return; }
+        var c = RUN_CARDS[cid];
+        var can = run.money >= c.price && run.cards.length < 5;
+        sh += '<button class="run-choice' + (can ? "" : " ng") + '" data-action="run-buy" data-arg="' + i + '">' +
+          '<div class="rc-name">' + c.emoji + " " + c.name + '<span class="rc-price">' + c.price.toLocaleString() + '円</span></div>' +
+          '<div class="rc-sub">' + c.desc + '</div></button>';
+      });
+      sh += '<div class="btn-row" style="margin-top:10px;">' +
+        '<button class="btn secondary" data-action="run-reroll">🎲 引き直し（300円）</button>' +
+        '<button class="btn" data-action="run-next">つぎのラウンドへ ▶</button></div>';
+      body.innerHTML = sh;
+    } else if (mode === "end") {
+      var sm = state.lastRunSummary || { cleared: 0, reward: 0 };
+      body.innerHTML =
+        '<div class="trip-head" style="margin-top:14px;">' + (sm.cleared >= 8 ? "🏆 大釣行 完遂！！" : sm.quit ? "納竿（リタイア）" : "💥 ノルマ未達…") + '</div>' +
+        '<div class="result-name" style="font-size:21px;margin:6px 0;">R' + sm.cleared + ' まで突破</div>' +
+        (!sm.quit && !(sm.cleared >= 8) ? '<div class="dc-row">R' + sm.round + ': ' + sm.score.toLocaleString() + ' / ' + sm.quota.toLocaleString() + ' pt</div>' : "") +
+        '<div class="earn-line" style="color:#2e7d5b;">ごほうび +' + sm.reward.toLocaleString() + '円（本編へ）</div>' +
+        '<div class="btn-row" style="margin-top:12px;">' +
+        '<button class="btn" data-action="run-again">もう一度挑む</button>' +
+        '<button class="btn secondary" data-action="back-to-title">タイトルへ</button></div>';
+    }
+  }
+
+  function runRollShop() {
+    var pool = Object.keys(RUN_CARDS).filter(function (cid) { return run.cards.indexOf(cid) < 0; });
+    run.shopStock = [];
+    for (var i = 0; i < 3 && pool.length; i++) {
+      var k = Math.floor(Math.random() * pool.length);
+      run.shopStock.push(pool.splice(k, 1)[0]);
+    }
+  }
+
   function updateCastsBadge() {
     var el = document.getElementById("castsLeftBadge");
-    if (el) el.textContent = trip ? "🎣 残り " + trip.castsLeft + " 投" + (trip.combo >= 2 ? "　🔥コンボ×" + trip.combo : "") : "";
+    if (!el) return;
+    if (trip && trip.runMode && run) {
+      el.textContent = "🃏R" + run.round + "　" + run.score.toLocaleString() + "/" + runQuotaEff().toLocaleString() + "pt　残り" + trip.castsLeft + "投";
+    } else {
+      el.textContent = trip ? "🎣 残り " + trip.castsLeft + " 投" + (trip.combo >= 2 ? "　🔥コンボ×" + trip.combo : "") : "";
+    }
   }
 
   function tripAddCatch(fishId, cm, ratio, variant, earn) {
     var f = FISH[fishId];
     var vMul = variant === "giant" ? 1.8 : variant === "spawn" ? 1.5 : 1;
     var pts = Math.round(cm * (TRIP_RARITY_PTS[f.rarity] || 1) * vMul);
+    var firstOfSpecies = !trip.kinds[fishId];
+    // 大釣行: 仕掛け札の倍率を適用してランスコアへ
+    if (trip.runMode && run) {
+      var res = runScoreCatch(fishId, cm, variant, pts, {
+        firstOfSpecies: firstOfSpecies,
+        nice: !!fs.wasNice,
+        nibbles: fs.nibblesSeen || 0,
+        quick: !!fs.wasQuick
+      });
+      pts = res.pts;
+      run.score += pts;
+      trip.lastRunNote = res.note;
+      updateCastsBadge();
+    }
     trip.catches.push({ id: fishId, cm: cm, variant: variant, earn: earn, pts: pts });
     trip.kinds[fishId] = true;
     trip.earned += earn;
@@ -4869,7 +5186,11 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
   function proceedTrip() {
     if (!trip) return;
-    if (trip.over || trip.castsLeft <= 0) { showTripResult(); return; }
+    if (trip.over || trip.castsLeft <= 0) {
+      if (trip.runMode) runRoundEnd(); else showTripResult();
+      return;
+    }
+    if (trip.runMode) { startFishingSequence(); return; } // 大釣行では道中イベントなし
     maybeEvent(function () {
       startFishingSequence();
     });
@@ -4914,6 +5235,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   // ===== 釣行リザルト =====
   function showTripResult() {
     if (!trip) { showScreen("screen-map"); return; }
+    if (trip.runMode) { runRoundEnd(); return; }
     resetFishStage();
     var loc = getLocation(trip.locId);
     // ボーナス
@@ -5192,6 +5514,15 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
   window.__forceNushi = function () { window.__nushiForce = true; };
   window.__forceItem = function (kind, id) { window.__itemForce = { kind: kind, id: id }; };
+  window.__runTest = function (cards, env, fishId, cm, variant, basePts, flags) {
+    // 採点検証用: 一時的なランを組んで1匹採点する
+    var keep = run;
+    run = { round: 1, score: 0, money: 0, cleared: 0, cards: cards, cardState: env.cardState || {}, timeKey: env.timeKey || "hiru", weather: env.weather || "sun", lastFishId: env.lastFishId || null, lastWasBarashi: !!env.lastWasBarashi, betFish: env.betFish || null, choices: [] };
+    var keepTrip = trip; trip = { runMode: true };
+    var r = runScoreCatch(fishId, cm, variant, basePts, flags || {});
+    trip = keepTrip; run = keep;
+    return r;
+  };
   window.__forceEvent = function (id, cb) {
     var ev = EVENTS.filter(function (e) { return e.id === id; })[0];
     if (ev) ev.run(cb || function () { proceedTrip(); });
@@ -5664,10 +5995,13 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       ph: Math.random() * 6.28, st: "swim", nibbleN: 0, nextNibbleAt: 0, blobItem: null
     };
     // ヌシの影（条件一致・未討伐・低確率）: 巨大な影が横切る
+    // 大釣行×ヌシ呼びの笛: 討伐済み・条件無視で呼び出せる
+    var fue = trip && trip.runMode && runHasCard("nushifue");
     var nu = NUSHI[state.selectedLocationId];
     var nushiAlive = fs.shadows.some(function (s) { return s.isNushi; });
-    if (!forceFishId && nu && !save.nushi[state.selectedLocationId] && nushiCondMet(nu.cond) && !nushiAlive &&
-        (window.__nushiForce || Math.random() < 0.03)) {
+    if (!forceFishId && nu && !nushiAlive &&
+        (fue || (!save.nushi[state.selectedLocationId] && nushiCondMet(nu.cond))) &&
+        (window.__nushiForce || Math.random() < (fue ? 0.09 : 0.03))) {
       window.__nushiForce = false;
       var srN = BAL.sizes[nu.fish] || [10, 40];
       sh.id = nu.fish; sh.cm = nu.cm;
@@ -5676,11 +6010,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       SFX.drone();
       showToast('<div style="color:#f0b060;">……大きな影が、水面の下を横切っている……</div>', 2000);
       cv.shakeAmp = Math.max(cv.shakeAmp, 3);
-    } else if (!forceFishId && !window.__itemForce && Math.random() < 0.15) {
-      // 丸い影 = 藻・がらくた・おたから
+    } else if (!forceFishId && !window.__itemForce && Math.random() < ((trip && trip.runMode && runHasCard("otakara_t")) ? 0.30 : 0.15)) {
+      // 丸い影 = 藻・がらくた・おたから（おたから体質でわきやすく）
       sh.kind = "blob"; sh.spd = 5 + Math.random() * 5;
       var br = Math.random();
-      sh.blobItem = br < 0.22 ? { kind: "treasure", id: pickTreasure(loc) }
+      var trTh = (trip && trip.runMode && runHasCard("otakara_t")) ? 0.42 : 0.22;
+      sh.blobItem = br < trTh ? { kind: "treasure", id: pickTreasure(loc) }
         : br < 0.82 ? { kind: "junk", id: JUNK_ITEMS[Math.floor(Math.random() * JUNK_ITEMS.length)].id }
         : null; // null = 藻
       sh.ratio = 0.3;
@@ -5740,6 +6075,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         if (now >= sh.nextNibbleAt) {
           if (sh.nibbleN > 0) {
             sh.nibbleN--;
+            sh.nibbled = (sh.nibbled || 0) + 1; // 我慢した回数（我慢くらべ用）
             fs.nibbleAnimUntil = now + 260;   // ウキがピクッ
             spawnRipple(fs.castTX, fs.castTY + 4, false);
             SFX.plop();
@@ -5794,6 +6130,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var idx = fs.shadows.indexOf(sh);
     if (idx >= 0) fs.shadows.splice(idx, 1);
     fs.isNushi = !!sh.isNushi;
+    fs.nibblesSeen = sh.nibbled || 0;
     if (sh.kind === "blob") {
       state.pendingItem = sh.blobItem;   // null = 藻
       state.pendingFishId = null;
@@ -5852,7 +6189,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     document.getElementById("fishLocName").textContent = loc ? loc.name : "";
     showScreen("screen-fish");
     resetFishStage();
-    state.time = timeInfo();
+    state.time = (run && trip && trip.runMode) ? runTimeDef() : timeInfo();
     if (loc) renderStageScene(loc);
     clearFishShadow();
 
@@ -5929,10 +6266,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       if (d < 16) { sh.st = "flee"; sh.dir = dx >= 0 ? 1 : -1; scared++; continue; }
       if (d < 60 && d < luredD) { lured = sh; luredD = d; }
     }
+    fs.wasNice = false;
     if (scared) {
       setStageText("着水音に驚いて逃げた！");
     } else if (lured) {
       fs.engaged = lured; lured.st = "approach";
+      fs.wasNice = true;
       setStageText("🎯 ナイスキャスト！ 影が寄ってくる…");
       showToast('<div style="color:#ffe9a8;font-weight:800;">🎯 ナイスキャスト！</div>', 900);
       buzz([15, 20, 15]);
@@ -5955,8 +6294,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     cv.flash = 0.85;
     cv.shakeAmp = Math.max(cv.shakeAmp, 5);
     // 小物は一発抜き上げ（テンポ最優先。ゲージのドラマは中型以上から）
+    fs.wasQuick = false;
     if (state.pendingFishId && !fs.isNushi && fs.pendingVariant !== "giant" &&
         (fs.pendingSize || 99) <= 24 && (FISH_TIER[state.pendingFishId] || 0) === 0) {
+      fs.wasQuick = true;
       landFish(true);
       return;
     }
@@ -6249,6 +6590,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (info.kind === "barasi") { save.totals.barashi++; persistSave(); }
     if (trip) {
       if (info.kind === "barasi") trip.noBarashi = false;
+      if (info.kind === "barasi" && trip.runMode && run) run.lastWasBarashi = true; // 背水の陣
       trip.combo = 0; // バラシ・ボウズでコンボ途切れ
       updateCastsBadge();
       if (info.kind === "barasi" && Math.random() < 0.6) yukiSay(pickLine(YUKI_LINES.fail), "sad", 2200);
@@ -6494,7 +6836,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var nuDef = NUSHI[nuLoc];
       save.nushi[nuLoc] = true;
       var bounty = nuDef.cm * 100;
-      save.money += bounty;
+      if (trip && trip.runMode && run) run.money += bounty; else save.money += bounty;
       save.totals.earned += bounty;
       if (Object.keys(save.nushi).length >= 3 && save.titles.indexOf("nushi3") < 0) save.titles.push("nushi3");
       if (Object.keys(save.nushi).length >= Object.keys(NUSHI).length && save.titles.indexOf("nushiAll") < 0) save.titles.push("nushiAll");
@@ -6513,7 +6855,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var showFull = rec.isNew || rec.isRecord || variant || fRar2 === "rare" || fRar2 === "legend" || nushiMsg;
       if (!showFull) {
         if (Math.random() < 0.18) yukiSay(pickLine(YUKI_LINES.catchSmall), "happy", 1800);
-        showToast('<div>' + FISH[fishId].name + ' <b>' + cm.toFixed(1) + 'cm</b></div><div class="ct-earn">+' + earn.toLocaleString() + '円</div>' + comboTag + duelMsg, 1400);
+        var runTag = "";
+        if (trip.runMode && run && trip.catches.length) {
+          var lastC = trip.catches[trip.catches.length - 1];
+          runTag = '<div style="color:#d8b8ff;font-weight:800;">+' + lastC.pts.toLocaleString() + 'pt' + (trip.lastRunNote ? "　" + trip.lastRunNote : "") + '</div>';
+        }
+        showToast('<div>' + FISH[fishId].name + ' <b>' + cm.toFixed(1) + 'cm</b></div><div class="ct-earn">+' + earn.toLocaleString() + '円</div>' + runTag + comboTag + duelMsg, trip.runMode ? 1700 : 1400);
         afterCastResolved(false);
         return;
       }
@@ -6549,7 +6896,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var j = null;
       for (var i = 0; i < JUNK_ITEMS.length; i++) if (JUNK_ITEMS[i].id === it.id) j = JUNK_ITEMS[i];
       if (!j) j = JUNK_ITEMS[0];
-      save.money += j.price; save.totals.earned += j.price;
+      if (trip && trip.runMode && run) { run.money += j.price; run.cardState.binbou = true; } // 貧乏神が笑う
+      else { save.money += j.price; }
+      save.totals.earned += j.price;
       save.junkCleared = (save.junkCleared || 0) + 1;
       var mileMsg = "";
       if (save.junkCleared === 10 || save.junkCleared === 30 || save.junkCleared === 60) {
@@ -6572,10 +6921,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var t = TREASURE[it.id] || TREASURE.kosen;
     var isNew = !save.treasures[it.id];
     save.treasures[it.id] = true;
-    save.money += t.price; save.totals.earned += t.price;
+    var toRun = trip && trip.runMode && run;
+    if (toRun) run.money += t.price; else save.money += t.price;
+    save.totals.earned += t.price;
     var setBonus = checkTreasureSet(it.id);
     var earn = t.price + (setBonus ? setBonus.bonus : 0);
-    if (setBonus) { save.money += setBonus.bonus; save.totals.earned += setBonus.bonus; }
+    if (setBonus) { if (toRun) run.money += setBonus.bonus; else save.money += setBonus.bonus; save.totals.earned += setBonus.bonus; }
     addYukiXp(isNew ? 30 : 8);
     if (isNew) addYukiMemory("おたから発見: " + t.name);
     if (Object.keys(save.treasures).length >= Object.keys(TREASURE).length && save.titles.indexOf("treasureAll") < 0) save.titles.push("treasureAll");
@@ -6883,7 +7234,59 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         break;
       case "end-trip":
       case "end-trip-from-result":
-        if (trip) { clearFishingTimers(); showTripResult(); } else { showScreen("screen-map"); }
+        if (trip && trip.runMode) { runRoundEnd(); }
+        else if (trip) { clearFishingTimers(); showTripResult(); }
+        else { showScreen("screen-map"); }
+        break;
+      case "bigrun":
+        startRun();
+        break;
+      case "run-quit":
+        if (run && trip) { /* 釣り中は誤爆防止で無視 */ }
+        else if (run) { endRun(true); }
+        else { showScreen("screen-title"); }
+        break;
+      case "run-choose":
+        if (run) runChoose(parseInt(el.getAttribute("data-arg"), 10));
+        break;
+      case "run-buy":
+        if (run && run.shopStock) {
+          var rbI = parseInt(el.getAttribute("data-arg"), 10);
+          var rbC = run.shopStock[rbI];
+          if (rbC && run.money >= RUN_CARDS[rbC].price && run.cards.length < 5) {
+            run.money -= RUN_CARDS[rbC].price;
+            run.cards.push(rbC);
+            run.shopStock[rbI] = null;
+            SFX.ensure(); SFX.jingle();
+            renderRunScreen("shop");
+          } else { SFX.ensure(); SFX.fail(); }
+        }
+        break;
+      case "run-sell":
+        if (run) {
+          var rsI = parseInt(el.getAttribute("data-arg"), 10);
+          var rsC = run.cards[rsI];
+          if (rsC) {
+            run.cards.splice(rsI, 1);
+            run.money += Math.round(RUN_CARDS[rsC].price / 2);
+            SFX.ensure(); SFX.click();
+            renderRunScreen(run.shopStock ? "shop" : "pick");
+          }
+        }
+        break;
+      case "run-reroll":
+        if (run && run.money >= 300) {
+          run.money -= 300;
+          runRollShop();
+          SFX.ensure(); SFX.click();
+          renderRunScreen("shop");
+        } else { SFX.ensure(); SFX.fail(); }
+        break;
+      case "run-next":
+        if (run) { run.shopStock = null; runPickRound(); }
+        break;
+      case "run-again":
+        startRun();
         break;
       case "trip-again":
         if (state.selectedRodId && state.selectedLureId) {
@@ -7026,7 +7429,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       engaged: fs.engaged ? { st: fs.engaged.st, id: fs.engaged.id, kind: fs.engaged.kind, nibbleN: fs.engaged.nibbleN } : null,
       castTX: fs.castTX, castTY: fs.castTY,
       castZone: fs.castZone,
-      trip: trip ? { castsLeft: trip.castsLeft, catches: trip.catches.length, score: trip.score, earned: trip.earned, events: trip.events, over: trip.over } : null,
+      trip: trip ? { castsLeft: trip.castsLeft, catches: trip.catches.length, score: trip.score, earned: trip.earned, events: trip.events, over: trip.over, runMode: !!trip.runMode } : null,
+      run: run ? { round: run.round, score: run.score, money: run.money, cards: run.cards.slice(), quota: runQuotaEff(), cleared: run.cleared, betFish: run.betFish, weather: run.weather, timeKey: run.timeKey, shop: run.shopStock || null } : null,
       compBest: save.comp ? save.comp.best : 0,
       yukiXp: save.yuki.xp, yukiLevel: yukiLevel(), lastYukiLine: yukiState.lastLine,
       pendingSize: fs.pendingSize,
