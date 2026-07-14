@@ -3594,7 +3594,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var rodList = document.getElementById("rodList");
     rodList.innerHTML = "";
     RODS.forEach(function (rod) {
-      if (!run && save.gear.rods.indexOf(rod.id) < 0) return; // 未購入はショップで（大釣行は全解放）
+      var rOwned = run ? run.rods.indexOf(rod.id) >= 0 : save.gear.rods.indexOf(rod.id) >= 0;
+      if (!rOwned) return; // 未購入はショップ／闇市で
       var item = document.createElement("div");
       item.className = "choice-item";
       item.setAttribute("data-rod-id", rod.id);
@@ -3620,7 +3621,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var lureList = document.getElementById("lureList");
     lureList.innerHTML = "";
     rod.lures.forEach(function (lureId) {
-      if (!run && save.gear.lures.indexOf(lureId) < 0) return;
+      var lOwned = run ? run.lures.indexOf(lureId) >= 0 : save.gear.lures.indexOf(lureId) >= 0;
+      if (!lOwned) return;
       var lure = LURES[lureId];
       var item = document.createElement("div");
       item.className = "choice-item";
@@ -5011,6 +5013,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     salmonbet: { name: "大河の賭け",   emoji: "🎏", price: 1200, desc: "サケ・カラフトマス・イトウ ×4" }
   };
   function runHasCard(id) { return !!(run && run.cards.indexOf(id) >= 0); }
+  // ラン内の道具価格（本編より安いが、仕掛け札との資金競合が攻略）
+  var RUN_GEAR_PRICES = {
+    lure_rod: 1800, fly_rod: 2500, big_rod: 6000,
+    spoon: 400, spinner: 500, fly: 600, minnow: 1000, oomono: 1200, glow_minnow: 1500, salmon_rig: 3000
+  };
+  var RUN_ROD_BUNDLE = { lure_rod: "spoon", fly_rod: "fly", big_rod: "spoon" }; // 竿には基本ルアーを同梱
+  function runGearName(id) {
+    var r = RODS.filter(function (x) { return x.id === id; })[0];
+    if (r) return r.name;
+    return (LURES[id] || {}).name || id;
+  }
   var TIME_DEFS = {
     asa:  { key: "asa",  label: "朝マズメ", mazume: true,  night: false },
     hiru: { key: "hiru", label: "日中",     mazume: false, night: false },
@@ -5080,12 +5093,13 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     run = {
       round: 1, score: 0, money: 2000, cleared: 0,
       cards: [], cardState: {},
+      rods: ["bait_rod"], lures: ["bait"],   // のべ竿一本から。竿・ルアーは闇市で買い足す
       hand: [], handName: "—", pendingCard: null,
       timeKey: "hiru", weather: "sun", locId: null,
       lastFishId: null, lastWasBarashi: false, betFish: null,
       choices: []
     };
-    yukiSay("軍資金2,000円と道具箱、持っていってください！仕入れからどうぞ！", "excited", 3200, true);
+    yukiSay("軍資金2,000円と、のべ竿を1本。いい竿は闇市で仕入れてくださいね！", "excited", 3200, true);
     // 出発前の仕入れ（開幕闇市）から始まる
     runRollShop();
     renderRunScreen("shop");
@@ -5236,7 +5250,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           '<div class="rc-name">' + loc.name + ' <span class="rc-badges">' + w.emoji + t.label + '</span></div>' +
           '<div class="rc-sub">' + tops + '</div></button>';
       });
-      html += '<div class="rc-sub" style="padding:2px 4px;"><b>数字は魚種ごとに固定</b>（例: ウグイ=7、サケ=13）。ただし影の正体は<b>モジリ（波紋）の瞬間しか見えない</b>——観察して覚えろ！<br>⏱制限時間3:00｜わざと逃がす・誤アワセは<b>キャスト-1</b><br>ペア×2｜3枚=×4｜連番5枚=×6｜絵柄揃い×7｜フルハウス×9｜4枚=×12｜同種5=入れ食い×25</div>';
+      html += '<div class="rc-sub" style="padding:2px 4px;"><b>数字は魚種ごとに固定</b>（例: ウグイ=7、サケ=13）。ただし影の正体は<b>モジリ（波紋）の瞬間しか見えない</b>——観察して覚えろ！<br>⏱制限時間3:00｜わざと逃がす・誤アワセは<b>キャスト-1</b>｜<b>のべ竿では大物・レア魚はまず掛からない</b>——いい竿は闇市で<br>ペア×2｜3枚=×4｜連番5枚=×6｜絵柄揃い×7｜フルハウス×9｜4枚=×12｜同種5=入れ食い×25</div>';
       body.innerHTML = html;
     } else if (mode === "shop") {
       if (!run.shopStock) runRollShop();
@@ -5249,6 +5263,21 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         sh += '<button class="run-choice' + (can ? "" : " ng") + '" data-action="run-buy" data-arg="' + i + '">' +
           '<div class="rc-name">' + c.emoji + " " + c.name + '<span class="rc-price">' + c.price.toLocaleString() + '円</span></div>' +
           '<div class="rc-sub">' + c.desc + '</div></button>';
+      });
+      // 道具コーナー: 竿・ルアーをラン内資金で買い足す（このランかぎり）
+      sh += '<div class="section-label" style="margin-top:12px;">🎣 道具（このランかぎり）</div>';
+      var gearIds = ["lure_rod", "fly_rod", "big_rod", "spoon", "spinner", "fly", "minnow", "oomono", "glow_minnow", "salmon_rig"];
+      gearIds.forEach(function (gid) {
+        var owned = run.rods.indexOf(gid) >= 0 || run.lures.indexOf(gid) >= 0;
+        if (owned) return;
+        var gp = RUN_GEAR_PRICES[gid];
+        var isRod = RODS.some(function (r) { return r.id === gid; });
+        var gDesc = isRod ? (RODS.filter(function (r) { return r.id === gid; })[0] || {}).desc : (LURES[gid] || {}).desc;
+        var canG = run.money >= gp;
+        var bndTxt = isRod && RUN_ROD_BUNDLE[gid] ? "（" + runGearName(RUN_ROD_BUNDLE[gid]) + "付き）" : "";
+        sh += '<button class="run-choice' + (canG ? "" : " ng") + '" data-action="run-gear" data-arg="' + gid + '" style="padding:9px 14px;">' +
+          '<div class="rc-name">' + (isRod ? "🎣 " : "🪝 ") + runGearName(gid) + bndTxt + '<span class="rc-price">' + gp.toLocaleString() + '円</span></div>' +
+          '<div class="rc-sub">' + (gDesc || "") + '</div></button>';
       });
       sh += '<div class="btn-row" style="margin-top:10px;">' +
         '<button class="btn secondary" data-action="run-reroll">🎲 引き直し（300円）</button>' +
@@ -7481,6 +7510,23 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           }
         }
         break;
+      case "run-gear":
+        if (run) {
+          var rgId = el.getAttribute("data-arg");
+          var rgP = RUN_GEAR_PRICES[rgId];
+          var rgOwned = run.rods.indexOf(rgId) >= 0 || run.lures.indexOf(rgId) >= 0;
+          if (rgP && !rgOwned && run.money >= rgP) {
+            run.money -= rgP;
+            if (RODS.some(function (r) { return r.id === rgId; })) {
+              run.rods.push(rgId);
+              var bnd = RUN_ROD_BUNDLE[rgId];
+              if (bnd && run.lures.indexOf(bnd) < 0) run.lures.push(bnd); // 基本ルアー同梱
+            } else run.lures.push(rgId);
+            SFX.ensure(); SFX.jingle();
+            renderRunScreen("shop");
+          } else { SFX.ensure(); SFX.fail(); }
+        }
+        break;
       case "run-reroll":
         if (run && run.money >= 300) {
           run.money -= 300;
@@ -7672,7 +7718,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       castTX: fs.castTX, castTY: fs.castTY,
       castZone: fs.castZone,
       trip: trip ? { castsLeft: trip.castsLeft, catches: trip.catches.length, score: trip.score, earned: trip.earned, events: trip.events, over: trip.over, runMode: !!trip.runMode } : null,
-      run: run ? { round: run.round, score: run.score, money: run.money, cards: run.cards.slice(), quota: runQuotaEff(), cleared: run.cleared, betFish: run.betFish, weather: run.weather, timeKey: run.timeKey, shop: run.shopStock || null, handName: run.handName, hand: (run.hand || []).map(function (c) { return c.rank + c.suit[0] + ":" + c.fishId + ":" + c.value; }), pendingCard: !!run.pendingCard } : null,
+      run: run ? { round: run.round, score: run.score, money: run.money, cards: run.cards.slice(), quota: runQuotaEff(), cleared: run.cleared, betFish: run.betFish, weather: run.weather, timeKey: run.timeKey, shop: run.shopStock || null, handName: run.handName, hand: (run.hand || []).map(function (c) { return c.rank + c.suit[0] + ":" + c.fishId + ":" + c.value; }), pendingCard: !!run.pendingCard, rods: run.rods.slice(), lures: run.lures.slice() } : null,
       compBest: save.comp ? save.comp.best : 0,
       yukiXp: save.yuki.xp, yukiLevel: yukiLevel(), lastYukiLine: yukiState.lastLine,
       pendingSize: fs.pendingSize,
