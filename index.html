@@ -4547,17 +4547,19 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         }
         ctx.restore();
         ctx.filter = "none";
-        // 大釣行: 影の上にランク＋絵柄のラベル（狙い撃ち用）
-        if (trip && trip.runMode) {
+        // 大釣行: ランク＋絵柄のラベルは「モジリの瞬間」だけ浮かぶ（観察して覚える）
+        if (trip && trip.runMode && shD.st === "swim" && shD.revealUntil && now < shD.revealUntil) {
+          var la = Math.min(1, (shD.revealUntil - now) / 450);
           ctx.save();
-          ctx.font = "700 11px system-ui, sans-serif";
+          ctx.font = "700 12px system-ui, sans-serif";
           ctx.textAlign = "center";
           var lbl = shD.kind === "blob" ? "?" : ((RUN_RANK_OF[shD.id] || "?") + (RUN_SUITS[FIGHT_STYLE_OF[shD.id] || "quick"] || {}).emoji);
+          ctx.globalAlpha = la;
           ctx.lineWidth = 3;
-          ctx.strokeStyle = "rgba(6,20,28,0.75)";
-          ctx.strokeText(lbl, shD.x, shD.y + wobS - 13);
-          ctx.fillStyle = "rgba(255,240,200,0.95)";
-          ctx.fillText(lbl, shD.x, shD.y + wobS - 13);
+          ctx.strokeStyle = "rgba(6,20,28,0.8)";
+          ctx.strokeText(lbl, shD.x, shD.y + wobS - 14);
+          ctx.fillStyle = "rgba(255,240,200,0.98)";
+          ctx.fillText(lbl, shD.x, shD.y + wobS - 14);
           ctx.restore();
         }
       }
@@ -5067,7 +5069,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       events: 0, buffs: {}, rain: false,
       duel: null, over: false,
       combo: 0,
-      runMode: !!run
+      runMode: !!run,
+      roundDeadline: run ? performance.now() + 180000 : 0  // 大釣行は1ラウンド3分
     };
     updateCastsBadge();
   }
@@ -5233,7 +5236,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           '<div class="rc-name">' + loc.name + ' <span class="rc-badges">' + w.emoji + t.label + '</span></div>' +
           '<div class="rc-sub">' + tops + '</div></button>';
       });
-      html += '<div class="rc-sub" style="padding:2px 4px;"><b>数字は魚種ごとに固定</b>（例: ウグイ=7、サケ=13。各数字にちょうど2種）。影のラベルを見て狙い撃て！<br>同じ数字2枚=ペア×2｜3枚=×4｜連番5枚=ストレート×6｜絵柄揃い×7｜フルハウス×9｜4枚=×12｜同種5=入れ食い×25</div>';
+      html += '<div class="rc-sub" style="padding:2px 4px;"><b>数字は魚種ごとに固定</b>（例: ウグイ=7、サケ=13）。ただし影の正体は<b>モジリ（波紋）の瞬間しか見えない</b>——観察して覚えろ！<br>⏱制限時間3:00｜わざと逃がす・誤アワセは<b>キャスト-1</b><br>ペア×2｜3枚=×4｜連番5枚=×6｜絵柄揃い×7｜フルハウス×9｜4枚=×12｜同種5=入れ食い×25</div>';
       body.innerHTML = html;
     } else if (mode === "shop") {
       if (!run.shopStock) runRollShop();
@@ -5295,7 +5298,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var el = document.getElementById("castsLeftBadge");
     if (!el) return;
     if (trip && trip.runMode && run) {
-      el.textContent = "🃏" + (run.handName || "—") + "　" + run.score.toLocaleString() + "/" + runQuotaEff().toLocaleString() + "　残" + trip.castsLeft;
+      var tstr = "";
+      if (trip.roundDeadline) {
+        var rem = Math.max(0, trip.roundDeadline - performance.now());
+        tstr = "　⏱" + Math.floor(rem / 60000) + ":" + ("0" + Math.floor(rem % 60000 / 1000)).slice(-2);
+      }
+      el.textContent = "🃏" + (run.handName || "—") + "　" + run.score.toLocaleString() + "/" + runQuotaEff().toLocaleString() + "　残" + trip.castsLeft + tstr;
     } else {
       el.textContent = trip ? "🎣 残り " + trip.castsLeft + " 投" + (trip.combo >= 2 ? "　🔥コンボ×" + trip.combo : "") : "";
     }
@@ -6222,7 +6230,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         sh.y += Math.sin(now / 900 + sh.ph) * 4 * dt;
         sh.y = Math.max(HORIZON + 30, Math.min(446, sh.y));
         if (sh.x < wb[0] - 30 || sh.x > wb[1] + 30) { fs.shadows.splice(i, 1); continue; }
-        if (Math.random() < dt * 0.45) spawnRipple(sh.x, sh.y - 2, false); // 存在を知らせるモジリ
+        if (Math.random() < dt * 0.45) {
+          spawnRipple(sh.x, sh.y - 2, false); // 存在を知らせるモジリ
+          if (trip && trip.runMode) sh.revealUntil = now + 1500; // 大釣行: モジリの瞬間だけ正体が見える
+        }
       } else if (sh.st === "approach") {
         var dxA = fs.castTX - sh.x, dyA = fs.castTY + 8 - sh.y;
         var dA = Math.sqrt(dxA * dxA + dyA * dyA);
@@ -6782,6 +6793,16 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var dt = Math.min(0.05, (now - fs.lastTs) / 1000);
       fs.lastTs = now;
 
+      // 大釣行: ラウンド制限時間（ファイト・アワセ中は執行猶予）
+      if (trip && trip.runMode && trip.roundDeadline) {
+        if (now - (fs.lastBadgeT || 0) > 500) { fs.lastBadgeT = now; updateCastsBadge(); }
+        if (now > trip.roundDeadline && fs.phase !== "fight" && fs.phase !== "bite" && fs.phase !== "land" && fs.phase !== "done" && fs.phase !== "junk") {
+          showToast('<div class="ct-fail">⏱ 時間切れ！ 強制納竿！</div>', 1600);
+          runRoundEnd();
+          return;
+        }
+      }
+
       if (fs.phase === "aim") {
         fs.aimT += dt;
         fs.rodBend = 0.05;
@@ -6888,14 +6909,25 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
     if (fs.phase === "wait") {
       if (fs.engaged && (fs.engaged.st === "approach" || fs.engaged.st === "nibble")) {
-        // 偽アタリで焦った！ 魚は逃げる
+        // 偽アタリで焦った！ 魚は逃げる（大釣行ではキャストを1消費）
         var sc = fs.engaged;
         sc.st = "flee"; sc.dir = (sc.x >= fs.castTX ? 1 : -1);
         fs.engaged = null;
         fs.waitStartAt = performance.now();
-        setStageText("あっ、逃げた…！ ピクッは我慢、ズボッでタップ");
         SFX.fail(); buzz(40);
         spawnRipple(sc.x, sc.y, false);
+        if (trip && trip.runMode) {
+          trip.castsLeft--;
+          updateCastsBadge();
+          setStageText("逃げた！（キャスト -1）", true);
+          if (trip.castsLeft <= 0) {
+            clearFishingTimers();
+            setTimeout(function () { if (trip && trip.runMode) runRoundEnd(); }, 800);
+            return;
+          }
+        } else {
+          setStageText("あっ、逃げた…！ ピクッは我慢、ズボッでタップ");
+        }
         if (Math.random() < 0.35) yukiSay("焦っちゃダメです！ズボッと沈むまで我慢…！", "surprised", 2000);
       } else {
         // 誰も食い付いていなければ打ち直し（キャストは消費しない）
