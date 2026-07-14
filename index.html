@@ -989,7 +989,7 @@
       <div class="stage-text" id="stageText">キャスト中…</div>
       <button id="muteBtn" class="mute-btn" type="button">🔊</button>
     </div>
-    <p class="sr-note" style="text-align:center;" id="fishHelpNote">アタリが来たらタップでアワセ→長押しで巻き上げ！</p>
+    <p class="sr-note" style="text-align:center;" id="fishHelpNote">泳ぐ影を狙って水面をタップ→「ピクッ」は我慢、「ズボッ」でタップ→長押しで巻き上げ！</p>
   </section>
 
   <!-- 5. 結果 -->
@@ -2917,16 +2917,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
   }
 
-  function rollSize(fishId) {
+  function rollSize(fishId, extraExp) {
     var sr = BAL.sizes[fishId] || [10, 40];
-    var exp = BAL.sizeExpBase;
+    var exp = BAL.sizeExpBase + (extraExp || 0);
     var rst = ROD_STATS[state.selectedRodId];
     if (rst) exp += rst.sizeExp;   // 弱い竿ほど小型・剛竿ほど大型が出やすい
     if (state.time && state.time.mazume) exp -= 0.3;
     if (state.selectedLureId === "oomono") exp -= 0.35;
     if (state.daily && state.daily.hotLoc === state.selectedLocationId) exp -= 0.2;
-    if (fs.castZone === "far") exp -= 0.3;
-    if (fs.perfect) exp -= 0.15; // ジャストキャストは型が良い
     var variant = null;
     var vb = rankVariantBonus();               // 釣り人ランク特典で特別個体が出やすく
     var giantRate = BAL.variantGiantRate + vb * 0.5;
@@ -4455,18 +4453,42 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
     if (sc.rec.bridge) drawBridge(ctx, pal, t.night);
 
-    // 8) 魚影
-    if (fs.shadowId) {
+    // 8) 魚影 — 泳ぐ影の群れ（見える水面）
+    if ((fs.phase === "aim" || fs.phase === "cast" || fs.phase === "wait" || fs.phase === "bite") && fs.shadows) {
+      for (var shi = 0; shi < fs.shadows.length; shi++) {
+        var shD = fs.shadows[shi];
+        var wobS = Math.sin(now / 260 + shD.ph) * 2.5;
+        ctx.save();
+        if (shD.kind === "blob") {
+          // 丸い影（藻・がらくた・おたから）
+          ctx.globalAlpha = 0.26;
+          ctx.filter = "blur(1.8px)";
+          ctx.fillStyle = "#0c1a20";
+          ctx.beginPath(); ctx.ellipse(shD.x, shD.y + wobS, 15, 8, Math.sin(now / 800 + shD.ph) * 0.3, 0, 6.3); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(shD.x + 7, shD.y + 3 + wobS, 9, 5, 0, 0, 6.3); ctx.fill();
+        } else {
+          var simg2 = fishImage(shD.id, true);
+          if (simg2.complete && simg2.naturalWidth > 0) {
+            ctx.globalAlpha = shD.isNushi ? 0.4 : 0.3;
+            ctx.filter = "blur(1.6px)";
+            var shw2 = (34 + 62 * Math.min(1.2, shD.ratio || 0.3)) * (shD.isNushi ? 1.55 : 1);
+            ctx.translate(shD.x, shD.y + wobS);
+            if (shD.dir > 0) ctx.scale(-1, 1); // 進行方向に頭を向ける
+            ctx.drawImage(simg2, -shw2 / 2, -shw2 / 4, shw2, shw2 / 2);
+          }
+        }
+        ctx.restore();
+        ctx.filter = "none";
+      }
+    }
+    // 掛かった魚の影（ファイト中）
+    if (fs.shadowId && fs.phase === "fight") {
       var simg = fishImage(fs.shadowId, true);
       if (simg.complete && simg.naturalWidth > 0) {
-        var sxp, syp, wob;
-        if (fs.phase === "fight") { sxp = fs.fpX; syp = fs.fpY; wob = Math.sin(now / 130) * 4; }
-        else { sxp = 180 + Math.sin(now / 340) * 12; syp = 302; wob = Math.sin(now / 260) * 3; }
-        if (fs.phase === "fight") {
-          ctx.strokeStyle = "rgba(255,255,255,0.16)"; ctx.lineWidth = 1.6;
-          ctx.beginPath(); ctx.moveTo(sxp, syp - 6); ctx.lineTo(sxp + 34, syp - 16); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(sxp, syp - 6); ctx.lineTo(sxp + 34, syp + 6); ctx.stroke();
-        }
+        var sxp = fs.fpX, syp = fs.fpY, wob = Math.sin(now / 130) * 4;
+        ctx.strokeStyle = "rgba(255,255,255,0.16)"; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(sxp, syp - 6); ctx.lineTo(sxp + 34, syp - 16); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sxp, syp - 6); ctx.lineTo(sxp + 34, syp + 6); ctx.stroke();
         ctx.save();
         ctx.globalAlpha = 0.32;
         ctx.filter = "blur(1.6px)";
@@ -4579,13 +4601,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var lt = Math.min(1, fs.landT / 1.0);
       if (limg.complete && limg.naturalWidth > 0) {
         var ease = 1 - (1 - lt) * (1 - lt);
-        var fy = 316 - ease * 150 + Math.sin(lt * 9) * 3 * (1 - lt);
+        var lcx = fs.castTX || 180, lcy = (fs.castTY || 300) + 18;
+        var fy = lcy - ease * 150 + Math.sin(lt * 9) * 3 * (1 - lt);
         var rot = -0.45 + ease * 0.55;
         var scl = 0.62 + ease * 0.42;
         ctx.fillStyle = "rgba(0,18,26," + (0.28 * (1 - ease * 0.6)) + ")";
-        ctx.beginPath(); ctx.ellipse(180, 318, 46 * (1 - ease * 0.4), 7, 0, 0, 6.3); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(lcx, lcy, 46 * (1 - ease * 0.4), 7, 0, 0, 6.3); ctx.fill();
         ctx.save();
-        ctx.translate(180, fy);
+        ctx.translate(lcx, fy);
         ctx.rotate(rot);
         ctx.scale(scl, scl);
         ctx.drawImage(limg, -110, -55, 220, 110);
@@ -5608,8 +5631,212 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fightStamMul: 1, fightPullMul: 1,
     diff: 0, zoneLo: 35, zoneHi: 75, zoneW: 40, zoneWander: 0, zonePhase: 0,
     bigRun: false, nextBigRunAt: 0, bigRunEndAt: 0,
-    aimT: 0, aimV: 0.5, castZone: "mid"
+    aimT: 0, aimV: 0.5, castZone: "mid",
+    // 見える水面: 泳ぐ魚影たち
+    shadows: [], locKey: null, nextShadowAt: 0,
+    engaged: null, castTX: 180, castTY: 300, waitStartAt: 0, nibbleAnimUntil: 0
   };
+
+  // ===== 見える水面: 水域の左右端（論理座標yにおける） =====
+  function waterBounds(y) {
+    var t = Math.max(0, Math.min(1, (y - (HORIZON + 12)) / (480 - (HORIZON + 12))));
+    if (scene && !scene.isDam && scene.rw) {
+      var L = scene.rw.topL + (scene.rw.botL - scene.rw.topL) * t;
+      var R = scene.rw.topR + (scene.rw.botR - scene.rw.topR) * t;
+      return [L + 8, R - 8];
+    }
+    return [26, 334];
+  }
+
+  // 魚影を1匹わかせる（種・サイズは湧いた時点で確定。上流=奥ほど大物が出やすい）
+  function spawnShadow(forceFishId) {
+    var loc = getLocation(state.selectedLocationId);
+    if (!loc) return null;
+    var y = HORIZON + 34 + Math.random() * (440 - HORIZON - 34);
+    var wb = waterBounds(y);
+    var fromLeft = Math.random() < 0.5;
+    var sh = {
+      kind: "fish", id: null, cm: 0, ratio: 0, variant: null, isNushi: false,
+      x: fromLeft ? wb[0] - 20 : wb[1] + 20, y: y,
+      dir: fromLeft ? 1 : -1, spd: 14 + Math.random() * 14,
+      ph: Math.random() * 6.28, st: "swim", nibbleN: 0, nextNibbleAt: 0, blobItem: null
+    };
+    // ヌシの影（条件一致・未討伐・低確率）: 巨大な影が横切る
+    var nu = NUSHI[state.selectedLocationId];
+    var nushiAlive = fs.shadows.some(function (s) { return s.isNushi; });
+    if (!forceFishId && nu && !save.nushi[state.selectedLocationId] && nushiCondMet(nu.cond) && !nushiAlive &&
+        (window.__nushiForce || Math.random() < 0.03)) {
+      window.__nushiForce = false;
+      var srN = BAL.sizes[nu.fish] || [10, 40];
+      sh.id = nu.fish; sh.cm = nu.cm;
+      sh.ratio = Math.min(1.2, (nu.cm - srN[0]) / (srN[1] - srN[0]));
+      sh.isNushi = true; sh.spd = 9;
+      SFX.drone();
+      showToast('<div style="color:#f0b060;">……大きな影が、水面の下を横切っている……</div>', 2000);
+      cv.shakeAmp = Math.max(cv.shakeAmp, 3);
+    } else if (!forceFishId && !window.__itemForce && Math.random() < 0.15) {
+      // 丸い影 = 藻・がらくた・おたから
+      sh.kind = "blob"; sh.spd = 5 + Math.random() * 5;
+      var br = Math.random();
+      sh.blobItem = br < 0.22 ? { kind: "treasure", id: pickTreasure(loc) }
+        : br < 0.82 ? { kind: "junk", id: JUNK_ITEMS[Math.floor(Math.random() * JUNK_ITEMS.length)].id }
+        : null; // null = 藻
+      sh.ratio = 0.3;
+    } else {
+      if (window.__itemForce && !forceFishId) {
+        sh.kind = "blob"; sh.spd = 6;
+        sh.blobItem = window.__itemForce.id ? window.__itemForce : { kind: window.__itemForce.kind, id: window.__itemForce.kind === "junk" ? JUNK_ITEMS[0].id : pickTreasure(loc) };
+        sh.ratio = 0.3;
+        window.__itemForce = null;
+      } else {
+        sh.id = forceFishId || drawFish(state.selectedLocationId, state.selectedLureId, 0);
+        if (!sh.id) return null;
+        // 奥(上)ほど型が良い
+        var extraExp = y < HORIZON + 90 ? -0.35 : y < HORIZON + 160 ? -0.1 : 0.15;
+        var roll = rollSize(sh.id, extraExp);
+        sh.cm = roll.cm; sh.ratio = roll.ratio; sh.variant = roll.variant;
+        if (sh.ratio > 0.8) sh.spd *= 0.7; // 大物はゆったり泳ぐ
+      }
+    }
+    fs.shadows.push(sh);
+    return sh;
+  }
+
+  // 影の群れの維持・遊泳・ウキへの興味・ついばみ→本アタリ
+  function updateShadows(now, dt) {
+    var mazume = state.time && state.time.mazume;
+    var cap = 2 + (mazume ? 1 : 0);
+    if (fs.shadows.length < cap && now >= fs.nextShadowAt) {
+      spawnShadow();
+      fs.nextShadowAt = now + 1400 + Math.random() * 2600;
+    }
+    var waiting = fs.phase === "wait";
+    for (var i = fs.shadows.length - 1; i >= 0; i--) {
+      var sh = fs.shadows[i];
+      var wb = waterBounds(sh.y);
+      if (sh.st === "swim") {
+        sh.x += sh.dir * sh.spd * dt;
+        sh.y += Math.sin(now / 900 + sh.ph) * 4 * dt;
+        sh.y = Math.max(HORIZON + 30, Math.min(446, sh.y));
+        if (sh.x < wb[0] - 30 || sh.x > wb[1] + 30) { fs.shadows.splice(i, 1); continue; }
+        if (Math.random() < dt * 0.45) spawnRipple(sh.x, sh.y - 2, false); // 存在を知らせるモジリ
+      } else if (sh.st === "approach") {
+        var dxA = fs.castTX - sh.x, dyA = fs.castTY + 8 - sh.y;
+        var dA = Math.sqrt(dxA * dxA + dyA * dyA);
+        if (dA < 15) {
+          sh.st = "nibble";
+          sh.nibbleN = sh.kind === "blob" ? 1 : (sh.isNushi ? 2 : 1 + Math.floor(Math.random() * 3));
+          if (trip && trip.buffs.school > 0) { sh.nibbleN = 0; trip.buffs.school--; }
+          sh.nextNibbleAt = now + 350;
+        } else {
+          var sp2 = sh.isNushi ? 34 : 52;
+          sh.x += dxA / dA * sp2 * dt;
+          sh.y += dyA / dA * sp2 * dt;
+          sh.dir = dxA >= 0 ? 1 : -1;
+        }
+      } else if (sh.st === "nibble") {
+        if (now >= sh.nextNibbleAt) {
+          if (sh.nibbleN > 0) {
+            sh.nibbleN--;
+            fs.nibbleAnimUntil = now + 260;   // ウキがピクッ
+            spawnRipple(fs.castTX, fs.castTY + 4, false);
+            SFX.plop();
+            buzz(14);
+            setStageText("……ピクッ…（まだ我慢…）");
+            sh.nextNibbleAt = now + 550 + Math.random() * 750;
+          } else {
+            strikeBite(sh);
+            return;
+          }
+        }
+      } else if (sh.st === "flee") {
+        sh.x += sh.dir * 170 * dt;
+        sh.y += 26 * dt;
+        if (sh.x < wb[0] - 40 || sh.x > wb[1] + 40 || sh.y > 470) { fs.shadows.splice(i, 1); continue; }
+      }
+    }
+    // テスト用: 次の掛かりを強制（自然な興味より優先）
+    if (waiting && window.__fishForce) {
+      var ffId = window.__fishForce;
+      window.__fishForce = null;
+      if (fs.engaged) { fs.engaged.st = "swim"; fs.engaged = null; }
+      var fsh = spawnShadow(ffId);
+      if (fsh) { fsh.x = fs.castTX + 60; fsh.y = fs.castTY + 10; fsh.st = "approach"; fs.engaged = fsh; }
+    }
+    // ウキへの興味（待ち中・未係留のみ）
+    if (waiting && !fs.engaged) {
+      var noticeR = 105;
+      if (state.selectedLureId === "glow_minnow" && state.time && state.time.night) noticeR = 170;
+      var best = null, bestD = 1e9;
+      for (var j = 0; j < fs.shadows.length; j++) {
+        var s2 = fs.shadows[j];
+        if (s2.st !== "swim") continue;
+        var dx2 = s2.x - fs.castTX, dy2 = s2.y - (fs.castTY + 8);
+        var d2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+        if (d2 < bestD) { bestD = d2; best = s2; }
+        if (d2 < noticeR && Math.random() < (0.55 - d2 / noticeR * 0.35) * dt * 2.2) {
+          fs.engaged = s2; s2.st = "approach";
+          return;
+        }
+      }
+      // 6秒待って誰も来なければ、いちばん近い影が痺れを切らして寄ってくる
+      if (best && now - fs.waitStartAt > 6000) {
+        fs.engaged = best; best.st = "approach";
+      }
+    }
+  }
+
+  // 本アタリ！（旧triggerBiteの中核）
+  function strikeBite(sh) {
+    fs.engaged = sh;
+    var idx = fs.shadows.indexOf(sh);
+    if (idx >= 0) fs.shadows.splice(idx, 1);
+    fs.isNushi = !!sh.isNushi;
+    if (sh.kind === "blob") {
+      state.pendingItem = sh.blobItem;   // null = 藻
+      state.pendingFishId = null;
+      fs.pendingSize = 0; fs.pendingSizeRatio = 0; fs.pendingVariant = null;
+      fs.shadowId = null;
+    } else {
+      state.pendingItem = null;
+      state.pendingFishId = sh.id;
+      fs.pendingSize = sh.cm;
+      fs.pendingSizeRatio = sh.ratio;
+      fs.pendingVariant = sh.isNushi ? "nushi" : sh.variant;
+      fs.shadowId = sh.id;
+    }
+    if (fs.isNushi) {
+      var nu = NUSHI[state.selectedLocationId];
+      SFX.drone();
+      buzz([120, 80, 200]);
+      cv.shakeAmp = 8;
+      showToast('<div style="font-size:12px;letter-spacing:.2em;color:#f0b060;">— ヌシ —</div><div style="font-size:18px;">' + nu.name + '</div><div style="font-size:11px;color:#b8d2d4;">「' + nu.quote + '」</div>', 2200);
+    }
+    fs.phase = "bite";
+    var stage = document.getElementById("fishStage");
+    stage.classList.add("biting");
+    setStageText("！！ ズボッ！ 今だタップ！！", true);
+    if (fs.isNushi) yukiSay(pickLine(YUKI_LINES.nushi), "surprised", 2600, true);
+    else if (state.pendingFishId && Math.random() < 0.3) yukiSay(pickLine(YUKI_LINES.bite), "excited", 1500);
+    SFX.bite();
+    buzz(70);
+    cv.shakeAmp = Math.max(cv.shakeAmp, 3);
+    spawnRipple(fs.castTX, fs.castTY + 4, true);
+    state.biteActive = true;
+    var winMs = 1300;
+    if (state.pendingFishId) {
+      var bwFish = FISH[state.pendingFishId];
+      winMs = Math.max(750, 1300 - (RARITY_IDX[bwFish.rarity] || 0) * 150 - (fs.pendingSizeRatio || 0) * 150);
+    }
+    if (trip && trip.buffs.focus > 0) { winMs *= 1.5; trip.buffs.focus--; }
+    state.biteTimeoutTimer = setTimeout(function () {
+      if (state.biteActive) {
+        state.biteActive = false;
+        fs.engaged = null;
+        endFishing("late");
+      }
+    }, winMs);
+  }
 
   function setStageText(txt, big) {
     var el = document.getElementById("stageText");
@@ -5647,121 +5874,75 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fs.slackTime = 0; fs.pulling = false;
     fs.castZone = "mid";
     fs.isNushi = false;
+    fs.engaged = null;
+    fs.nibbleAnimUntil = 0;
+    // 影の世界: 場所が変わったらリセット。同じ場所なら泳ぎ続ける
+    if (fs.locKey !== state.selectedLocationId) {
+      fs.locKey = state.selectedLocationId;
+      fs.shadows = [];
+    }
+    fs.shadows.forEach(function (s) { if (s.st !== "swim" && s.st !== "flee") s.st = "swim"; });
+    if (fs.shadows.length === 0) {
+      var s1 = spawnShadow(); var s2 = spawnShadow();
+      // 初期の2匹は水面の中に入れておく
+      [s1, s2].forEach(function (s) {
+        if (!s) return;
+        var wb0 = waterBounds(s.y);
+        s.x = wb0[0] + 30 + Math.random() * (wb0[1] - wb0[0] - 60);
+      });
+    }
+    fs.nextShadowAt = performance.now() + 1500;
     document.getElementById("fightUi").classList.remove("show");
-    document.getElementById("castMeter").classList.remove("hidden");
-    setStageText("狙いを定めて タップ！");
+    document.getElementById("castMeter").classList.add("hidden");
+    setStageText("泳ぐ影を狙って、水面をタップ！");
     updateCastsBadge();
     clearFishingTimers();
     startStageLoop();
   }
 
-  // エイム確定 → キャスト実行
-  function launchCast() {
-    var v = fs.aimV || 0.5;
-    fs.castZone = v >= 0.72 ? "far" : v < 0.28 ? "near" : "mid";
-    fs.perfect = v >= 0.95; // ジャストキャスト: バーの端ぴったり
-    document.getElementById("castMeter").classList.add("hidden");
+  // タップした場所へキャスト（見える水面: 影を狙う）
+  function launchCast(lx, ly) {
+    var ty = Math.max(HORIZON + 30, Math.min(446, ly || 300));
+    var wb = waterBounds(ty);
+    var tx = Math.max(wb[0] + 4, Math.min(wb[1] - 4, lx || 180));
+    fs.castTX = tx; fs.castTY = ty;
+    fs.castZone = ty < HORIZON + 105 ? "far" : ty > 386 ? "near" : "mid";
     fs.phase = "cast";
     fs.castT = 0;
-    if (fs.perfect) {
-      setStageText("✨ ジャストキャスト！！", true);
-      showToast('<div style="color:#ffe9a8;font-weight:800;">✨ ジャストキャスト！</div>', 900);
-      cv.flash = 0.4;
-      buzz([20, 30, 20]);
-    } else {
-      setStageText(fs.castZone === "far" ? "沖に向かってフルキャスト！" : fs.castZone === "near" ? "手前にポチャン…" : "キャスト！");
-    }
+    setStageText("キャスト！");
     SFX.whoosh();
-    var waitMs = state.time.mazume ? (800 + Math.random() * 1700) : (1200 + Math.random() * 2800);
-    if (trip && trip.buffs.school > 0) waitMs = 300;
     clearFishingTimers();
-    state.biteTimer = setTimeout(function () { triggerBite(); }, 750 + waitMs);
   }
 
-  function triggerBite() {
-    if (fs.phase !== "wait" && fs.phase !== "cast") return;
-    var bouzuRate = state.time && state.time.mazume ? 0.08 : 0.15;
-    if (fs.castZone === "near") bouzuRate += 0.10;
-    if (fs.perfect) bouzuRate = Math.max(0, bouzuRate - 0.08); // ジャストキャストはほぼ確実に食う
-    if (trip && trip.buffs.school > 0) { bouzuRate = 0; trip.buffs.school--; }
-    if (state.selectedLureId === "glow_minnow" && state.time && state.time.night) bouzuRate = Math.min(bouzuRate, 0.07);
-    if (state.daily && state.daily.hotLoc === state.selectedLocationId) bouzuRate = Math.max(0.05, bouzuRate - 0.05);
-    if (yukiLevel() >= 5 && state.time && state.time.mazume) bouzuRate = Math.max(0.03, bouzuRate - 0.02);
-    // 川のアイテム抽選（魚の代わりに掛かる）: おたから3.5% / がらくた10%
-    state.pendingItem = null;
-    if (window.__itemForce) {
-      state.pendingItem = window.__itemForce.id
-        ? window.__itemForce
-        : { kind: window.__itemForce.kind, id: window.__itemForce.kind === "junk" ? JUNK_ITEMS[0].id : pickTreasure(getLocation(state.selectedLocationId)) };
-      window.__itemForce = null;
+  // 着水した瞬間の判定（影の至近=驚いて逃げる／近く=すぐ寄ってくる）
+  function onBobberLanded() {
+    fs.waitStartAt = performance.now();
+    fs.engaged = null;
+    var scared = 0, lured = null, luredD = 1e9;
+    for (var i = 0; i < fs.shadows.length; i++) {
+      var sh = fs.shadows[i];
+      if (sh.st !== "swim") continue;
+      var dx = sh.x - fs.castTX, dy = sh.y - fs.castTY;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 16) { sh.st = "flee"; sh.dir = dx >= 0 ? 1 : -1; scared++; continue; }
+      if (d < 60 && d < luredD) { lured = sh; luredD = d; }
     }
-    var itemRoll = state.pendingItem ? 1 : Math.random();
-    if (itemRoll < 0.035) {
-      state.pendingItem = { kind: "treasure", id: pickTreasure(getLocation(state.selectedLocationId)) };
-    } else if (itemRoll < 0.135) {
-      state.pendingItem = { kind: "junk", id: JUNK_ITEMS[Math.floor(Math.random() * JUNK_ITEMS.length)].id };
-    }
-    state.pendingFishId = state.pendingItem ? null : drawFish(state.selectedLocationId, state.selectedLureId, bouzuRate);
-    if (window.__fishForce) { state.pendingItem = null; state.pendingFishId = window.__fishForce; window.__fishForce = null; }
-    // ヌシ出現判定（未討伐・条件一致・低確率）
-    fs.isNushi = false;
-    var nu = NUSHI[state.selectedLocationId];
-    if (nu && !save.nushi[state.selectedLocationId] && nushiCondMet(nu.cond)) {
-      var nuRate = state.selectedLocationId === "shumarinai" ? 0.10 : 0.05;
-      if (window.__nushiForce || Math.random() < nuRate) {
-        window.__nushiForce = false;
-        state.pendingItem = null; // ヌシはアイテムより優先
-        state.pendingFishId = nu.fish;
-        fs.isNushi = true;
-      }
-    }
-    if (fs.isNushi) {
-      var sr3 = BAL.sizes[nu.fish] || [10, 40];
-      fs.pendingSize = nu.cm;
-      fs.pendingSizeRatio = Math.min(1.2, (nu.cm - sr3[0]) / (sr3[1] - sr3[0]));
-      fs.pendingVariant = "nushi";
-      // 専用演出: 暗転バナー＋ドローン＋強シェイク
-      SFX.drone();
-      buzz([120, 80, 200]);
-      cv.shakeAmp = 8;
-      showToast('<div style="font-size:12px;letter-spacing:.2em;color:#f0b060;">— ヌシ —</div><div style="font-size:18px;">' + nu.name + '</div><div style="font-size:11px;color:#b8d2d4;">「' + nu.quote + '」</div>', 2200);
-    } else if (state.pendingFishId) {
-      var roll = rollSize(state.pendingFishId);
-      fs.pendingSize = roll.cm;
-      fs.pendingSizeRatio = roll.ratio;
-      fs.pendingVariant = roll.variant;
+    if (scared) {
+      setStageText("着水音に驚いて逃げた！");
+    } else if (lured) {
+      fs.engaged = lured; lured.st = "approach";
+      setStageText("🎯 ナイスキャスト！ 影が寄ってくる…");
+      showToast('<div style="color:#ffe9a8;font-weight:800;">🎯 ナイスキャスト！</div>', 900);
+      buzz([15, 20, 15]);
     } else {
-      fs.pendingSize = 0; fs.pendingSizeRatio = 0; fs.pendingVariant = null;
+      setStageText("アタリを待て…（ピクッは我慢、ズボッでタップ）");
     }
-    showFishShadow(state.pendingFishId);
-    fs.phase = "bite";
-    var stage = document.getElementById("fishStage");
-    stage.classList.add("biting");
-    setStageText(state.pendingFishId ? "！！ アタリ！ タップでアワセ！" : "！ ウキが動いた！ タップ！", true);
-    if (fs.isNushi) yukiSay(pickLine(YUKI_LINES.nushi), "surprised", 2600, true);
-    else if (state.pendingFishId && Math.random() < 0.3) yukiSay(pickLine(YUKI_LINES.bite), "excited", 1500);
-    SFX.bite();
-    buzz(70);
-    cv.shakeAmp = 3;
-    spawnRipple(180, 292, true);
-    state.biteActive = true;
-    var winMs = state.biteWindowMs;
-    if (state.pendingFishId) {
-      var bwFish = FISH[state.pendingFishId];
-      winMs = Math.max(750, 1300 - (RARITY_IDX[bwFish.rarity] || 0) * 150 - (fs.pendingSizeRatio || 0) * 150);
-    }
-    if (trip && trip.buffs.focus > 0) { winMs *= 1.5; trip.buffs.focus--; }
-    state.biteTimeoutTimer = setTimeout(function () {
-      if (state.biteActive) {
-        state.biteActive = false;
-        endFishing("late");
-      }
-    }, winMs);
   }
 
   function hookset() {
     state.biteActive = false;
     clearFishingTimers();
+    fs.engaged = null;
     var stage = document.getElementById("fishStage");
     stage.classList.remove("biting");
     spawnSplash();
@@ -5771,6 +5952,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fs.hitStopUntil = performance.now() + 110;
     cv.flash = 0.85;
     cv.shakeAmp = Math.max(cv.shakeAmp, 5);
+    // 小物は一発抜き上げ（テンポ最優先。ゲージのドラマは中型以上から）
+    if (state.pendingFishId && !fs.isNushi && fs.pendingVariant !== "giant" &&
+        (fs.pendingSize || 99) <= 24 && (FISH_TIER[state.pendingFishId] || 0) === 0) {
+      landFish(true);
+      return;
+    }
     if (state.pendingItem) {
       // 川のアイテム（がらくた／おたから）
       fs.phase = "junk";
@@ -5994,13 +6181,16 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     document.getElementById("progressFill").style.width = fs.progress + "%";
 
     // 魚の暴れ位置（ラインの先端）。跳躍中は水面から飛び出す
-    fs.fpX = 180 + Math.sin(now / 320) * (fs.pulling ? 62 : 34);
-    fs.fpY = 296 + Math.sin(now / 210) * (fs.pulling ? 16 : 7);
+    var fcx = fs.castTX || 180, fcy = Math.min(430, (fs.castTY || 300) + 8);
+    fs.fpX = fcx + Math.sin(now / 320) * (fs.pulling ? 52 : 30);
+    fs.fpY = fcy + Math.sin(now / 210) * (fs.pulling ? 14 : 6);
+    var wbF = waterBounds(fs.fpY);
+    fs.fpX = Math.max(wbF[0] + 10, Math.min(wbF[1] - 10, fs.fpX));
     if (fs.jumping) {
       var jp = 1 - Math.abs((fs.jumpEndAt - now) / 750 * 2 - 1); // 0→1→0
       fs.fpY -= jp * 34;
     }
-    if (fs.anchored) { fs.fpX = 180 + Math.sin(now / 900) * 6; fs.fpY = 306; }
+    if (fs.anchored) { fs.fpX = fcx + Math.sin(now / 900) * 6; fs.fpY = fcy + 10; }
     if (fs.pulling && Math.random() < 9 * dt) {
       burst(fs.fpX, fs.fpY - 6, 3, 95, "230,244,248");
       spawnRipple(fs.fpX, fs.fpY - 4, false);
@@ -6013,25 +6203,26 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (fs.progress >= 100) { landFish(); return; }
   }
 
-  function landFish() {
+  function landFish(quick) {
     fs.phase = "land";
-    var fishId = fs.fightFishId;
+    var fishId = quick ? state.pendingFishId : fs.fightFishId;
+    fs.fightFishId = fishId; // 抜き上げでもランディング演出が出るように
     document.getElementById("fightUi").classList.remove("show");
     document.getElementById("fishStage").classList.remove("pulling");
     clearFishShadow();
-    setStageText("ヒット！ランディング成功！", true);
+    setStageText(quick ? "ピシャッ！ 一発抜き上げ！" : "ヒット！ランディング成功！", true);
     SFX.splash();
     setTimeout(function () { SFX.jingle(); }, 220);
     buzz([40, 60, 120]);
     // 魚が水面から跳ねる（Canvasで描画）
     fs.landT = 0;
     fishImage(fishId, false, fs.pendingVariant); // 事前ロード
-    burst(180, 316, 26, 175, "235,246,250");
-    spawnRipple(180, 318, true);
+    burst(fs.castTX || 180, (fs.castTY || 300) + 16, 26, 175, "235,246,250");
+    spawnRipple(fs.castTX || 180, (fs.castTY || 300) + 18, true);
     cv.shakeAmp = 6;
     setTimeout(function () {
       handleHitSuccess(fishId);
-    }, 1250);
+    }, quick ? 950 : 1250);
   }
 
   var FAIL_INFO = {
@@ -6082,37 +6273,39 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
       if (fs.phase === "aim") {
         fs.aimT += dt;
-        fs.aimV = 0.5 + 0.5 * Math.sin(fs.aimT * 3.4);
-        var cmf = document.getElementById("cmFill");
-        if (cmf) cmf.style.left = "calc(" + (fs.aimV * 100).toFixed(1) + "% - 3px)";
         fs.rodBend = 0.05;
+        updateShadows(now, dt);
       } else if (fs.phase === "cast") {
         fs.castT += dt;
-        var p = Math.min(1, fs.castT / 0.7);
-        // 竿先(224,208)から着水点(180,288)へ放物線
-        fs.bobX = 224 - 44 * p;
-        fs.bobY = 208 + 80 * p - Math.sin(p * Math.PI) * 60;
+        var p = Math.min(1, fs.castT / 0.6);
+        // 竿先(224,208)からタップした着水点へ放物線
+        var arcH = 40 + Math.abs(fs.castTY - 208) * 0.25 + Math.abs(fs.castTX - 224) * 0.2;
+        fs.bobX = 224 + (fs.castTX - 224) * p;
+        fs.bobY = 208 + (fs.castTY - 208) * p - Math.sin(p * Math.PI) * arcH;
         fs.rodBend = 0.25 * (1 - p);
+        updateShadows(now, dt);
         if (p >= 1) {
           fs.phase = "wait";
           SFX.plop();
-          spawnRipple(fs.bobX, fs.bobY + 4, true);
-          burst(fs.bobX, fs.bobY + 2, 8, 75, "235,246,250");
-          setStageText("アタリを待て…");
+          spawnRipple(fs.castTX, fs.castTY + 4, true);
+          burst(fs.castTX, fs.castTY + 2, 8, 75, "235,246,250");
+          onBobberLanded();
           fs.nextIdleRippleAt = now + 1200;
         }
       } else if (fs.phase === "wait" || fs.phase === "bite") {
         fs.idleT += dt;
         var dip = fs.phase === "bite" ? 7 + Math.sin(fs.idleT * 30) * 3 : Math.sin(fs.idleT * 2.4) * 2.2;
-        fs.bobX = 180;
-        fs.bobY = 288 + dip;
+        if (fs.phase === "wait" && fs.nibbleAnimUntil && now < fs.nibbleAnimUntil) dip += 5; // ピクッ
+        fs.bobX = fs.castTX;
+        fs.bobY = fs.castTY + dip;
         fs.rodBend = fs.phase === "bite" ? 0.18 : 0.05 + Math.sin(fs.idleT * 1.2) * 0.02;
+        if (fs.phase === "wait") updateShadows(now, dt);
         if (fs.phase === "wait" && now > fs.nextIdleRippleAt) {
-          spawnRipple(180, 292, false);
+          spawnRipple(fs.castTX, fs.castTY + 4, false);
           fs.nextIdleRippleAt = now + 1400 + Math.random() * 1600;
         }
         if (fs.phase === "bite" && now > fs.nextIdleRippleAt) {
-          spawnRipple(180, 292, true);
+          spawnRipple(fs.castTX, fs.castTY + 4, true);
           fs.nextIdleRippleAt = now + 320;
         }
       } else if (fs.phase === "fight") {
@@ -6176,7 +6369,28 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (e.target && e.target.id === "muteBtn") return;
     SFX.ensure();
     if (fs.phase === "aim") {
-      launchCast();
+      var rect = document.getElementById("fishStage").getBoundingClientRect();
+      var lx = (e.clientX - rect.left) / rect.width * 360;
+      var ly = (e.clientY - rect.top) / rect.height * 480;
+      launchCast(lx, ly);
+      return;
+    }
+    if (fs.phase === "wait") {
+      if (fs.engaged && (fs.engaged.st === "approach" || fs.engaged.st === "nibble")) {
+        // 偽アタリで焦った！ 魚は逃げる
+        var sc = fs.engaged;
+        sc.st = "flee"; sc.dir = (sc.x >= fs.castTX ? 1 : -1);
+        fs.engaged = null;
+        fs.waitStartAt = performance.now();
+        setStageText("あっ、逃げた…！ ピクッは我慢、ズボッでタップ");
+        SFX.fail(); buzz(40);
+        spawnRipple(sc.x, sc.y, false);
+        if (Math.random() < 0.35) yukiSay("焦っちゃダメです！ズボッと沈むまで我慢…！", "surprised", 2000);
+      } else {
+        // 誰も食い付いていなければ打ち直し（キャストは消費しない）
+        fs.phase = "aim";
+        setStageText("打ち直し！ 泳ぐ影を狙ってタップ");
+      }
       return;
     }
     if (fs.phase === "bite" && state.biteActive) {
@@ -6806,6 +7020,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       money: save.money,
       diff: fs.diff, zoneLo: fs.zoneLo, zoneHi: fs.zoneHi, bigRun: fs.bigRun,
       style: fs.style, jumping: !!fs.jumping, anchored: !!fs.anchored, golden: !!fs.golden, anchorHits: fs.anchorHits || 0,
+      shadows: (fs.shadows || []).map(function (s) { return { kind: s.kind, id: s.id, cm: Math.round(s.cm || 0), st: s.st, x: Math.round(s.x), y: Math.round(s.y), nushi: !!s.isNushi }; }),
+      engaged: fs.engaged ? { st: fs.engaged.st, id: fs.engaged.id, kind: fs.engaged.kind, nibbleN: fs.engaged.nibbleN } : null,
+      castTX: fs.castTX, castTY: fs.castTY,
       castZone: fs.castZone,
       trip: trip ? { castsLeft: trip.castsLeft, catches: trip.catches.length, score: trip.score, earned: trip.earned, events: trip.events, over: trip.over } : null,
       compBest: save.comp ? save.comp.best : 0,
