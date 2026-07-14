@@ -6342,7 +6342,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var winMs = 1300;
     if (state.pendingFishId) {
       var bwFish = FISH[state.pendingFishId];
-      winMs = Math.max(750, 1300 - (RARITY_IDX[bwFish.rarity] || 0) * 150 - (fs.pendingSizeRatio || 0) * 150);
+      winMs = Math.max(650, 1300 - (RARITY_IDX[bwFish.rarity] || 0) * 150 - (fs.pendingSizeRatio || 0) * 150 - ((fs.pendingSizeRatio || 0) > 0.8 ? 130 : 0));
     }
     if (trip && trip.buffs.focus > 0) { winMs *= 1.5; trip.buffs.focus--; }
     state.biteTimeoutTimer = setTimeout(function () {
@@ -6500,25 +6500,26 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fs.phase = "fight";
     fs.fightFishId = state.pendingFishId;
     var szr = fs.pendingSizeRatio || 0.4;
-    fs.fightStamMul = 0.6 + szr * 0.8;   // デカいほど長期戦
-    fs.fightPullMul = 0.8 + szr * 0.7;   // デカいほど引きが強い
+    fs.fightStamMul = 0.6 + szr * 1.0;   // デカいほど長期戦
+    fs.fightPullMul = 0.8 + szr * 0.85;  // デカいほど引きが強い
     var fo = BAL.fightOverride[fs.fightFishId];
     if (fo) { fs.fightStamMul *= fo.stam; fs.fightPullMul *= fo.pull; }
     if (fs.isNushi) { fs.fightStamMul *= 1.15; fs.fightPullMul *= 1.1; }
     var gs = gearStats();
     fs.lineMax = gs.lineMax;
     fs.reelMul = gs.reel;
-    // 難易度 D (0..1): レア度とサイズで決まる
+    // 難易度 D: サイズが主軸（大物ほど圧倒的に手強い）＋レア度
     var fRar = (FISH[fs.fightFishId] || {}).rarity || "common";
-    fs.diff = Math.min(1, 0.12 + (RARITY_IDX[fRar] || 0) * 0.22 + Math.min(1.2, szr) * 0.32 + (fo ? 0.12 : 0));
-    if (fs.isNushi) fs.diff = 1.15; // ヌシは規格外
-    fs.zoneW = 42 - fs.diff * 24;            // グリーンゾーン幅 42→18
+    fs.diff = Math.min(1.15, 0.12 + (RARITY_IDX[fRar] || 0) * 0.20 + Math.min(1.3, szr) * 0.48 + (fo ? 0.12 : 0) + (fs.pendingVariant === "giant" ? 0.1 : 0));
+    if (fs.isNushi) fs.diff = 1.25; // ヌシは規格外
+    fs.zoneW = Math.max(13, 42 - fs.diff * 24);  // グリーンゾーン幅 42→13
     // ゾーン可動域はライン限界に近づきすぎない範囲に制限
     fs.zoneWander = Math.max(0, Math.min((fs.diff - 0.42) * 38, 76 - fs.zoneW / 2 - 52));
     fs.zonePhase = Math.random() * 6.28;
     fs.zoneLo = 52 - fs.zoneW / 2;
     fs.zoneHi = 52 + fs.zoneW / 2;
-    fs.fightDeadline = performance.now() + 45000; // 長引くとすっぽ抜け
+    fs.szrBig = szr > 0.75;  // 大物フラグ: 走りが早く・長く・頻繁に
+    fs.fightDeadline = performance.now() + (szr > 0.9 ? 55000 : 45000);
     // 「走り」(ビッグラン): レア以上・大物で発生
     fs.bigRun = false;
     fs.nextBigRunAt = fs.diff > 0.38 ? performance.now() + (fs.isNushi ? 1500 : 2600 + Math.random() * 2600) : Infinity;
@@ -6535,7 +6536,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (fs.style === "runner") {
       // 走り屋は必ず走る（小物でも）。前兆(0.7秒)つき
       fs.nextBigRunAt = performance.now() + 1900 + Math.random() * 2000;
-    } else if (fs.style === "jumper") {
+    }
+    if (fs.szrBig) {
+      // 大物は最初の走りが早い
+      fs.nextBigRunAt = Math.min(fs.nextBigRunAt, performance.now() + 1500 + Math.random() * 1500);
+    }
+    if (fs.style === "jumper") {
       fs.nextJumpAt = performance.now() + 2300 + Math.random() * 2400;
     } else if (fs.style === "bottom") {
       fs.nextAnchorAt = performance.now() + 2000 + Math.random() * 2400;
@@ -6577,7 +6583,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (!fs.bigRun && now >= fs.nextBigRunAt) {
       fs.bigRun = true;
       fs.runTelegraph = false;
-      fs.bigRunEndAt = now + 800 + fs.diff * 700;
+      fs.bigRunEndAt = now + 800 + fs.diff * 700 + (fs.szrBig ? 300 : 0);
       setStageText("走った！ 離してしのげ！！", true);
       if (Math.random() < 0.5) yukiSay(pickLine(YUKI_LINES.bigRun), "surprised", 1400, true);
       SFX.bite();
@@ -6586,7 +6592,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
     if (fs.bigRun && now >= fs.bigRunEndAt) {
       fs.bigRun = false;
-      fs.nextBigRunAt = now + (fs.style === "runner" ? 2200 + Math.random() * 2400 : 2800 + Math.random() * 3200);
+      var runGap = fs.style === "runner" ? 2200 + Math.random() * 2400 : 2800 + Math.random() * 3200;
+      if (fs.szrBig) runGap *= 0.65; // 大物は息つく間もなく走る
+      fs.nextBigRunAt = now + runGap;
       setStageText("しのいだ！ 長押しで巻け！", true);
     }
     // ジャンパー: 跳んでいる間は「離す」が正解。握りっぱなしだと着水でもぐられる
