@@ -5046,15 +5046,18 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   // ===== 大釣行: フロー =====
   function startRun() {
     run = {
-      round: 1, score: 0, money: 0, cleared: 0,
+      round: 1, score: 0, money: 2000, cleared: 0,
       cards: [], cardState: {},
       hand: [], handName: "—", pendingCard: null,
       timeKey: "hiru", weather: "sun", locId: null,
       lastFishId: null, lastWasBarashi: false, betFish: null,
       choices: []
     };
-    yukiSay("おじいちゃんの道具箱、ぜんぶ使っていいですよ！いってらっしゃい！", "excited", 3000, true);
-    runPickRound();
+    yukiSay("軍資金2,000円と道具箱、持っていってください！仕入れからどうぞ！", "excited", 3200, true);
+    // 出発前の仕入れ（開幕闇市）から始まる
+    runRollShop();
+    renderRunScreen("shop");
+    showScreen("screen-run");
   }
 
   function runPickRound() {
@@ -5200,7 +5203,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       body.innerHTML = html;
     } else if (mode === "shop") {
       if (!run.shopStock) runRollShop();
-      var sh = '<div class="section-label">🏮 ユキの闇市 — ラウンド' + (run.round - 1) + ' 突破！</div>';
+      var shopTitle = run.cleared === 0 ? "🏮 ユキの闇市 — 出発前の仕入れ（軍資金2,000円）" : "🏮 ユキの闇市 — ラウンド" + run.cleared + " 突破！";
+      var sh = '<div class="section-label">' + shopTitle + '</div>';
       run.shopStock.forEach(function (cid, i) {
         if (!cid) { sh += '<div class="run-choice sold">売り切れ</div>'; return; }
         var c = RUN_CARDS[cid];
@@ -5211,7 +5215,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       });
       sh += '<div class="btn-row" style="margin-top:10px;">' +
         '<button class="btn secondary" data-action="run-reroll">🎲 引き直し（300円）</button>' +
-        '<button class="btn" data-action="run-next">つぎのラウンドへ ▶</button></div>';
+        '<button class="btn" data-action="run-next">' + (run.cleared === 0 ? "🎣 出発！" : "つぎのラウンドへ ▶") + '</button></div>';
       body.innerHTML = sh;
     } else if (mode === "result") {
       var rr = run.roundResult, hs2 = rr.hs;
