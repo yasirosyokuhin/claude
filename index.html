@@ -210,6 +210,30 @@
   .run-choice .rc-badges { font-size: 12.5px; color: #6b5a80; font-weight: 700; }
   .run-choice .rc-price { font-size: 13px; color: #8a5aa8; }
   .run-choice .rc-sub { font-size: 11.5px; color: var(--sub-ink); margin-top: 3px; line-height: 1.5; }
+  .run-hand {
+    display: flex; gap: 5px; align-items: center; margin: 0 0 8px;
+    background: linear-gradient(180deg,#f6f0fa,#efe6f4); border: 1px solid #d8c8e4;
+    border-radius: 12px; padding: 6px 8px;
+  }
+  .rh-card {
+    flex: 0 0 auto; display: inline-flex; flex-direction: column; align-items: center;
+    background: #fff; border: 2px solid #ccc; border-radius: 8px;
+    min-width: 44px; padding: 3px 4px; font-family: inherit; font-size: 13px; line-height: 1.15; cursor: pointer;
+  }
+  .rh-card b { font-size: 15px; }
+  .rh-card span { font-size: 9px; color: var(--sub-ink); }
+  .rh-card.empty { border-style: dashed; color: #c4b4d2; background: none; min-height: 44px; justify-content: center; }
+  .rh-hand { margin-left: auto; font-size: 11.5px; font-weight: 800; color: #6b4a88; text-align: right; }
+  .rh-bigrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .rh-big {
+    background: #fff; border: 2.5px solid #ccc; border-radius: 10px; padding: 5px 3px; text-align: center;
+    animation: cardIn .5s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  @keyframes cardIn { from { transform: translateY(18px) rotate(4deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  .rh-big .rb-rank { font-weight: 900; font-size: 15px; }
+  .rh-big .rb-art svg { width: 100%; height: auto; }
+  .rh-big .rb-nm { font-size: 9.5px; font-weight: 700; color: var(--ink); }
+  .rh-big .rb-val { font-size: 11px; font-weight: 800; color: #8a5aa8; font-variant-numeric: tabular-nums; }
   .footer-note {
     text-align: center;
     font-size: 11px;
@@ -990,6 +1014,7 @@
       <span id="castsLeftBadge" class="casts-badge"></span>
       <button class="btn-back" data-action="end-trip" style="margin-left:auto;">納竿</button>
     </div>
+    <div id="runHand" class="run-hand hidden"></div>
     <div id="fishStage" class="fish-stage">
       <canvas id="stageCanvas"></canvas>
       <div id="stageLabel" class="stage-label"></div>
@@ -4867,10 +4892,64 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   // ===== 🃏 大釣行（釣りバトロ）: 仕掛け札ビルドのローグライク連戦 =====
   var run = null;
   var RUN_CASTS = 8;
-  var RUN_QUOTAS = [250, 450, 800, 1400, 2400, 4000, 6500, 10000];
+  var RUN_QUOTAS = [250, 550, 1100, 2200, 4200, 8000, 15000, 28000];
   function runQuota(round) {
     if (round <= 8) return RUN_QUOTAS[round - 1];
-    return Math.round(RUN_QUOTAS[7] * Math.pow(1.7, round - 8) / 100) * 100;
+    return Math.round(RUN_QUOTAS[7] * Math.pow(1.8, round - 8) / 100) * 100;
+  }
+  // ===== 魚札: 釣った魚がカードになる =====
+  // スート=戦い方（⚡🌊🪨🌀✨） / ランク=その種の中でのサイズ(1〜13)
+  var RUN_SUITS = {
+    runner: { emoji: "⚡", color: "#c0392b" },
+    jumper: { emoji: "🌊", color: "#2e6da8" },
+    bottom: { emoji: "🪨", color: "#7a5c3a" },
+    zigzag: { emoji: "🌀", color: "#7a4a9e" },
+    quick:  { emoji: "✨", color: "#48808a" }
+  };
+  function runCardOf(fishId, cm, ratio, value) {
+    var suit = FIGHT_STYLE_OF[fishId] || "quick";
+    var rank = Math.max(1, Math.min(13, 1 + Math.floor(Math.min(1.2, ratio || 0) * 10)));
+    return { fishId: fishId, cm: cm, rank: rank, suit: suit, value: Math.max(1, value) };
+  }
+  // 役の判定（手札は最大5枚）
+  function runEvalHand(cards) {
+    if (!cards.length) return { name: "—", mult: 0 };
+    var byRank = {}, bySuit = {}, bySpec = {};
+    cards.forEach(function (c) {
+      byRank[c.rank] = (byRank[c.rank] || 0) + 1;
+      bySuit[c.suit] = (bySuit[c.suit] || 0) + 1;
+      bySpec[c.fishId] = (bySpec[c.fishId] || 0) + 1;
+    });
+    var rc = Object.keys(byRank).map(function (k) { return byRank[k]; }).sort(function (a, b) { return b - a; });
+    var five = cards.length >= 5;
+    var flush = five && Object.keys(bySuit).length === 1;
+    var spec5 = five && Object.keys(bySpec).length === 1;
+    var ranks = Object.keys(byRank).map(Number).sort(function (a, b) { return a - b; });
+    var straight = five && ranks.length === 5 && ranks[4] - ranks[0] === 4;
+    if (spec5) return { name: "入れ食い（同種5）", mult: 25 };
+    if (straight && flush) return { name: "ストレートフラッシュ", mult: 20 };
+    if (rc[0] === 4) return { name: "フォーカード", mult: 12 };
+    if (rc[0] === 3 && rc[1] === 2) return { name: "フルハウス", mult: 9 };
+    if (flush) return { name: "フラッシュ（絵柄揃い）", mult: 7 };
+    if (straight) return { name: "ストレート", mult: 6 };
+    if (rc[0] === 3) return { name: "スリーカード", mult: 4 };
+    if (rc[0] === 2 && rc[1] === 2) return { name: "ツーペア", mult: 3 };
+    if (rc[0] === 2) return { name: "ワンペア", mult: 2 };
+    return { name: "ハイカード", mult: 1 };
+  }
+  function runHandScore() {
+    var sum = 0;
+    run.hand.forEach(function (c) { sum += c.value; });
+    var hv = runEvalHand(run.hand);
+    return { sum: sum, mult: hv.mult, name: hv.name, total: Math.round(sum * hv.mult) };
+  }
+  function runRecalc() {
+    if (!run) return;
+    var hs = runHandScore();
+    run.score = hs.total;
+    run.handName = hs.name;
+    updateCastsBadge();
+    renderRunHand();
   }
   var RUN_SALMONIDS = ["amemasu", "nijimasu", "sakuramasu", "oshorokoma", "brown", "himemasu", "kawamasu", "sake", "karafutomasu", "ito"];
   // 仕掛け札（ジョーカー相当・最大5枚）
@@ -4969,6 +5048,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     run = {
       round: 1, score: 0, money: 0, cleared: 0,
       cards: [], cardState: {},
+      hand: [], handName: "—", pendingCard: null,
       timeKey: "hiru", weather: "sun", locId: null,
       lastFishId: null, lastWasBarashi: false, betFish: null,
       choices: []
@@ -4979,6 +5059,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
   function runPickRound() {
     run.score = 0;
+    run.hand = [];
+    run.handName = "—";
+    run.pendingCard = null;
     run.cardState.kobito = 0;
     run.cardState.binbou = false;
     run.lastFishId = null; run.lastWasBarashi = false;
@@ -5023,29 +5106,49 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     }
   }
 
+  // 手札が満杯のとき: どの札を逃がすか選ぶ
+  function runDiscardChoice() {
+    if (!run || !run.pendingCard) return;
+    var nc = run.pendingCard;
+    function lab(c) { return c.rank + RUN_SUITS[c.suit].emoji + " " + ((FISH[c.fishId] || {}).name || "") + " " + c.cm.toFixed(0) + "cm（" + c.value.toLocaleString() + "pt）"; }
+    var opts = run.hand.map(function (c, i) {
+      return { label: "逃がす → " + lab(c), fn: function () { run.hand[i] = nc; fin(); } };
+    });
+    opts.push({ label: "新しい " + lab(nc) + " を逃がす", secondary: true, fn: function () { fin(); } });
+    function fin() { run.pendingCard = null; evClose(); runRecalc(); }
+    evShow("🃏", "手札がいっぱい！", "手札は5枚まで。いまの役: <b>" + (run.handName || "—") + "</b><br>新しい札: <b>" + lab(nc) + "</b>", opts);
+  }
+
+  // 釣り画面の手札バー
+  function renderRunHand() {
+    var el = document.getElementById("runHand");
+    if (!el) return;
+    if (!run || !trip || !trip.runMode) { el.classList.add("hidden"); return; }
+    el.classList.remove("hidden");
+    var html = "";
+    run.hand.forEach(function (c, i) {
+      var s = RUN_SUITS[c.suit];
+      html += '<button class="rh-card" style="border-color:' + s.color + ';color:' + s.color + '" data-action="run-discard" data-arg="' + i + '">' +
+        '<b>' + c.rank + '</b>' + s.emoji + '<span>' + (((FISH[c.fishId] || {}).name) || "").slice(0, 4) + '</span></button>';
+    });
+    for (var e = run.hand.length; e < 5; e++) html += '<span class="rh-card empty">･</span>';
+    html += '<span class="rh-hand">' + (run.handName || "—") + '</span>';
+    el.innerHTML = html;
+  }
+
   function runRoundEnd() {
     clearFishingTimers();
     resetFishStage();
     var earnedMul = runHasCard("shonin") ? 1.6 : 1;
     run.money += Math.round(trip.earned * earnedMul);
+    var hs = runHandScore();
+    run.score = hs.total;
     var quota = runQuotaEff();
-    var pass = run.score >= quota;
-    var wasRound = run.round;
+    run.roundResult = { hs: hs, quota: quota, pass: run.score >= quota, round: run.round, hand: run.hand.slice() };
     trip = null;
-    if (pass) {
-      run.cleared = wasRound;
-      run.round++;
-      SFX.jingle();
-      if (wasRound === 8) {
-        if (save.titles.indexOf("batoro") < 0) save.titles.push("batoro");
-        addYukiMemory("大釣行を完遂した（8ラウンド制覇）");
-        yukiSay("か…完遂です！！おじいちゃんに自慢してきます！！", "excited", 4000, true);
-      }
-      renderRunScreen("shop");
-      showScreen("screen-run");
-    } else {
-      endRun(false);
-    }
+    renderRunScreen("result");
+    showScreen("screen-run");
+    if (run.roundResult.pass) SFX.jingle(); else SFX.fail();
   }
 
   function endRun(quit) {
@@ -5093,6 +5196,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           '<div class="rc-name">' + loc.name + ' <span class="rc-badges">' + w.emoji + t.label + '</span></div>' +
           '<div class="rc-sub">' + tops + '</div></button>';
       });
+      html += '<div class="rc-sub" style="padding:2px 4px;">釣った魚は<b>魚札</b>になる（数字=その種でのサイズ1〜13、絵柄=戦い方⚡🌊🪨🌀✨）。手札5枚で<b>役</b>を作れ！<br>ペア×2｜3カード×4｜ストレート×6｜絵柄揃い×7｜フルハウス×9｜4カード×12｜同種5=入れ食い×25</div>';
       body.innerHTML = html;
     } else if (mode === "shop") {
       if (!run.shopStock) runRollShop();
@@ -5109,6 +5213,24 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         '<button class="btn secondary" data-action="run-reroll">🎲 引き直し（300円）</button>' +
         '<button class="btn" data-action="run-next">つぎのラウンドへ ▶</button></div>';
       body.innerHTML = sh;
+    } else if (mode === "result") {
+      var rr = run.roundResult, hs2 = rr.hs;
+      var cardsHtml = rr.hand.map(function (c, ci) {
+        var s = RUN_SUITS[c.suit];
+        return '<div class="rh-big" style="border-color:' + s.color + ';animation-delay:' + (ci * 0.12) + 's">' +
+          '<div class="rb-rank" style="color:' + s.color + '">' + c.rank + ' ' + s.emoji + '</div>' +
+          '<div class="rb-art">' + renderFish(c.fishId, { uid: "rr" + ci }) + '</div>' +
+          '<div class="rb-nm">' + (((FISH[c.fishId] || {}).name) || "") + '</div>' +
+          '<div class="rb-val">' + c.value.toLocaleString() + '</div></div>';
+      }).join("") || '<div class="rc-sub" style="text-align:center;">1枚も釣れなかった…</div>';
+      body.innerHTML =
+        '<div class="section-label">ラウンド' + rr.round + '　手札オープン！</div>' +
+        '<div class="rh-bigrow">' + cardsHtml + '</div>' +
+        '<div style="text-align:center;margin-top:10px;">' +
+        '<div class="trip-head" style="font-size:16px;letter-spacing:.1em;">役: ' + hs2.name + '</div>' +
+        '<div class="result-name" style="font-size:22px;margin:4px 0;">' + hs2.sum.toLocaleString() + ' × ' + hs2.mult + ' = <b style="color:#8a5aa8;">' + run.score.toLocaleString() + '</b> pt</div>' +
+        '<div class="dc-row">ノルマ ' + rr.quota.toLocaleString() + ' pt — ' + (rr.pass ? '<b style="color:#2e7d5b;">突破！！</b>' : '<b style="color:#c0392b;">未達…</b>') + '</div>' +
+        '<div class="btn-row" style="margin-top:12px;"><button class="btn" data-action="run-result-next">' + (rr.pass ? '🏮 ユキの闇市へ' : '結果へ…') + '</button></div></div>';
     } else if (mode === "end") {
       var sm = state.lastRunSummary || { cleared: 0, reward: 0 };
       body.innerHTML =
@@ -5135,7 +5257,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var el = document.getElementById("castsLeftBadge");
     if (!el) return;
     if (trip && trip.runMode && run) {
-      el.textContent = "🃏R" + run.round + "　" + run.score.toLocaleString() + "/" + runQuotaEff().toLocaleString() + "pt　残り" + trip.castsLeft + "投";
+      el.textContent = "🃏" + (run.handName || "—") + "　" + run.score.toLocaleString() + "/" + runQuotaEff().toLocaleString() + "　残" + trip.castsLeft;
     } else {
       el.textContent = trip ? "🎣 残り " + trip.castsLeft + " 投" + (trip.combo >= 2 ? "　🔥コンボ×" + trip.combo : "") : "";
     }
@@ -5146,7 +5268,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var vMul = variant === "giant" ? 1.8 : variant === "spawn" ? 1.5 : 1;
     var pts = Math.round(cm * (TRIP_RARITY_PTS[f.rarity] || 1) * vMul);
     var firstOfSpecies = !trip.kinds[fishId];
-    // 大釣行: 仕掛け札の倍率を適用してランスコアへ
+    // 大釣行: 仕掛け札の倍率で「札の価値」を決め、魚札として手札へ
     if (trip.runMode && run) {
       var res = runScoreCatch(fishId, cm, variant, pts, {
         firstOfSpecies: firstOfSpecies,
@@ -5155,9 +5277,15 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         quick: !!fs.wasQuick
       });
       pts = res.pts;
-      run.score += pts;
       trip.lastRunNote = res.note;
-      updateCastsBadge();
+      var card = runCardOf(fishId, cm, ratio, res.pts);
+      if (run.hand.length < 5) {
+        run.hand.push(card);
+        runRecalc();
+      } else {
+        run.pendingCard = card;
+        setTimeout(function () { runDiscardChoice(); }, 650);
+      }
     }
     trip.catches.push({ id: fishId, cm: cm, variant: variant, earn: earn, pts: pts });
     trip.kinds[fishId] = true;
@@ -6235,6 +6363,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     document.getElementById("castMeter").classList.add("hidden");
     setStageText("泳ぐ影を狙って、水面をタップ！");
     updateCastsBadge();
+    renderRunHand();
     clearFishingTimers();
     startStageLoop();
   }
@@ -7285,6 +7414,41 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       case "run-next":
         if (run) { run.shopStock = null; runPickRound(); }
         break;
+      case "run-result-next":
+        if (run && run.roundResult) {
+          var rrPass = run.roundResult.pass;
+          var rrRound = run.roundResult.round;
+          run.roundResult = null;
+          if (rrPass) {
+            run.cleared = rrRound;
+            run.round++;
+            if (rrRound === 8) {
+              if (save.titles.indexOf("batoro") < 0) save.titles.push("batoro");
+              addYukiMemory("大釣行を完遂した（8ラウンド制覇）");
+              yukiSay("か…完遂です！！おじいちゃんに自慢してきます！！", "excited", 4000, true);
+              persistSave();
+            }
+            runRollShop();
+            renderRunScreen("shop");
+          } else {
+            endRun(false);
+          }
+        }
+        break;
+      case "run-discard":
+        if (run && trip && trip.runMode && fs.phase !== "fight") {
+          var rdI = parseInt(el.getAttribute("data-arg"), 10);
+          var rdC = run.hand[rdI];
+          if (rdC) {
+            evShow("🃏", "この魚札を逃がす？",
+              ((FISH[rdC.fishId] || {}).name || "") + " " + rdC.cm.toFixed(0) + "cm（" + rdC.value.toLocaleString() + "pt）",
+              [
+                { label: "逃がす", fn: function () { run.hand.splice(rdI, 1); evClose(); runRecalc(); } },
+                { label: "やめる", secondary: true, fn: function () { evClose(); } }
+              ]);
+          }
+        }
+        break;
       case "run-again":
         startRun();
         break;
@@ -7430,7 +7594,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       castTX: fs.castTX, castTY: fs.castTY,
       castZone: fs.castZone,
       trip: trip ? { castsLeft: trip.castsLeft, catches: trip.catches.length, score: trip.score, earned: trip.earned, events: trip.events, over: trip.over, runMode: !!trip.runMode } : null,
-      run: run ? { round: run.round, score: run.score, money: run.money, cards: run.cards.slice(), quota: runQuotaEff(), cleared: run.cleared, betFish: run.betFish, weather: run.weather, timeKey: run.timeKey, shop: run.shopStock || null } : null,
+      run: run ? { round: run.round, score: run.score, money: run.money, cards: run.cards.slice(), quota: runQuotaEff(), cleared: run.cleared, betFish: run.betFish, weather: run.weather, timeKey: run.timeKey, shop: run.shopStock || null, handName: run.handName, hand: (run.hand || []).map(function (c) { return c.rank + c.suit[0] + ":" + c.fishId + ":" + c.value; }), pendingCard: !!run.pendingCard } : null,
       compBest: save.comp ? save.comp.best : 0,
       yukiXp: save.yuki.xp, yukiLevel: yukiLevel(), lastYukiLine: yukiState.lastLine,
       pendingSize: fs.pendingSize,
