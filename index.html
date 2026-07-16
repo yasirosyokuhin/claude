@@ -2887,6 +2887,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   function rankVariantBonus() { var l = rankLv(); return l >= 15 ? 0.02 : l >= 7 ? 0.01 : 0; }
   function rankTankMax() { var l = rankLv(); return 3 + (l >= 10 ? 1 : 0) + (l >= 17 ? 1 : 0); }
   function addRankXp(n) {
+    if (run) return; // 釣り人ランクはストーリー専用（大釣行には影響しない）
     if (!save.rank) save.rank = { xp: 0, level: 1 };
     var before = save.rank.level || 1;
     save.rank.xp += n;
@@ -2993,7 +2994,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (state.selectedLureId === "oomono") exp -= 0.35;
     if (state.daily && state.daily.hotLoc === state.selectedLocationId) exp -= 0.2;
     var variant = null;
-    var vb = rankVariantBonus();               // 釣り人ランク特典で特別個体が出やすく
+    var vb = run ? 0 : rankVariantBonus();      // 釣り人ランク特典（大釣行では無関係）
     var giantRate = BAL.variantGiantRate + vb * 0.5;
     var spawnRate = BAL.variantSpawnRate + vb;
     var vr = Math.random();
@@ -3220,6 +3221,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     for (var i = 0; i < screens.length; i++) {
       screens[i].classList.toggle("active", screens[i].id === id);
     }
+    // 大釣行中はストーリーのステータスバー（所持金・ランク）を隠す（別勘定なので）
+    var sb = document.getElementById("statusBar");
+    if (sb) sb.style.display = run ? "none" : "";
     if (id !== "screen-fish" && typeof SFX !== "undefined") {
       SFX.stopAmbience();
       stopStageLoop();
@@ -5206,12 +5210,13 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     save.money += reward;
     save.totals.earned += reward;
     if (cleared > (save.runBest || 0)) save.runBest = cleared;
-    addRankXp(cleared * 20 + 5);
-    persistSave();
-    updateStatusBar();
+    var xpReward = cleared * 20 + 5;
     state.lastRunSummary = { cleared: cleared, reward: reward, quit: quit, round: run.round, score: run.score, quota: runQuotaEff() };
     run = null;
     trip = null;
+    addRankXp(xpReward); // 完走報酬のランクXP（run解除後に付与）
+    persistSave();
+    updateStatusBar();
     renderRunScreen("end");
     showScreen("screen-run");
   }
