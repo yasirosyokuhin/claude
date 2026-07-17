@@ -210,6 +210,12 @@
   .run-choice .rc-badges { font-size: 12.5px; color: #6b5a80; font-weight: 700; }
   .run-choice .rc-price { font-size: 13px; color: #8a5aa8; }
   .run-choice .rc-sub { font-size: 11.5px; color: var(--sub-ink); margin-top: 3px; line-height: 1.5; }
+  .run-mod { border-radius: 14px; padding: 11px 14px; margin-bottom: 12px; border-left: 5px solid #888; }
+  .run-mod .rm-head { font-weight: 800; font-size: 14px; }
+  .run-mod .rm-desc { font-size: 12px; margin-top: 3px; line-height: 1.5; opacity: .9; }
+  .run-mod.mod-boss { background: linear-gradient(180deg,#3a2540,#2a1830); color: #ffd8a8; border-left-color: #e0a040; box-shadow: 0 0 14px rgba(224,160,64,.4); }
+  .run-mod.mod-hard { background: linear-gradient(180deg,#fbeaea,#f6dede); color: #7a2a2a; border-left-color: #c0392b; }
+  .run-mod.mod-good { background: linear-gradient(180deg,#e9f6ee,#dcefe4); color: #1f6b4d; border-left-color: #2e9d63; }
   .run-hand {
     display: flex; gap: 5px; align-items: center; margin: 0 0 8px;
     background: linear-gradient(180deg,#f6f0fa,#efe6f4); border: 1px solid #d8c8e4;
@@ -4553,8 +4559,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         }
         ctx.restore();
         ctx.filter = "none";
-        // 大釣行: ランク＋絵柄のラベルは「モジリの瞬間」だけ浮かぶ（観察して覚える）
-        if (trip && trip.runMode && shD.st === "swim" && shD.revealUntil && now < shD.revealUntil) {
+        // 大釣行: ランク＋絵柄のラベルは「モジリの瞬間」だけ浮かぶ（濁り水では一切出ない）
+        if (trip && trip.runMode && !runModIs("nigori") && shD.st === "swim" && shD.revealUntil && now < shD.revealUntil) {
           var la = Math.min(1, (shD.revealUntil - now) / 450);
           ctx.save();
           ctx.font = "700 12px system-ui, sans-serif";
@@ -4978,7 +4984,15 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var sum = 0;
     run.hand.forEach(function (c) { sum += c.value; });
     var hv = runEvalHand(run.hand);
-    return { sum: sum, mult: hv.mult, name: hv.name, total: Math.round(sum * hv.mult) };
+    var total = Math.round(sum * hv.mult);
+    var modNote = "";
+    // ラウンド修飾のスコア効果
+    if (runModIs("nijiiro") && run.hand.length >= 5) {
+      var su = {}; run.hand.forEach(function (c) { su[c.suit] = 1; });
+      if (Object.keys(su).length === 5) { total *= 3; modNote = "🌈×3"; }
+    }
+    if (runModIs("renkin") && hv.name.indexOf("ストレート") >= 0) { total *= 2; modNote = "🔢×2"; }
+    return { sum: sum, mult: hv.mult, name: hv.name, total: total, modNote: modNote };
   }
   function runRecalc() {
     if (!run) return;
@@ -5035,8 +5049,29 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     yoru: { key: "yoru", label: "夜釣り",   mazume: false, night: true }
   };
   function runTimeDef() {
+    if (run && run.mod === "kingyaku") return TIME_DEFS.asa; // 黄金マズメ
     var k = runHasCard("gekkou") ? "yoru" : (run ? run.timeKey : "hiru");
     return TIME_DEFS[k] || TIME_DEFS.hiru;
+  }
+  // ラウンド修飾（ブラインド／ボス）: 毎ラウンド遊びが変わる
+  var RUN_MODS = {
+    none:     { name: "凪の入り江",   emoji: "🌊", desc: "特殊ルールなし。ウォームアップ。", kind: "" },
+    nushi:    { name: "ヌシの巣",     emoji: "🐲", desc: "ヌシが何度も現れる！ヌシ札は特大。突破で仕掛け札を1枚もらえる。", kind: "boss" },
+    nigori:   { name: "濁り水",       emoji: "🌫", desc: "影の正体（ランク・絵柄）が見えない。記憶と勘で。突破で闇市 +600円。", kind: "hard" },
+    oomono:   { name: "大物の宴",     emoji: "🦈", desc: "ランク8未満の魚札は価値1に。デカい魚を狙え。", kind: "hard" },
+    jike:     { name: "時化",         emoji: "🌧", desc: "制限2:00・魚がすぐ見切る（アワセが短い）。", kind: "hard" },
+    nijiiro:  { name: "虹の川",       emoji: "🌈", desc: "手札5枚すべて別の絵柄なら、総スコア ×3！", kind: "good" },
+    renkin:   { name: "連番の淵",     emoji: "🔢", desc: "ストレート系の役は追加で ×2。", kind: "good" },
+    housaku:  { name: "大豊漁",       emoji: "🎏", desc: "影がたくさんわく（小物多め）。手数で押せ。", kind: "good" },
+    kingyaku: { name: "黄金マズメ",   emoji: "🌅", desc: "つねに朝夕マズメの荒食い。影が多く食いも良い。", kind: "good" }
+  };
+  function runMod() { return (run && RUN_MODS[run.mod]) ? run.mod : "none"; }
+  function runModIs(id) { return runMod() === id; }
+  function runModPick(round) {
+    if (round === 1) return "none";
+    if (round % 4 === 0) return "nushi"; // 4,8,12… はボス
+    var pool = ["nigori", "oomono", "jike", "nijiiro", "renkin", "housaku", "kingyaku"];
+    return pool[Math.floor(Math.random() * pool.length)];
   }
   function runQuotaEff() {
     var q = runQuota(run.round);
@@ -5087,7 +5122,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       duel: null, over: false,
       combo: 0,
       runMode: !!run,
-      roundDeadline: run ? performance.now() + 180000 : 0  // 大釣行は1ラウンド3分
+      roundDeadline: run ? performance.now() + (runModIs("jike") ? 120000 : 180000) : 0  // 3分（時化は2分）
     };
     updateCastsBadge();
   }
@@ -5118,8 +5153,11 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     run.cardState.kobito = 0;
     run.cardState.binbou = false;
     run.lastFishId = null; run.lastWasBarashi = false;
+    run.mod = window.__forceMod || runModPick(run.round);   // このラウンドの特殊ルール
+    window.__forceMod = null;
     // 3つの「釣り場カード」: 場所×時間帯×天気
     var pool = LOCATIONS.filter(function (l) { return l.id !== "shumarinai" || isUnlocked("shumarinai"); });
+    if (run.mod === "nushi") pool = pool.filter(function (l) { return NUSHI[l.id]; }); // ヌシ戦は主のいる釣り場のみ
     var tk = ["asa", "hiru", "yuu", "yoru"];
     var wx = ["sun", "sun", "cloud", "rain", "rain"];
     run.choices = [];
@@ -5152,6 +5190,12 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     run.betFish = fids[Math.floor(Math.random() * fids.length)];
     renderTackleScreen();
     showScreen("screen-tackle");
+    var md2 = RUN_MODS[run.mod];
+    if (md2 && run.mod !== "none") {
+      setTimeout(function () {
+        showToast('<div style="font-weight:800;">' + md2.emoji + ' ' + md2.name + '</div><div style="font-size:11px;">' + md2.desc + '</div>', 3000);
+      }, 300);
+    }
     if (runHasCard("ittenkake")) {
       setTimeout(function () {
         showToast('<div>🎯 一点賭けの対象: <b>' + (FISH[run.betFish] || {}).name + '</b>（×8）</div>', 2400);
@@ -5197,7 +5241,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     var hs = runHandScore();
     run.score = hs.total;
     var quota = runQuotaEff();
-    run.roundResult = { hs: hs, quota: quota, pass: run.score >= quota, round: run.round, hand: run.hand.slice() };
+    run.roundResult = { hs: hs, quota: quota, pass: run.score >= quota, round: run.round, hand: run.hand.slice(), mod: run.mod };
     trip = null;
     renderRunScreen("result");
     showScreen("screen-run");
@@ -5239,7 +5283,13 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       cardsEl.innerHTML = '<div class="section-label" style="margin:8px 0 4px;">🃏 仕掛け札（タップで売却）</div><div class="run-chips">' + chips + '</div>';
     } else { st.innerHTML = ""; cardsEl.innerHTML = ""; }
     if (mode === "pick") {
-      var html = '<div class="section-label">釣り場カードを選べ</div>';
+      var html = "";
+      var md = RUN_MODS[run.mod];
+      if (md && run.mod !== "none") {
+        var mc = md.kind === "boss" ? "mod-boss" : md.kind === "hard" ? "mod-hard" : "mod-good";
+        html += '<div class="run-mod ' + mc + '"><div class="rm-head">' + md.emoji + ' このラウンドの' + (md.kind === "boss" ? "ヌシ戦" : "お題") + '：<b>' + md.name + '</b></div><div class="rm-desc">' + md.desc + '</div></div>';
+      }
+      html += '<div class="section-label">釣り場カードを選べ</div>';
       run.choices.forEach(function (ch, i) {
         var loc = getLocation(ch.locId);
         var t = TIME_DEFS[ch.timeKey];
@@ -5302,8 +5352,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         '<div class="section-label">ラウンド' + rr.round + '　手札オープン！</div>' +
         '<div class="rh-bigrow">' + cardsHtml + '</div>' +
         '<div style="text-align:center;margin-top:10px;">' +
-        '<div class="trip-head" style="font-size:16px;letter-spacing:.1em;">役: ' + hs2.name + '</div>' +
-        '<div class="result-name" style="font-size:22px;margin:4px 0;">' + hs2.sum.toLocaleString() + ' × ' + hs2.mult + ' = <b style="color:#8a5aa8;">' + run.score.toLocaleString() + '</b> pt</div>' +
+        '<div class="trip-head" style="font-size:16px;letter-spacing:.1em;">役: ' + hs2.name + (hs2.modNote ? ' <span style="color:#8a5aa8;">' + hs2.modNote + '</span>' : '') + '</div>' +
+        '<div class="result-name" style="font-size:22px;margin:4px 0;">' + hs2.sum.toLocaleString() + ' × ' + hs2.mult + (hs2.modNote ? ' ' + hs2.modNote : '') + ' = <b style="color:#8a5aa8;">' + run.score.toLocaleString() + '</b> pt</div>' +
         '<div class="dc-row">ノルマ ' + rr.quota.toLocaleString() + ' pt — ' + (rr.pass ? '<b style="color:#2e7d5b;">突破！！</b>' : '<b style="color:#c0392b;">未達…</b>') + '</div>' +
         '<div class="btn-row" style="margin-top:12px;"><button class="btn" data-action="run-result-next">' + (rr.pass ? '🏮 ユキの闇市へ' : '結果へ…') + '</button></div></div>';
     } else if (mode === "end") {
@@ -5359,6 +5409,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       pts = res.pts;
       trip.lastRunNote = res.note;
       var card = runCardOf(fishId, cm, ratio, res.pts);
+      if (runModIs("oomono") && card.rank < 8) card.value = 1; // 大物の宴: 小物は価値1
       if (run.hand.length < 5) {
         run.hand.push(card);
         runRecalc();
@@ -5722,6 +5773,16 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
 
   window.__forceNushi = function () { window.__nushiForce = true; };
   window.__forceItem = function (kind, id) { window.__itemForce = { kind: kind, id: id }; };
+  window.__modTest = function (mod, hand) {
+    // hand: [[rank,suit,value],...] を積んでrunHandScoreを評価
+    var keep = run;
+    run = { mod: mod, hand: hand.map(function (h, i) { return { rank: h[0], suit: h[1], value: h[2], fishId: "f" + i }; }) };
+    var r = runHandScore();
+    var pickDist = {}; for (var i = 0; i < 400; i++) { var m = runModPick(2); pickDist[m] = (pickDist[m] || 0) + 1; }
+    var boss4 = runModPick(4), r1 = runModPick(1);
+    run = keep;
+    return { total: r.total, name: r.name, modNote: r.modNote, r1: r1, boss4: boss4, poolKinds: Object.keys(pickDist) };
+  };
   window.__runTest = function (cards, env, fishId, cm, variant, basePts, flags) {
     // 採点検証用: 一時的なランを組んで1匹採点する
     var keep = run;
@@ -6203,13 +6264,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       ph: Math.random() * 6.28, st: "swim", nibbleN: 0, nextNibbleAt: 0, blobItem: null
     };
     // ヌシの影（条件一致・未討伐・低確率）: 巨大な影が横切る
-    // 大釣行×ヌシ呼びの笛: 討伐済み・条件無視で呼び出せる
+    // 大釣行×ヌシ呼びの笛/ヌシの巣ラウンド: 討伐済み・条件無視で呼び出せる
     var fue = trip && trip.runMode && runHasCard("nushifue");
+    var bossN = runModIs("nushi");
     var nu = NUSHI[state.selectedLocationId];
     var nushiAlive = fs.shadows.some(function (s) { return s.isNushi; });
     if (!forceFishId && nu && !nushiAlive &&
-        (fue || (!save.nushi[state.selectedLocationId] && nushiCondMet(nu.cond))) &&
-        (window.__nushiForce || Math.random() < (fue ? 0.09 : 0.03))) {
+        (fue || bossN || (!save.nushi[state.selectedLocationId] && nushiCondMet(nu.cond))) &&
+        (window.__nushiForce || Math.random() < (bossN ? 0.16 : fue ? 0.09 : 0.03))) {
       window.__nushiForce = false;
       var srN = BAL.sizes[nu.fish] || [10, 40];
       sh.id = nu.fish; sh.cm = nu.cm;
@@ -6238,6 +6300,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         if (!sh.id) return null;
         // 奥(上)ほど型が良い
         var extraExp = y < HORIZON + 90 ? -0.35 : y < HORIZON + 160 ? -0.1 : 0.15;
+        if (runModIs("housaku")) extraExp += 0.35; // 大豊漁は小物寄り
         var roll = rollSize(sh.id, extraExp);
         sh.cm = roll.cm; sh.ratio = roll.ratio; sh.variant = roll.variant;
         if (sh.ratio > 0.8) sh.spd *= 0.7; // 大物はゆったり泳ぐ
@@ -6250,10 +6313,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   // 影の群れの維持・遊泳・ウキへの興味・ついばみ→本アタリ
   function updateShadows(now, dt) {
     var mazume = state.time && state.time.mazume;
-    var cap = 2 + (mazume ? 1 : 0);
+    var cap = 2 + (mazume ? 1 : 0) + (runModIs("housaku") ? 2 : 0);
     if (fs.shadows.length < cap && now >= fs.nextShadowAt) {
       spawnShadow();
-      fs.nextShadowAt = now + 1400 + Math.random() * 2600;
+      fs.nextShadowAt = now + (runModIs("housaku") ? 700 : 1400) + Math.random() * (runModIs("housaku") ? 1400 : 2600);
     }
     var waiting = fs.phase === "wait";
     for (var i = fs.shadows.length - 1; i >= 0; i--) {
@@ -6379,6 +6442,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       winMs = Math.max(650, 1300 - (RARITY_IDX[bwFish.rarity] || 0) * 150 - (fs.pendingSizeRatio || 0) * 150 - ((fs.pendingSizeRatio || 0) > 0.8 ? 130 : 0));
     }
     if (trip && trip.buffs.focus > 0) { winMs *= 1.5; trip.buffs.focus--; }
+    if (runModIs("jike")) winMs *= 0.65; // 時化: すぐ見切られる
     state.biteTimeoutTimer = setTimeout(function () {
       if (state.biteActive) {
         state.biteActive = false;
@@ -7547,10 +7611,24 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         if (run && run.roundResult) {
           var rrPass = run.roundResult.pass;
           var rrRound = run.roundResult.round;
+          var rrMod = run.roundResult.mod;
           run.roundResult = null;
           if (rrPass) {
             run.cleared = rrRound;
             run.round++;
+            // ラウンド修飾の突破ボーナス
+            if (rrMod === "nigori") { run.money += 600; yukiSay("濁り水を制した…！ 闇市資金 +600円！", "excited", 3000, true); }
+            if (rrMod === "nushi") {
+              var pool2 = Object.keys(RUN_CARDS).filter(function (cid) { return run.cards.indexOf(cid) < 0; });
+              if (pool2.length && run.cards.length < 5) {
+                var free = pool2[Math.floor(Math.random() * pool2.length)];
+                run.cards.push(free);
+                yukiSay("ヌシ討伐のごほうび！ 仕掛け札「" + RUN_CARDS[free].name + "」をゲット！", "excited", 4000, true);
+              } else {
+                run.money += 1500;
+                yukiSay("ヌシ討伐！ 手札が満杯なので闇市資金 +1500円！", "excited", 3500, true);
+              }
+            }
             if (rrRound === 8) {
               if (save.titles.indexOf("batoro") < 0) save.titles.push("batoro");
               addYukiMemory("大釣行を完遂した（8ラウンド制覇）");
@@ -7723,7 +7801,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       castTX: fs.castTX, castTY: fs.castTY,
       castZone: fs.castZone,
       trip: trip ? { castsLeft: trip.castsLeft, catches: trip.catches.length, score: trip.score, earned: trip.earned, events: trip.events, over: trip.over, runMode: !!trip.runMode } : null,
-      run: run ? { round: run.round, score: run.score, money: run.money, cards: run.cards.slice(), quota: runQuotaEff(), cleared: run.cleared, betFish: run.betFish, weather: run.weather, timeKey: run.timeKey, shop: run.shopStock || null, handName: run.handName, hand: (run.hand || []).map(function (c) { return c.rank + c.suit[0] + ":" + c.fishId + ":" + c.value; }), pendingCard: !!run.pendingCard, rods: run.rods.slice(), lures: run.lures.slice() } : null,
+      run: run ? { round: run.round, score: run.score, money: run.money, cards: run.cards.slice(), quota: runQuotaEff(), cleared: run.cleared, betFish: run.betFish, weather: run.weather, timeKey: run.timeKey, shop: run.shopStock || null, handName: run.handName, hand: (run.hand || []).map(function (c) { return c.rank + c.suit[0] + ":" + c.fishId + ":" + c.value; }), pendingCard: !!run.pendingCard, rods: run.rods.slice(), lures: run.lures.slice(), mod: run.mod } : null,
       compBest: save.comp ? save.comp.best : 0,
       yukiXp: save.yuki.xp, yukiLevel: yukiLevel(), lastYukiLine: yukiState.lastLine,
       pendingSize: fs.pendingSize,
