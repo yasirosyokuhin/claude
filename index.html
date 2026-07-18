@@ -1049,7 +1049,7 @@
       <div class="stage-text" id="stageText">キャスト中…</div>
       <button id="muteBtn" class="mute-btn" type="button">🔊</button>
     </div>
-    <p class="sr-note" style="text-align:center;" id="fishHelpNote">泳ぐ影を狙って水面をタップ→「ピクッ」は我慢、「ズボッ」でタップ→長押しで巻き上げ！</p>
+    <p class="sr-note" style="text-align:center;" id="fishHelpNote">ドラッグで川辺を歩き、泳ぐ影を見つけて水面をタップ→「ピクッ」は我慢、「ズボッ」でタップ→長押しで巻き上げ！</p>
   </section>
 
   <!-- 5. 結果 -->
@@ -3748,6 +3748,70 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     return img;
   }
 
+  var yukiImgCache = {};
+  function yukiImage(mood) {
+    var key = mood + "_" + ((save.yuki && save.yuki.outfit) || "red");
+    if (yukiImgCache[key]) return yukiImgCache[key];
+    var svg = renderYuki({ mood: mood, outfit: (save.yuki && save.yuki.outfit) || "red", uid: "w3" + mood });
+    var img = new Image();
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    yukiImgCache[key] = img;
+    return img;
+  }
+
+  // ===== 擬似3Dワールド（川辺を歩き回る） =====
+  // 世界座標: wx=横, wz=奥行き。カメラはプレイヤーの後方 CB・高さ CAMH から +z を見る
+  var W3 = { FOCAL: 300, CAMH: 42, CB: 64, MAXD: 320 };
+  var w3 = { px: -50, pz: 0, camX: -50, camZ: -64, face: 1, moving: 0, seed: 1, hw: 36, dam: false };
+  function riverCX(z) {
+    return Math.sin(z * 0.011 + w3.seed) * 24 + Math.sin(z * 0.0042 + w3.seed * 1.7) * 34;
+  }
+  function riverHW(z) {
+    if (w3.dam) return 175;
+    return w3.hw + Math.sin(z * 0.017 + w3.seed * 3) * (w3.hw * 0.18);
+  }
+  function w3proj(wx, wz) {
+    var dz = wz - w3.camZ;
+    if (dz < 6) dz = 6;
+    var s = W3.FOCAL / dz;
+    return { x: 180 + (wx - w3.camX) * s, y: HORIZON + W3.CAMH * s, s: s };
+  }
+  function w3unproj(sx, sy) {
+    var s = (sy - HORIZON) / W3.CAMH;
+    var sMin = W3.FOCAL / W3.MAXD;
+    if (s < sMin) s = sMin; // 地平線ぎわは最遠にクランプ
+    var dz = W3.FOCAL / s;
+    return { x: w3.camX + (sx - 180) / s, z: w3.camZ + dz };
+  }
+  function w3init(loc) {
+    w3.seed = (seedFromString(loc.id) % 1000) / 1000 * 6.28;
+    w3.dam = loc.type === "dam";
+    var rec = SCENERY[loc.id] || {};
+    w3.hw = rec.width === "wide" ? 46 : rec.width === "narrow" ? 26 : 36;
+    w3.pz = 0;
+    w3.px = riverCX(0) - riverHW(0) - 16; // 左岸からスタート
+    w3.face = 1; w3.moving = 0;
+    w3.camX = w3.px; w3.camZ = w3.pz - W3.CB;
+  }
+  function w3clampPlayer() {
+    var cx = riverCX(w3.pz), hw = riverHW(w3.pz);
+    var side = w3.px < cx ? -1 : 1;
+    if (w3.dam) side = -1; // 湖は西岸のみ
+    var edge = cx + side * (hw + 7);
+    if (side < 0 ? w3.px > edge : w3.px < edge) w3.px = edge;
+    w3.px = Math.max(cx - hw - 220, Math.min(cx + hw + 220, w3.px));
+  }
+  var hexRgbCache = {};
+  function hxc(h) {
+    if (hexRgbCache[h]) return hexRgbCache[h];
+    var v = [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    hexRgbCache[h] = v;
+    return v;
+  }
+  function mixc(a, b, t) {
+    return "rgb(" + Math.round(a[0] + (b[0] - a[0]) * t) + "," + Math.round(a[1] + (b[1] - a[1]) * t) + "," + Math.round(a[2] + (b[2] - a[2]) * t) + ")";
+  }
+
   function initCanvas() {
     cv.el = document.getElementById("stageCanvas");
     var stageEl = document.getElementById("fishStage");
@@ -4095,23 +4159,60 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   }
 
   function spawnRipple(x, y, big) {
-    ripples.push({ x: x, y: y, r: big ? 7 : 4, vr: big ? 30 : 18, a: big ? 0.55 : 0.35 });
+    // x,y は世界座標（y=奥行きz）。半径も世界単位で広がり、描画時に投影する
+    ripples.push({ x: x, y: y, r: big ? 2.6 : 1.5, vr: big ? 11 : 6.5, a: big ? 0.55 : 0.35 });
     if (ripples.length > 14) ripples.shift();
   }
 
-  function burst(x, y, n, power, hue) {
+  function burst(wx, wz, n, power, hue) {
+    // 世界座標で受けて発生時に投影（粒子自体は画面空間で舞う）
+    var p0 = w3proj(wx, wz);
+    var sc0 = Math.max(0.45, Math.min(1.4, p0.s * 0.3));
     for (var i = 0; i < n; i++) {
       var ang = Math.PI * (1.05 + Math.random() * 0.9);
-      var sp = power * (0.5 + Math.random() * 0.9);
+      var sp = power * (0.5 + Math.random() * 0.9) * sc0;
       particles.push({
-        x: x + (Math.random() * 2 - 1) * 6, y: y,
+        x: p0.x + (Math.random() * 2 - 1) * 6 * sc0, y: p0.y,
         vx: Math.cos(ang) * sp * (Math.random() < 0.5 ? 1 : -1),
         vy: Math.sin(ang) * sp,
         life: 0.55 + Math.random() * 0.5, age: 0,
-        r: 1.4 + Math.random() * 2.6, hue: hue || "255,255,255"
+        r: (1.4 + Math.random() * 2.6) * sc0, hue: hue || "255,255,255"
       });
     }
     if (particles.length > 90) particles.splice(0, particles.length - 90);
+  }
+
+  // プレイヤー（ユキ）を三人称ビルボードで描く。竿は川側へ構える
+  function drawPlayer(ctx, now, t, frame) {
+    var p = w3proj(w3.px, w3.pz);
+    var cxp = riverCX(w3.pz);
+    var side = w3.px < cxp ? 1 : -1;
+    var ph = 15 * p.s;
+    var bob = w3.moving ? Math.abs(Math.sin(now / 140)) * ph * 0.045 : Math.sin(now / 900) * ph * 0.012;
+    ctx.fillStyle = "rgba(10,22,14,0.3)";
+    ctx.beginPath(); ctx.ellipse(p.x, p.y + 1, ph * 0.26, ph * 0.07, 0, 0, 6.3); ctx.fill();
+    var img = yukiImage(fs.phase === "fight" ? "excited" : "normal");
+    if (img.complete && img.naturalWidth > 0) {
+      var iw = ph * (120 / 140);
+      ctx.save();
+      ctx.translate(p.x, p.y - ph / 2 - bob);
+      if (side < 0) ctx.scale(-1, 1);
+      if (w3.moving) ctx.rotate(Math.sin(now / 140) * 0.05);
+      ctx.drawImage(img, -iw / 2, -ph / 2, iw, ph);
+      ctx.restore();
+    }
+    var bend = fs.rodBend || 0;
+    var hx4 = p.x + side * ph * 0.3, hy4 = p.y - ph * 0.45 - bob;
+    var tipX = hx4 + side * ph * (1.05 - bend * 0.25);
+    var tipY = hy4 - ph * (0.62 - bend * 0.55);
+    ctx.strokeStyle = "#54412e";
+    ctx.lineWidth = Math.max(1.6, ph * 0.05);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(hx4, hy4);
+    ctx.quadraticCurveTo(hx4 + side * ph * 0.6, hy4 - ph * (0.55 - bend * 0.3), tipX, tipY);
+    ctx.stroke();
+    frame.tipX = tipX; frame.tipY = tipY;
   }
 
   function paintScene(now, dt) {
@@ -4255,304 +4356,136 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       ctx.fillRect(mistX + 140, H - 20, 240, 24);
     }
 
-    // 3) 水面ベース
-    var wG = ctx.createLinearGradient(0, H, 0, 420);
-    wG.addColorStop(0, pal.waterHi); wG.addColorStop(0.32, pal.waterMid); wG.addColorStop(1, pal.waterDeep);
-    ctx.fillStyle = wG;
-    ctx.fillRect(-8, H, 376, 480 - H + 8);
-
-    // 4) 反射（山・スカイライン）
-    ctx.save();
-    ctx.beginPath(); ctx.rect(-8, H, 376, 110); ctx.clip();
-    ctx.globalAlpha = 0.20;
-    ctx.transform(1, 0, 0, -0.55, 0, H * 1.55);
-    drawRidgeInto(ctx, pal, sc, 1, H + 2);
-    if (sc.volcano) drawVolcano(ctx, pal, sc);
-    if (sc.city) drawSkyline(ctx, pal, sc, t.night, now);
-    drawRidgeInto(ctx, pal, sc, 2, H + 2);
-    ctx.restore();
-    for (var w = 0; w < 7; w++) {
-      var wy = H + 5 + w * 13 + Math.sin(now / 900 + w) * 2;
-      ctx.fillStyle = "rgba(" + (t.night ? "10,30,40" : "255,255,255") + "," + (0.05 + 0.02 * (w % 2)) + ")";
-      ctx.fillRect(-8, wy, 376, 2.2 + w * 0.3);
+    // 3) 擬似3D: カメラ追従＋地面/川のスキャンライン投影
+    w3.camX = w3.px;
+    w3.camZ = w3.pz - W3.CB;
+    var C_bank0 = hxc(pal.bank[0]), C_bank1 = hxc(pal.bank[1]);
+    var C_wHi = hxc(pal.waterHi), C_wMid = hxc(pal.waterMid), C_wDeep = hxc(pal.waterDeep);
+    var C_sky2 = hxc(pal.sky[2]);
+    var C_far = [(C_bank0[0] + 2 * C_sky2[0]) / 3, (C_bank0[1] + 2 * C_sky2[1]) / 3, (C_bank0[2] + 2 * C_sky2[2]) / 3];
+    var C_wFar = [(C_wHi[0] + 2 * C_sky2[0]) / 3, (C_wHi[1] + 2 * C_sky2[1]) / 3, (C_wHi[2] + 2 * C_sky2[2]) / 3];
+    var yFar = H + W3.CAMH * W3.FOCAL / W3.MAXD;
+    var hazeG2 = ctx.createLinearGradient(0, H, 0, yFar + 8);
+    if (w3.dam) {
+      // 湖: 対岸まで水がつづく
+      hazeG2.addColorStop(0, mixc(C_wFar, C_sky2, 0.6));
+      hazeG2.addColorStop(1, mixc(C_wHi, C_wFar, 0.4));
+    } else {
+      hazeG2.addColorStop(0, mixc(C_far, C_sky2, 0.7));
+      hazeG2.addColorStop(1, mixc(C_bank0, C_far, 0.35));
     }
+    ctx.fillStyle = hazeG2;
+    ctx.fillRect(-8, H, 376, yFar - H + 10);
 
-    // 5) グリッター＋水面ノイズ
-    for (var gy = H + 6; gy < H + 116; gy += 6) {
-      var depth = (gy - H) / 110;
-      var halfW = 20 + depth * 66;
-      var row = Math.floor(gy);
-      for (var gs = 0; gs < 2; gs++) {
-        var hx = hash2(row, gs * 31);
-        var flick = hash2(row * 3 + gs, Math.floor(now / 110));
-        if (flick < 0.4) continue;
-        var gxp = pal.lx + (hx - 0.5) * halfW * 1.5;
-        var glen = 2.5 + depth * 7 + flick * 4;
-        ctx.strokeStyle = "rgba(" + pal.glint + "," + (0.5 * flick * (1 - depth * 0.5)) + ")";
-        ctx.lineWidth = 1.1 + depth * 0.8;
-        ctx.beginPath(); ctx.moveTo(gxp - glen / 2, gy); ctx.lineTo(gxp + glen / 2, gy); ctx.stroke();
+    var stepY = 2;
+    var yTop = Math.ceil(yFar);
+    var xLTop = 170, xRTop = 190;
+    for (var y3 = yTop; y3 < 486; y3 += stepY) {
+      var s3 = (y3 - H) / W3.CAMH;
+      var dz3 = W3.FOCAL / s3;
+      var z3 = w3.camZ + dz3;
+      var cx3 = riverCX(z3), hw3 = riverHW(z3);
+      var xL = 180 + (cx3 - hw3 - w3.camX) * s3;
+      var xR = 180 + (cx3 + hw3 - w3.camX) * s3;
+      if (y3 === yTop) { xLTop = xL; xRTop = xR; }
+      var fog = Math.max(0, Math.min(1, (dz3 - 44) / (W3.MAXD - 60)));
+      // 左右の岸（世界座標に固定した草地の濃淡）
+      ctx.fillStyle = mixc(C_bank1, C_far, fog * 0.8);
+      if (xL > -8) ctx.fillRect(-8, y3, Math.min(xL + 1, 376), stepY);
+      if (xR < 368) ctx.fillRect(Math.max(xR - 1, -8), y3, 376, stepY);
+      var gShade = hash2(Math.floor(z3 * 0.55), 3);
+      if (gShade > 0.62 && fog < 0.78) {
+        ctx.fillStyle = "rgba(14,30,16," + ((gShade - 0.62) * 0.3 * (1 - fog)).toFixed(3) + ")";
+        if (xL > -8) ctx.fillRect(-8, y3, Math.min(xL + 1, 376), stepY);
+        if (xR < 368) ctx.fillRect(Math.max(xR - 1, -8), y3, 376, stepY);
       }
-    }
-    for (var nz = 0; nz < 26; nz++) {
-      var nf = hash2(nz * 13, Math.floor(now / 160));
-      if (nf < 0.55) continue;
-      var nx = hash2(nz, 7) * 360;
-      var ny = H + 10 + hash2(nz, 13) * (470 - H - 10);
-      ctx.fillStyle = "rgba(" + pal.glint + "," + ((nf - 0.55) * 0.22) + ")";
-      ctx.fillRect(nx, ny, 2.4 + (ny - H) / 90, 1.1);
-    }
-
-    // 6) うねり
-    var swellN = sc.isDam ? 3 : 4;
-    for (var k = 0; k < swellN; k++) {
-      var span = sc.isDam ? 72 : 52;
-      var yk = H + 14 + k * span + ((now / 1000 * (7 + k * 5)) % span);
-      var amp = 2 + k * 1.5;
-      ctx.beginPath();
-      for (var xx = -8; xx <= 368; xx += 12) {
-        var yyy = yk + Math.sin(xx / 46 + now / 700 + k * 2) * amp;
-        if (xx === -8) ctx.moveTo(xx, yyy); else ctx.lineTo(xx, yyy);
-      }
-      ctx.strokeStyle = "rgba(255,255,255," + (sc.isDam ? 0.05 : 0.08) + ")";
-      ctx.lineWidth = 1.6 + k * 1.1;
-      ctx.stroke();
-      ctx.beginPath();
-      for (var xx2 = -8; xx2 <= 368; xx2 += 12) {
-        var yy2 = yk + 3.5 + Math.sin(xx2 / 46 + now / 700 + k * 2) * amp;
-        if (xx2 === -8) ctx.moveTo(xx2, yy2); else ctx.lineTo(xx2, yy2);
-      }
-      ctx.strokeStyle = "rgba(0,18,28,0.06)";
-      ctx.lineWidth = 1.4 + k;
-      ctx.stroke();
-    }
-
-    // 河川: 下流へ流れる筋（遠近収束・ダッシュアニメ）＋流芯の深み
-    if (!sc.isDam) {
-      var rwf = sc.rw;
-      ctx.save();
-      for (var fk = 0; fk < 8; fk++) {
-        var ff = fk / 7;
-        var xt = rwf.topL + 10 + (rwf.topR - rwf.topL - 20) * ff;
-        var xb = rwf.botL + 14 + (rwf.botR - rwf.botL - 28) * ff;
-        var centerW = 1 - Math.abs(ff - 0.5) * 2;
-        ctx.setLineDash([9 + centerW * 8, 30]);
-        ctx.lineDashOffset = -((now / 1000 * (30 + centerW * 26)) % 1000);
-        ctx.strokeStyle = "rgba(255,255,255," + (0.045 + centerW * 0.05) + ")";
-        ctx.lineWidth = 1.2 + centerW * 1.6;
-        ctx.beginPath(); ctx.moveTo(xt, H + 4); ctx.lineTo(xb, 484); ctx.stroke();
-      }
-      ctx.restore();
-      ctx.setLineDash([]);
-      var deepG = ctx.createLinearGradient(0, H, 0, 420);
-      deepG.addColorStop(0, "rgba(6,30,40,0)");
-      deepG.addColorStop(1, "rgba(6,30,40,0.15)");
-      ctx.fillStyle = deepG;
-      ctx.beginPath();
-      ctx.moveTo((rwf.topL + rwf.topR) / 2 - 26, H + 6);
-      ctx.lineTo((rwf.topL + rwf.topR) / 2 + 26, H + 6);
-      ctx.lineTo((rwf.botL + rwf.botR) / 2 + 52, 484);
-      ctx.lineTo((rwf.botL + rwf.botR) / 2 - 52, 484);
-      ctx.closePath(); ctx.fill();
-    }
-
-    // 7) 地形
-    if (!sc.isDam) {
-      var rw = sc.rw;
-      var bgL = ctx.createLinearGradient(0, 196, 0, 420);
-      bgL.addColorStop(0, pal.bank[0]); bgL.addColorStop(1, pal.bank[1]);
-      ctx.fillStyle = bgL;
-      ctx.beginPath(); ctx.moveTo(-8, 480); ctx.lineTo(-8, 224);
-      ctx.quadraticCurveTo(rw.topL * 0.5, 212, rw.topL, 196);
-      ctx.lineTo(rw.botL, 480); ctx.closePath(); ctx.fill();
-      var bgR = ctx.createLinearGradient(0, 193, 0, 420);
-      bgR.addColorStop(0, pal.bank[0]); bgR.addColorStop(1, pal.bank[1]);
-      ctx.fillStyle = bgR;
-      ctx.beginPath(); ctx.moveTo(368, 480); ctx.lineTo(368, 214);
-      ctx.quadraticCurveTo(360 - (360 - rw.topR) * 2, 202, rw.topR, 193);
-      ctx.lineTo(rw.botR, 480); ctx.closePath(); ctx.fill();
-      // 岸の草地テクスチャ（明暗のパッチ）
-      ctx.fillStyle = "rgba(20,40,20,0.10)";
-      for (var bp = 0; bp < 10; bp++) {
-        var bpx = bp < 5 ? hash2(bp, 3) * rw.botL * 0.9 : rw.botR + hash2(bp, 5) * (360 - rw.botR) * 0.9;
-        var bpy = 240 + hash2(bp, 9) * 220;
-        ctx.beginPath(); ctx.ellipse(bpx, bpy, 14 + hash2(bp, 11) * 18, 5 + hash2(bp, 13) * 5, 0.2, 0, 6.3); ctx.fill();
-      }
-      // 波打ち際の白泡
-      ctx.strokeStyle = "rgba(255,255,255,0.34)";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(rw.topL, 197); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 - 8, 330, rw.botL + 1, 478); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(rw.topR, 194); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 + 10, 330, rw.botR - 2, 478); ctx.stroke();
-      // 波打ち際の砂利浜（浅瀬の小石）と岸の水中影
-      for (var pb = 0; pb < 30; pb++) {
-        var pt2 = hash2(pb, 41);
-        var isL = pb % 2 === 0;
-        var q0x = isL ? rw.topL : rw.topR, q0y = isL ? 197 : 194;
-        var qcx = isL ? (rw.topL + rw.botL) / 2 - 8 : (rw.topR + rw.botR) / 2 + 10;
-        var q1x = isL ? rw.botL + 1 : rw.botR - 2;
-        var px2 = (1 - pt2) * (1 - pt2) * q0x + 2 * (1 - pt2) * pt2 * qcx + pt2 * pt2 * q1x;
-        var py2 = (1 - pt2) * (1 - pt2) * q0y + 2 * (1 - pt2) * pt2 * 330 + pt2 * pt2 * 478;
-        var inw = (isL ? 1 : -1) * (2 + hash2(pb, 7) * 8);
-        var pr2 = 0.9 + hash2(pb, 13) * 1.8 + (py2 - 200) / 140;
-        ctx.fillStyle = "rgba(" + (hash2(pb, 3) > 0.5 ? "168,158,138" : "128,134,128") + "," + (0.5 - (py2 - 200) / 700) + ")";
-        ctx.beginPath(); ctx.ellipse(px2 + inw, py2 + 1, pr2, pr2 * 0.6, 0, 0, 6.3); ctx.fill();
-      }
-      ctx.fillStyle = "rgba(6,26,34,0.13)";
-      ctx.beginPath();
-      ctx.moveTo(rw.topL, 198); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 - 2, 330, rw.botL + 8, 480);
-      ctx.lineTo(rw.botL + 20, 480); ctx.quadraticCurveTo((rw.topL + rw.botL) / 2 + 10, 332, rw.topL + 9, 199);
-      ctx.closePath(); ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(rw.topR, 195); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 + 4, 330, rw.botR - 9, 480);
-      ctx.lineTo(rw.botR - 21, 480); ctx.quadraticCurveTo((rw.topR + rw.botR) / 2 - 8, 332, rw.topR - 9, 196);
-      ctx.closePath(); ctx.fill();
-      // 渓流: 流芯の白泡スジ
-      if (sc.rec.width === "narrow") {
-        for (var fl = 0; fl < 3; fl++) {
-          var flx = 160 + fl * 14;
-          var flo = ((now / 1000 * (46 + fl * 9)) % 70);
-          ctx.strokeStyle = "rgba(255,255,255," + (0.13 + fl * 0.02) + ")";
-          ctx.lineWidth = 2.2;
-          for (var seg2 = 0; seg2 < 5; seg2++) {
-            var sy2 = H + 12 + seg2 * 70 + flo;
-            if (sy2 > 474) continue;
-            ctx.beginPath();
-            ctx.moveTo(flx + Math.sin(sy2 / 40) * 6, sy2);
-            ctx.quadraticCurveTo(flx + 3, sy2 + 16, flx + Math.sin(sy2 / 30) * 5, sy2 + 30);
-            ctx.stroke();
-          }
+      // 水面（遠いほど空色に霞む・流芯は深い色）
+      if (xR > xL) {
+        ctx.fillStyle = mixc(C_wMid, C_wFar, fog);
+        ctx.fillRect(xL, y3, xR - xL, stepY);
+        ctx.fillStyle = "rgba(" + C_wDeep[0] + "," + C_wDeep[1] + "," + C_wDeep[2] + "," + ((1 - fog) * 0.5).toFixed(3) + ")";
+        ctx.fillRect(xL + (xR - xL) * 0.2, y3, (xR - xL) * 0.6, stepY);
+        var foamA = 0.3 * (1 - fog);
+        if (foamA > 0.04) {
+          ctx.fillStyle = "rgba(255,255,255," + foamA.toFixed(3) + ")";
+          ctx.fillRect(xL - 0.6, y3, 1.6 + s3 * 0.25, stepY);
+          ctx.fillRect(xR - 1 - s3 * 0.25, y3, 1.6 + s3 * 0.25, stepY);
+        }
+        var gl = hash2(Math.floor(z3 * 0.8) + 7, Math.floor(now / 130));
+        if (gl > 0.66) {
+          var gx3 = xL + (xR - xL) * hash2(Math.floor(z3 * 0.8), 17);
+          ctx.fillStyle = "rgba(" + pal.glint + "," + ((gl - 0.66) * 0.9 * (1 - fog * 0.6)).toFixed(3) + ")";
+          ctx.fillRect(gx3, y3, 2 + s3 * 1.5, 1.2);
         }
       }
-      // 石
-      for (var sti = 0; sti < sc.stones.length; sti++) {
-        var stn = sc.stones[sti];
-        if (stn.inWater) {
-          // 流れの中の岩: 上流側に白いさざ波
-          ctx.strokeStyle = "rgba(255,255,255,0.4)";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(stn.x, stn.y - stn.r * 0.4, stn.r + 3, Math.PI * 1.15, Math.PI * 1.85);
-          ctx.stroke();
+    }
+    // 地平線へ消えていく川スジ
+    ctx.fillStyle = mixc(C_wFar, C_sky2, 0.45);
+    ctx.beginPath();
+    ctx.moveTo(xLTop, yTop + 1); ctx.lineTo(xRTop, yTop + 1);
+    ctx.lineTo(180 + (riverCX(w3.camZ + 900) - w3.camX) * 0.33, H + 2);
+    ctx.closePath(); ctx.fill();
+
+    // 6) 流れの筋（下流＝手前へ流れる。湖ではなし）
+    if (!w3.dam) {
+      ctx.lineCap = "round";
+      for (var fl3 = 0; fl3 < 5; fl3++) {
+        var off3 = -0.55 + fl3 * 0.275;
+        var flowSp = 30 + fl3 * 7;
+        for (var zm = w3.camZ + 48; zm < w3.camZ + W3.MAXD; zm += 9) {
+          var phz = ((zm + now / 1000 * flowSp) % 26 + 26) % 26;
+          if (phz > 11) continue;
+          var sA = W3.FOCAL / (zm - w3.camZ), sB = W3.FOCAL / (zm + 6 - w3.camZ);
+          var pAx = 180 + (riverCX(zm) + off3 * riverHW(zm) - w3.camX) * sA;
+          var pAy = H + W3.CAMH * sA;
+          var pBx = 180 + (riverCX(zm + 6) + off3 * riverHW(zm + 6) - w3.camX) * sB;
+          var pBy = H + W3.CAMH * sB;
+          var fogF = Math.max(0, 1 - (zm - w3.camZ) / W3.MAXD);
+          ctx.strokeStyle = "rgba(255,255,255," + (0.04 + (1 - Math.abs(off3) * 1.4) * 0.05 * fogF + 0.04 * fogF).toFixed(3) + ")";
+          ctx.lineWidth = Math.min(3, 0.5 + sA * 0.35);
+          ctx.beginPath(); ctx.moveTo(pAx, pAy); ctx.lineTo(pBx, pBy); ctx.stroke();
         }
-        ctx.fillStyle = "rgba(0,20,26,0.22)";
-        ctx.beginPath(); ctx.ellipse(stn.x, stn.y + stn.r * 0.44, stn.r * 1.12, stn.r * 0.3, 0, 0, 6.3); ctx.fill();
-        var sg = ctx.createRadialGradient(stn.x - stn.r * 0.35, stn.y - stn.r * 0.4, stn.r * 0.2, stn.x, stn.y, stn.r * 1.15);
-        sg.addColorStop(0, t.night ? "#5d6a68" : "#b9c2ba");
-        sg.addColorStop(1, t.night ? "#2a3634" : "#5f6c64");
-        ctx.fillStyle = sg;
-        ctx.beginPath(); ctx.ellipse(stn.x, stn.y, stn.r, stn.r * 0.68, 0, 0, 6.3); ctx.fill();
-      }
-      // 岸のトウヒ（針葉樹）
-      drawSpruce(ctx, Math.max(20, rw.botL - 44), 356, 96, t.night);
-      drawSpruce(ctx, Math.max(12, rw.topL - 52), 262, 56, t.night);
-      drawSpruce(ctx, Math.min(348, rw.botR + 40), 402, 108, t.night);
-      drawSpruce(ctx, Math.min(352, rw.topR + 52), 276, 62, t.night);
-      drawBirches(ctx, sc, t.night);
-      drawReeds(ctx, sc, pal, t.night, now);
-      ctx.lineWidth = 2.6; ctx.lineCap = "round";
-      for (var tf = 0; tf < sc.tufts.length; tf++) {
-        var tuf = sc.tufts[tf];
-        var sway = Math.sin(now / 800 + tuf.ph) * 3;
-        ctx.strokeStyle = "rgba(" + (t.night ? "42,74,52" : "74,110,58") + ",0.9)";
-        ctx.beginPath();
-        ctx.moveTo(tuf.x, tuf.y);
-        ctx.quadraticCurveTo(tuf.x + tuf.lean * 0.5, tuf.y - tuf.h * 0.62, tuf.x + tuf.lean + sway, tuf.y - tuf.h);
-        ctx.stroke();
       }
     } else {
-      var ds = sc.rec.damSide === "left" ? -1 : 1;
-      var mx2 = function (x) { return ds === 1 ? x : 360 - x; };
-      ctx.fillStyle = t.night ? "#16281e" : "#48663f";
-      ctx.fillRect(-8, H - 12, 376, 13);
-      ctx.fillStyle = t.night ? "#122016" : "#3c5834";
-      for (var tr = 0; tr < 46; tr++) {
-        var trx = -6 + tr * 8.2;
-        var trh = 5 + hash2(tr, 5) * 7;
+      // 湖: ゆったりした横うねり
+      for (var lk = 0; lk < 4; lk++) {
+        var lzz = w3.camZ + 60 + lk * 60 + ((now / 1000 * 6) % 60);
+        var sL = W3.FOCAL / (lzz - w3.camZ);
+        var lyy = H + W3.CAMH * sL;
+        ctx.strokeStyle = "rgba(255,255,255,0.06)";
+        ctx.lineWidth = Math.min(3, 0.6 + sL * 0.5);
         ctx.beginPath();
-        ctx.moveTo(trx - 3, H - 10); ctx.lineTo(trx, H - 10 - trh); ctx.lineTo(trx + 3, H - 10);
-        ctx.closePath(); ctx.fill();
-      }
-      var cwg = ctx.createLinearGradient(mx2(296), 0, mx2(368), 0);
-      cwg.addColorStop(0, t.night ? "#565c5e" : "#d6d6cc");
-      cwg.addColorStop(1, t.night ? "#3a4042" : "#a2a296");
-      ctx.fillStyle = cwg;
-      ctx.beginPath();
-      ctx.moveTo(mx2(298), H - 6); ctx.lineTo(mx2(368), H - 6);
-      ctx.lineTo(mx2(368), 352); ctx.lineTo(mx2(322), 352);
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,0.13)"; ctx.lineWidth = 1;
-      for (var jn = 0; jn < 5; jn++) {
-        ctx.beginPath();
-        ctx.moveTo(mx2(308 + jn * 12), H - 5); ctx.lineTo(mx2(322 + jn * 10), 350);
+        for (var lxx = -8; lxx <= 368; lxx += 16) {
+          var lwy = lyy + Math.sin(lxx / 46 + now / 700 + lk * 2) * (1 + sL * 0.6);
+          if (lxx === -8) ctx.moveTo(lxx, lwy); else ctx.lineTo(lxx, lwy);
+        }
         ctx.stroke();
-      }
-      // 放流水のカスケードと水面の白泡
-      var spG = ctx.createLinearGradient(0, H + 20, 0, 356);
-      spG.addColorStop(0, "rgba(255,255,255,0.06)");
-      spG.addColorStop(1, "rgba(255,255,255,0.38)");
-      ctx.fillStyle = spG;
-      ctx.beginPath();
-      ctx.moveTo(mx2(301), H + 26); ctx.lineTo(mx2(308), H + 26);
-      ctx.lineTo(mx2(324), 352); ctx.lineTo(mx2(313), 352);
-      ctx.closePath(); ctx.fill();
-      for (var fb = 0; fb < 3; fb++) {
-        var fbp = ((now / 1000 * 62 + fb * 55) % 128);
-        ctx.fillStyle = "rgba(255,255,255," + (0.26 - fbp / 128 * 0.2) + ")";
-        ctx.beginPath(); ctx.ellipse(mx2(305 + fbp * 0.13), H + 28 + fbp, 3.2, 6, 0, 0, 6.3); ctx.fill();
-      }
-      ctx.fillStyle = "rgba(255,255,255,0.30)";
-      ctx.beginPath(); ctx.ellipse(mx2(318), 354, 14, 4, 0, 0, 6.3); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,0.15)";
-      ctx.beginPath(); ctx.ellipse(mx2(318), 359, 23, 5, 0, 0, 6.3); ctx.fill();
-      ctx.fillStyle = t.night ? "#6a7072" : "#e8e8de";
-      ctx.fillRect(Math.min(mx2(296), mx2(368)), H - 10, 72, 5);
-      ctx.strokeStyle = t.night ? "#8a9092" : "#8b8b83"; ctx.lineWidth = 1.6;
-      for (var rl = 0; rl < 6; rl++) {
-        ctx.beginPath();
-        ctx.moveTo(mx2(300 + rl * 13), H - 10); ctx.lineTo(mx2(300 + rl * 13), H - 18);
-        ctx.stroke();
-      }
-      if (sc.rec.tower) {
-        var twx = mx2(310);
-        var twg = ctx.createLinearGradient(twx - 12, 0, twx + 12, 0);
-        twg.addColorStop(0, t.night ? "#4c5254" : "#c2c2b8");
-        twg.addColorStop(1, t.night ? "#33393b" : "#8e8e84");
-        ctx.fillStyle = twg;
-        ctx.fillRect(twx - 10, H + 8, 20, 42);
-        ctx.beginPath(); ctx.arc(twx, H + 8, 10, Math.PI, 0); ctx.fill();
-        ctx.fillStyle = "rgba(0,10,16,0.35)";
-        ctx.beginPath(); ctx.ellipse(twx, H + 52, 13, 3.4, 0, 0, 6.3); ctx.fill();
-      }
-      for (var bi2 = 0; bi2 < sc.buoys.length; bi2++) {
-        var bu = sc.buoys[bi2];
-        var by2 = H + 42 + Math.sin(now / 700 + bu.ph) * 1.6;
-        ctx.fillStyle = "#e07840";
-        ctx.beginPath(); ctx.arc(bu.x, by2, 2.6, 0, 6.3); ctx.fill();
-        ctx.fillStyle = "rgba(224,120,64,0.25)";
-        ctx.beginPath(); ctx.ellipse(bu.x, by2 + 3.4, 3.4, 1.1, 0, 0, 6.3); ctx.fill();
       }
     }
-    if (sc.rec.bridge) drawBridge(ctx, pal, t.night);
 
-    // 8) 魚影 — 泳ぐ影の群れ（見える水面）
+    // 8) 魚影 — 泳ぐ影の群れ（世界座標→投影）
     if ((fs.phase === "aim" || fs.phase === "cast" || fs.phase === "wait" || fs.phase === "bite") && fs.shadows) {
       for (var shi = 0; shi < fs.shadows.length; shi++) {
         var shD = fs.shadows[shi];
-        var wobS = Math.sin(now / 260 + shD.ph) * 2.5;
+        var pS = w3proj(shD.x, shD.y);
+        if (pS.y < yTop - 2 || pS.x < -50 || pS.x > 410) continue;
+        var wobS = Math.sin(now / 260 + shD.ph) * 1.4;
+        var fogS = Math.max(0.35, 1 - (shD.y - w3.pz) / W3.MAXD * 0.9);
         ctx.save();
         if (shD.kind === "blob") {
-          // 丸い影（藻・がらくた・おたから）
-          ctx.globalAlpha = 0.26;
+          ctx.globalAlpha = 0.26 * fogS;
           ctx.filter = "blur(1.8px)";
           ctx.fillStyle = "#0c1a20";
-          ctx.beginPath(); ctx.ellipse(shD.x, shD.y + wobS, 15, 8, Math.sin(now / 800 + shD.ph) * 0.3, 0, 6.3); ctx.fill();
-          ctx.beginPath(); ctx.ellipse(shD.x + 7, shD.y + 3 + wobS, 9, 5, 0, 0, 6.3); ctx.fill();
+          var br1 = 5.5 * pS.s, br2 = 3.2 * pS.s;
+          ctx.beginPath(); ctx.ellipse(pS.x, pS.y + wobS, br1, br1 * 0.5, Math.sin(now / 800 + shD.ph) * 0.3, 0, 6.3); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(pS.x + br1 * 0.45, pS.y + 1 + wobS, br2, br2 * 0.55, 0, 0, 6.3); ctx.fill();
         } else {
           var simg2 = fishImage(shD.id, true);
           if (simg2.complete && simg2.naturalWidth > 0) {
-            ctx.globalAlpha = shD.isNushi ? 0.4 : 0.3;
+            ctx.globalAlpha = (shD.isNushi ? 0.4 : 0.3) * fogS;
             ctx.filter = "blur(1.6px)";
-            var shw2 = (34 + 62 * Math.min(1.2, shD.ratio || 0.3)) * (shD.isNushi ? 1.55 : 1);
-            ctx.translate(shD.x, shD.y + wobS);
+            var shw2 = Math.min(190, (12 + 22 * Math.min(1.2, shD.ratio || 0.3)) * (shD.isNushi ? 1.55 : 1) * pS.s);
+            ctx.translate(pS.x, pS.y + wobS);
             if (shD.dir > 0) ctx.scale(-1, 1); // 進行方向に頭を向ける
             ctx.drawImage(simg2, -shw2 / 2, -shw2 / 4, shw2, shw2 / 2);
           }
@@ -4563,15 +4496,16 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         if (trip && trip.runMode && !runModIs("nigori") && shD.st === "swim" && shD.revealUntil && now < shD.revealUntil) {
           var la = Math.min(1, (shD.revealUntil - now) / 450);
           ctx.save();
-          ctx.font = "700 12px system-ui, sans-serif";
+          var fpx = Math.max(10, Math.min(17, 8 + pS.s * 2.4));
+          ctx.font = "700 " + fpx.toFixed(0) + "px system-ui, sans-serif";
           ctx.textAlign = "center";
           var lbl = shD.kind === "blob" ? "?" : ((RUN_RANK_OF[shD.id] || "?") + (RUN_SUITS[FIGHT_STYLE_OF[shD.id] || "quick"] || {}).emoji);
           ctx.globalAlpha = la;
           ctx.lineWidth = 3;
           ctx.strokeStyle = "rgba(6,20,28,0.8)";
-          ctx.strokeText(lbl, shD.x, shD.y + wobS - 14);
+          ctx.strokeText(lbl, pS.x, pS.y + wobS - 8 - pS.s * 2);
           ctx.fillStyle = "rgba(255,240,200,0.98)";
-          ctx.fillText(lbl, shD.x, shD.y + wobS - 14);
+          ctx.fillText(lbl, pS.x, pS.y + wobS - 8 - pS.s * 2);
           ctx.restore();
         }
       }
@@ -4580,115 +4514,126 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (fs.shadowId && fs.phase === "fight") {
       var simg = fishImage(fs.shadowId, true);
       if (simg.complete && simg.naturalWidth > 0) {
-        var sxp = fs.fpX, syp = fs.fpY, wob = Math.sin(now / 130) * 4;
+        var pF0 = w3proj(fs.fpX, fs.fpY);
+        var sxp = pF0.x, syp = pF0.y - (fs.jumpPx || 0), wob = Math.sin(now / 130) * 4;
         ctx.strokeStyle = "rgba(255,255,255,0.16)"; ctx.lineWidth = 1.6;
-        ctx.beginPath(); ctx.moveTo(sxp, syp - 6); ctx.lineTo(sxp + 34, syp - 16); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(sxp, syp - 6); ctx.lineTo(sxp + 34, syp + 6); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sxp, syp - 6); ctx.lineTo(sxp + 30, syp - 14); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sxp, syp - 6); ctx.lineTo(sxp + 30, syp + 5); ctx.stroke();
         ctx.save();
         ctx.globalAlpha = 0.32;
         ctx.filter = "blur(1.6px)";
-        var shw = 78 + 74 * Math.min(1.2, fs.pendingSizeRatio || 0.4);
+        var shw = Math.min(230, (26 + 26 * Math.min(1.2, fs.pendingSizeRatio || 0.4)) * pF0.s);
         ctx.drawImage(simg, sxp - shw / 2, syp - shw / 4 + wob, shw, shw / 2);
         ctx.restore();
         ctx.filter = "none";
       }
     }
 
-    // 9) 波紋
+    // 9) 波紋（世界座標）
     for (var ri = ripples.length - 1; ri >= 0; ri--) {
       var rp = ripples[ri];
       rp.r += rp.vr * dt; rp.a -= dt * 0.5;
       if (rp.a <= 0.01) { ripples.splice(ri, 1); continue; }
+      var pR = w3proj(rp.x, rp.y);
       ctx.strokeStyle = "rgba(" + pal.glint + "," + rp.a + ")";
-      ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.ellipse(rp.x, rp.y, rp.r, rp.r * 0.34, 0, 0, 6.3); ctx.stroke();
+      ctx.lineWidth = Math.min(2.4, 0.6 + pR.s * 0.3);
+      ctx.beginPath(); ctx.ellipse(pR.x, pR.y, rp.r * pR.s, rp.r * pR.s * 0.34, 0, 0, 6.3); ctx.stroke();
     }
 
     // 10) ウキ
     var showBob = fs.phase === "cast" || fs.phase === "wait" || fs.phase === "bite";
+    var frame = { bobSX: 0, bobSY: 0, tipX: 0, tipY: 0 };
     if (showBob) {
-      var bx = fs.bobX, by = fs.bobY;
+      var pB = w3proj(fs.bobX, fs.bobY);
+      var bsc = Math.max(0.6, Math.min(1.35, pB.s * 0.34));
+      var bx = pB.x, by = pB.y - (fs.bobArcPx || 0) + (fs.bobDipPx || 0) * bsc;
+      frame.bobSX = bx; frame.bobSY = by;
       if (fs.phase !== "cast") {
         ctx.fillStyle = "rgba(0,18,26,0.25)";
-        ctx.beginPath(); ctx.ellipse(bx, by + 7, 7, 2.2, 0, 0, 6.3); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(bx, pB.y + 5 * bsc, 6 * bsc, 2 * bsc, 0, 0, 6.3); ctx.fill();
       }
-      ctx.strokeStyle = "#7c4034"; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(bx, by - 10); ctx.lineTo(bx, by + 3); ctx.stroke();
-      var bg = ctx.createRadialGradient(bx - 1.8, by - 2, 1, bx, by, 6.4);
+      ctx.strokeStyle = "#7c4034"; ctx.lineWidth = 2 * bsc;
+      ctx.beginPath(); ctx.moveTo(bx, by - 9 * bsc); ctx.lineTo(bx, by + 3 * bsc); ctx.stroke();
+      var bg = ctx.createRadialGradient(bx - 1.8 * bsc, by - 2 * bsc, bsc, bx, by, 6.4 * bsc);
       bg.addColorStop(0, "#ff8a66"); bg.addColorStop(0.6, "#e04a30"); bg.addColorStop(1, "#b02818");
       ctx.fillStyle = bg;
-      ctx.beginPath(); ctx.arc(bx, by, 5.8, 0, 6.3); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx, by, 5.8 * bsc, 0, 6.3); ctx.fill();
       ctx.fillStyle = "#f4f2e6";
-      ctx.beginPath(); ctx.arc(bx, by, 5.8, 0.15, Math.PI - 0.15); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx, by, 5.8 * bsc, 0.15, Math.PI - 0.15); ctx.fill();
       ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.beginPath(); ctx.arc(bx - 2, by - 2.4, 1.2, 0, 6.3); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx - 2 * bsc, by - 2.4 * bsc, 1.2 * bsc, 0, 6.3); ctx.fill();
     }
 
-    // 11) ライン＆ロッド
-    var bend = fs.rodBend || 0;
-    var tipX = 224 - bend * 34, tipY = 208 + bend * 52;
-    var baseX = 338, baseY = 490;
-    var ctrlX = 302 - bend * 8, ctrlY = 372 + bend * 20;
+    // 11) 岸の木々・岩・ヨシ原・プレイヤー（奥→手前の順）
+    var bills = [];
+    var cellSz = 26;
+    var zi0 = Math.floor((w3.camZ + 26) / cellSz), zi1 = Math.floor((w3.camZ + W3.MAXD) / cellSz);
+    for (var zi = zi0; zi <= zi1; zi++) {
+      for (var sd = 0; sd < 2; sd++) {
+        if (w3.dam && sd === 1) continue; // 湖の対岸は霞の彼方
+        var h1 = hash2(zi, sd * 977 + 11);
+        var zc = zi * cellSz + hash2(zi, sd + 31) * cellSz;
+        if (zc - w3.camZ < 14) continue;
+        var cxc = riverCX(zc), hwc = riverHW(zc);
+        var sgn = sd === 0 ? -1 : 1;
+        if (h1 < 0.58) bills.push({ z: zc, kind: "tree", wx: cxc + sgn * (hwc + 14 + hash2(zi, sd + 57) * 95), h: 15 + hash2(zi, sd + 71) * 26 });
+        if (h1 > 0.82) bills.push({ z: zc, kind: "rock", wx: cxc + sgn * (hwc - 3 - hash2(zi, sd + 91) * 7), r: 1.6 + hash2(zi, sd + 97) * 2.6 });
+        if (sc.rec.reeds && hash2(zi, sd + 141) < 0.5) bills.push({ z: zc, kind: "reed", wx: cxc + sgn * (hwc + 3 + hash2(zi, sd + 151) * 8), n: 3 + Math.floor(hash2(zi, sd + 161) * 4) });
+      }
+    }
+    bills.push({ z: w3.pz, kind: "player" });
+    bills.sort(function (a, b) { return b.z - a.z; });
+    for (var bi3 = 0; bi3 < bills.length; bi3++) {
+      var b3 = bills[bi3];
+      if (b3.kind === "player") { drawPlayer(ctx, now, t, frame); continue; }
+      var pP = w3proj(b3.wx, b3.z);
+      if (pP.x < -70 || pP.x > 430) continue;
+      var fogP = Math.max(0, Math.min(1, (b3.z - w3.pz - 20) / (W3.MAXD - 40)));
+      if (b3.kind === "tree") {
+        ctx.globalAlpha = 1 - fogP * 0.55;
+        drawSpruce(ctx, pP.x, pP.y, Math.min(230, b3.h * pP.s), t.night);
+        ctx.globalAlpha = 1;
+      } else if (b3.kind === "rock") {
+        var rr3 = Math.min(40, b3.r * pP.s);
+        if (!w3.dam) {
+          ctx.strokeStyle = "rgba(255,255,255," + (0.4 * (1 - fogP)).toFixed(2) + ")";
+          ctx.lineWidth = Math.min(2.5, 0.6 + pP.s * 0.3);
+          ctx.beginPath(); ctx.arc(pP.x, pP.y - rr3 * 0.4, rr3 + 2, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+        }
+        var sg3 = ctx.createRadialGradient(pP.x - rr3 * 0.35, pP.y - rr3 * 0.6, rr3 * 0.2, pP.x, pP.y - rr3 * 0.25, rr3 * 1.15);
+        sg3.addColorStop(0, t.night ? "#5d6a68" : "#b9c2ba");
+        sg3.addColorStop(1, t.night ? "#2a3634" : "#5f6c64");
+        ctx.fillStyle = sg3;
+        ctx.beginPath(); ctx.ellipse(pP.x, pP.y - rr3 * 0.25, rr3, rr3 * 0.68, 0, 0, 6.3); ctx.fill();
+      } else if (b3.kind === "reed") {
+        ctx.lineWidth = Math.min(2.4, 0.5 + pP.s * 0.35);
+        ctx.strokeStyle = t.night ? "rgba(60,84,58,0.9)" : "rgba(120,140,84,0.9)";
+        for (var rn3 = 0; rn3 < b3.n; rn3++) {
+          var rxx = pP.x + (rn3 - b3.n / 2) * 1.1 * pP.s;
+          var rhh = (7 + hash2(rn3, Math.floor(b3.z)) * 4) * pP.s;
+          var sw3 = Math.sin(now / 900 + rn3 + b3.z) * 2;
+          ctx.beginPath();
+          ctx.moveTo(rxx, pP.y);
+          ctx.quadraticCurveTo(rxx + 1, pP.y - rhh * 0.6, rxx + 2 + sw3, pP.y - rhh);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // ライン（竿先→ウキ／魚）
     var target = null;
-    if (showBob) target = [fs.bobX, fs.bobY - 8];
-    else if (fs.phase === "fight") target = [fs.fpX, fs.fpY - 4];
-    if (target) {
-      var sag = bend > 0.35 ? -4 : 15 - bend * 28;
-      var mxp = (tipX + target[0]) / 2, myp = Math.min(tipY, target[1]) + sag;
-      ctx.strokeStyle = "rgba(255,255,255,0.28)"; ctx.lineWidth = 2.2;
-      ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.quadraticCurveTo(mxp, myp, target[0], target[1]); ctx.stroke();
-      ctx.strokeStyle = "rgba(250,250,244,0.85)"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.quadraticCurveTo(mxp, myp, target[0], target[1]); ctx.stroke();
+    if (showBob) target = [frame.bobSX, frame.bobSY - 4];
+    else if (fs.phase === "fight") {
+      var pT = w3proj(fs.fpX, fs.fpY);
+      target = [pT.x, pT.y - (fs.jumpPx || 0) - 3];
     }
-    var segs = 15, px0 = baseX, py0 = baseY;
-    for (var sgi = 1; sgi <= segs; sgi++) {
-      var tt = sgi / segs;
-      var qx = (1 - tt) * (1 - tt) * baseX + 2 * (1 - tt) * tt * ctrlX + tt * tt * tipX;
-      var qy = (1 - tt) * (1 - tt) * baseY + 2 * (1 - tt) * tt * ctrlY + tt * tt * tipY;
-      ctx.strokeStyle = "#33241a";
-      ctx.lineWidth = (10 - tt * 7.4) + 1.8;
-      ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(qx, qy); ctx.stroke();
-      px0 = qx; py0 = qy;
+    if (target && frame.tipX) {
+      var bend2 = fs.rodBend || 0;
+      var sag = bend2 > 0.35 ? -3 : 10 - bend2 * 20;
+      var mxp = (frame.tipX + target[0]) / 2, myp = Math.min(frame.tipY, target[1]) + sag;
+      ctx.strokeStyle = "rgba(250,250,244,0.75)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(frame.tipX, frame.tipY); ctx.quadraticCurveTo(mxp, myp, target[0], target[1]); ctx.stroke();
     }
-    px0 = baseX; py0 = baseY;
-    for (var sgj = 1; sgj <= segs; sgj++) {
-      var tj = sgj / segs;
-      var qx2 = (1 - tj) * (1 - tj) * baseX + 2 * (1 - tj) * tj * ctrlX + tj * tj * tipX;
-      var qy2 = (1 - tj) * (1 - tj) * baseY + 2 * (1 - tj) * tj * ctrlY + tj * tj * tipY;
-      var shade = Math.round(106 + tj * 52);
-      ctx.strokeStyle = "rgb(" + shade + "," + Math.round(shade * 0.72) + "," + Math.round(shade * 0.5) + ")";
-      ctx.lineWidth = 10 - tj * 7.4;
-      ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(qx2, qy2); ctx.stroke();
-      px0 = qx2; py0 = qy2;
-    }
-    ctx.strokeStyle = "rgba(226,230,232,0.9)"; ctx.lineWidth = 1.2;
-    var gts = [0.34, 0.52, 0.7, 0.86];
-    for (var gi = 0; gi < gts.length; gi++) {
-      var gt = gts[gi];
-      var ggx = (1 - gt) * (1 - gt) * baseX + 2 * (1 - gt) * gt * ctrlX + gt * gt * tipX;
-      var ggy = (1 - gt) * (1 - gt) * baseY + 2 * (1 - gt) * gt * ctrlY + gt * gt * tipY;
-      ctx.beginPath(); ctx.arc(ggx - 2.5, ggy - 2.5, 2.8 - gi * 0.45, 0, 6.3); ctx.stroke();
-    }
-    ctx.strokeStyle = "#c9a878"; ctx.lineWidth = 12; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(baseX, baseY); ctx.lineTo(baseX - 8.5, baseY - 21); ctx.stroke();
-    ctx.strokeStyle = "#2e2620"; ctx.lineWidth = 12;
-    ctx.beginPath(); ctx.moveTo(baseX - 11, baseY - 27); ctx.lineTo(baseX - 14, baseY - 34); ctx.stroke();
-    var rxc = 320, ryc = 458;
-    ctx.fillStyle = "#252b30";
-    ctx.beginPath(); ctx.arc(rxc, ryc, 11, 0, 6.3); ctx.fill();
-    var rg = ctx.createRadialGradient(rxc - 3, ryc - 3, 2, rxc, ryc, 10);
-    rg.addColorStop(0, "#59636a"); rg.addColorStop(1, "#31383e");
-    ctx.fillStyle = rg;
-    ctx.beginPath(); ctx.arc(rxc, ryc, 9.4, 0, 6.3); ctx.fill();
-    ctx.fillStyle = "#b8c2c8";
-    ctx.beginPath(); ctx.arc(rxc, ryc, 4.6, 0, 6.3); ctx.fill();
-    var ha = fs.reelAngle || 0;
-    ctx.strokeStyle = "#d8dce0"; ctx.lineWidth = 2.4;
-    ctx.beginPath(); ctx.moveTo(rxc, ryc);
-    ctx.lineTo(rxc + Math.cos(ha) * 10, ryc + Math.sin(ha) * 10); ctx.stroke();
-    ctx.fillStyle = "#e8ecee";
-    ctx.beginPath(); ctx.arc(rxc + Math.cos(ha) * 10, ryc + Math.sin(ha) * 10, 2.6, 0, 6.3); ctx.fill();
 
     // 12) ランディング
     if (fs.phase === "land" && fs.fightFishId) {
@@ -4696,12 +4641,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var lt = Math.min(1, fs.landT / 1.0);
       if (limg.complete && limg.naturalWidth > 0) {
         var ease = 1 - (1 - lt) * (1 - lt);
-        var lcx = fs.castTX || 180, lcy = (fs.castTY || 300) + 18;
-        var fy = lcy - ease * 150 + Math.sin(lt * 9) * 3 * (1 - lt);
+        var pL = w3proj(fs.castTX || 0, fs.castTY || (w3.pz + 80));
+        var szMul = Math.max(0.5, Math.min(1.05, pL.s * 0.32));
+        var lcx = pL.x, lcy = pL.y + 6;
+        var fy = lcy - ease * 140 * szMul + Math.sin(lt * 9) * 3 * (1 - lt);
         var rot = -0.45 + ease * 0.55;
-        var scl = 0.62 + ease * 0.42;
+        var scl = (0.62 + ease * 0.42) * szMul;
         ctx.fillStyle = "rgba(0,18,26," + (0.28 * (1 - ease * 0.6)) + ")";
-        ctx.beginPath(); ctx.ellipse(lcx, lcy, 46 * (1 - ease * 0.4), 7, 0, 0, 6.3); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(lcx, lcy, 46 * (1 - ease * 0.4) * szMul, 7 * szMul, 0, 0, 6.3); ctx.fill();
         ctx.save();
         ctx.translate(lcx, fy);
         ctx.rotate(rot);
@@ -4709,6 +4656,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         ctx.drawImage(limg, -110, -55, 220, 110);
         ctx.restore();
       }
+    }
+
+    // バーチャルスティック（ドラッグ移動中）
+    if (fs.joy) {
+      ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(fs.joy.bx, fs.joy.by, 30, 0, 6.3); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.beginPath(); ctx.arc(fs.joy.kx, fs.joy.ky, 12, 0, 6.3); ctx.fill();
     }
 
     // 13) 粒子
@@ -4790,8 +4745,10 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   }
 
   function spawnSplash() {
-    burst(fs.bobX || 180, (fs.bobY || 288) + 2, 16, 130, "235,246,250");
-    spawnRipple(fs.bobX || 180, (fs.bobY || 288) + 4, true);
+    var bx = fs.bobX != null ? fs.bobX : (fs.castTX || 0);
+    var by = fs.bobY != null ? fs.bobY : (fs.castTY || (w3.pz + 60));
+    burst(bx, by, 16, 130, "235,246,250");
+    spawnRipple(bx, by, true);
     cv.shakeAmp = 4;
   }
 
@@ -6236,31 +6193,29 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     aimT: 0, aimV: 0.5, castZone: "mid",
     // 見える水面: 泳ぐ魚影たち
     shadows: [], locKey: null, nextShadowAt: 0,
-    engaged: null, castTX: 180, castTY: 300, waitStartAt: 0, nibbleAnimUntil: 0
+    engaged: null, castTX: 0, castTY: 60, waitStartAt: 0, nibbleAnimUntil: 0,
+    // 擬似3D: 入力（タップ/ドラッグ判定）と画面オフセット
+    ptr: null, joy: null, bobArcPx: 0, bobDipPx: 0, jumpPx: 0
   };
 
-  // ===== 見える水面: 水域の左右端（論理座標yにおける） =====
-  function waterBounds(y) {
-    var t = Math.max(0, Math.min(1, (y - (HORIZON + 12)) / (480 - (HORIZON + 12))));
-    if (scene && !scene.isDam && scene.rw) {
-      var L = scene.rw.topL + (scene.rw.botL - scene.rw.topL) * t;
-      var R = scene.rw.topR + (scene.rw.botR - scene.rw.topR) * t;
-      return [L + 8, R - 8];
-    }
-    return [26, 334];
+  // ===== 水域の左右端（世界座標: 引数は奥行きz）。湖は広すぎるので釣り範囲を岸から160までに制限 =====
+  function waterBounds(z) {
+    var cx = riverCX(z), hw = riverHW(z);
+    var L = cx - hw + 4;
+    return [L, Math.min(cx + hw - 4, L + 160)];
   }
 
   // 魚影を1匹わかせる（種・サイズは湧いた時点で確定。上流=奥ほど大物が出やすい）
   function spawnShadow(forceFishId) {
     var loc = getLocation(state.selectedLocationId);
     if (!loc) return null;
-    var y = HORIZON + 34 + Math.random() * (440 - HORIZON - 34);
+    var y = w3.pz + 26 + Math.random() * 200; // プレイヤー前方の川に湧く（y=奥行きz）
     var wb = waterBounds(y);
     var fromLeft = Math.random() < 0.5;
     var sh = {
       kind: "fish", id: null, cm: 0, ratio: 0, variant: null, isNushi: false,
-      x: fromLeft ? wb[0] - 20 : wb[1] + 20, y: y,
-      dir: fromLeft ? 1 : -1, spd: 14 + Math.random() * 14,
+      x: fromLeft ? wb[0] - 12 : wb[1] + 12, y: y,
+      dir: fromLeft ? 1 : -1, spd: 8 + Math.random() * 8,
       ph: Math.random() * 6.28, st: "swim", nibbleN: 0, nextNibbleAt: 0, blobItem: null
     };
     // ヌシの影（条件一致・未討伐・低確率）: 巨大な影が横切る
@@ -6276,13 +6231,13 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var srN = BAL.sizes[nu.fish] || [10, 40];
       sh.id = nu.fish; sh.cm = nu.cm;
       sh.ratio = Math.min(1.2, (nu.cm - srN[0]) / (srN[1] - srN[0]));
-      sh.isNushi = true; sh.spd = 9;
+      sh.isNushi = true; sh.spd = 5;
       SFX.drone();
       showToast('<div style="color:#f0b060;">……大きな影が、水面の下を横切っている……</div>', 2000);
       cv.shakeAmp = Math.max(cv.shakeAmp, 3);
     } else if (!forceFishId && !window.__itemForce && Math.random() < ((trip && trip.runMode && runHasCard("otakara_t")) ? 0.30 : 0.15)) {
       // 丸い影 = 藻・がらくた・おたから（おたから体質でわきやすく）
-      sh.kind = "blob"; sh.spd = 5 + Math.random() * 5;
+      sh.kind = "blob"; sh.spd = 3 + Math.random() * 3;
       var br = Math.random();
       var trTh = (trip && trip.runMode && runHasCard("otakara_t")) ? 0.42 : 0.22;
       sh.blobItem = br < trTh ? { kind: "treasure", id: pickTreasure(loc) }
@@ -6291,15 +6246,16 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       sh.ratio = 0.3;
     } else {
       if (window.__itemForce && !forceFishId) {
-        sh.kind = "blob"; sh.spd = 6;
+        sh.kind = "blob"; sh.spd = 4;
         sh.blobItem = window.__itemForce.id ? window.__itemForce : { kind: window.__itemForce.kind, id: window.__itemForce.kind === "junk" ? JUNK_ITEMS[0].id : pickTreasure(loc) };
         sh.ratio = 0.3;
         window.__itemForce = null;
       } else {
         sh.id = forceFishId || drawFish(state.selectedLocationId, state.selectedLureId, 0);
         if (!sh.id) return null;
-        // 奥(上)ほど型が良い
-        var extraExp = y < HORIZON + 90 ? -0.35 : y < HORIZON + 160 ? -0.1 : 0.15;
+        // 遠く（プレイヤーから離れた沖・上流）ほど型が良い
+        var dzS = y - w3.pz;
+        var extraExp = dzS > 150 ? 0.15 : dzS > 80 ? -0.1 : -0.35;
         if (runModIs("housaku")) extraExp += 0.35; // 大豊漁は小物寄り
         var roll = rollSize(sh.id, extraExp);
         sh.cm = roll.cm; sh.ratio = roll.ratio; sh.variant = roll.variant;
@@ -6324,23 +6280,24 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       var wb = waterBounds(sh.y);
       if (sh.st === "swim") {
         sh.x += sh.dir * sh.spd * dt;
-        sh.y += Math.sin(now / 900 + sh.ph) * 4 * dt;
-        sh.y = Math.max(HORIZON + 30, Math.min(446, sh.y));
-        if (sh.x < wb[0] - 30 || sh.x > wb[1] + 30) { fs.shadows.splice(i, 1); continue; }
+        sh.y += Math.sin(now / 900 + sh.ph) * 2.5 * dt;
+        if (sh.x < wb[0] - 18 || sh.x > wb[1] + 18) { fs.shadows.splice(i, 1); continue; }
+        // プレイヤーが歩き去ったら見えない影は消す
+        if (sh.y < w3.pz + 8 || sh.y > w3.pz + 300) { fs.shadows.splice(i, 1); continue; }
         if (Math.random() < dt * 0.45) {
           spawnRipple(sh.x, sh.y - 2, false); // 存在を知らせるモジリ
           if (trip && trip.runMode) sh.revealUntil = now + 1500; // 大釣行: モジリの瞬間だけ正体が見える
         }
       } else if (sh.st === "approach") {
-        var dxA = fs.castTX - sh.x, dyA = fs.castTY + 8 - sh.y;
+        var dxA = fs.castTX - sh.x, dyA = fs.castTY + 4 - sh.y;
         var dA = Math.sqrt(dxA * dxA + dyA * dyA);
-        if (dA < 15) {
+        if (dA < 9) {
           sh.st = "nibble";
           sh.nibbleN = sh.kind === "blob" ? 1 : (sh.isNushi ? 2 : 1 + Math.floor(Math.random() * 3));
           if (trip && trip.buffs.school > 0) { sh.nibbleN = 0; trip.buffs.school--; }
           sh.nextNibbleAt = now + 350;
         } else {
-          var sp2 = sh.isNushi ? 34 : 52;
+          var sp2 = sh.isNushi ? 20 : 30;
           sh.x += dxA / dA * sp2 * dt;
           sh.y += dyA / dA * sp2 * dt;
           sh.dir = dxA >= 0 ? 1 : -1;
@@ -6362,9 +6319,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           }
         }
       } else if (sh.st === "flee") {
-        sh.x += sh.dir * 170 * dt;
-        sh.y += 26 * dt;
-        if (sh.x < wb[0] - 40 || sh.x > wb[1] + 40 || sh.y > 470) { fs.shadows.splice(i, 1); continue; }
+        sh.x += sh.dir * 95 * dt;
+        sh.y -= 16 * dt; // 下流（プレイヤー側）へ逃げて視界外へ
+        if (sh.x < wb[0] - 25 || sh.x > wb[1] + 25 || sh.y < w3.pz + 10) { fs.shadows.splice(i, 1); continue; }
       }
     }
     // テスト用: 次の掛かりを強制（自然な興味より優先）
@@ -6373,17 +6330,17 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       window.__fishForce = null;
       if (fs.engaged) { fs.engaged.st = "swim"; fs.engaged = null; }
       var fsh = spawnShadow(ffId);
-      if (fsh) { fsh.x = fs.castTX + 60; fsh.y = fs.castTY + 10; fsh.st = "approach"; fs.engaged = fsh; }
+      if (fsh) { fsh.x = fs.castTX + 30; fsh.y = fs.castTY + 6; fsh.st = "approach"; fs.engaged = fsh; }
     }
     // ウキへの興味（待ち中・未係留のみ）
     if (waiting && !fs.engaged) {
-      var noticeR = 105;
-      if (state.selectedLureId === "glow_minnow" && state.time && state.time.night) noticeR = 170;
+      var noticeR = 60;
+      if (state.selectedLureId === "glow_minnow" && state.time && state.time.night) noticeR = 95;
       var best = null, bestD = 1e9;
       for (var j = 0; j < fs.shadows.length; j++) {
         var s2 = fs.shadows[j];
         if (s2.st !== "swim") continue;
-        var dx2 = s2.x - fs.castTX, dy2 = s2.y - (fs.castTY + 8);
+        var dx2 = s2.x - fs.castTX, dy2 = s2.y - (fs.castTY + 4);
         var d2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
         if (d2 < bestD) { bestD = d2; best = s2; }
         if (d2 < noticeR && Math.random() < (0.55 - d2 / noticeR * 0.35) * dt * 2.2) {
@@ -6494,7 +6451,9 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (fs.locKey !== state.selectedLocationId) {
       fs.locKey = state.selectedLocationId;
       fs.shadows = [];
+      if (loc) w3init(loc);
     }
+    fs.ptr = null; fs.joy = null; w3.moving = 0;
     fs.shadows.forEach(function (s) { if (s.st !== "swim" && s.st !== "flee") s.st = "swim"; });
     if (fs.shadows.length === 0) {
       var s1 = spawnShadow(); var s2 = spawnShadow();
@@ -6508,20 +6467,33 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     fs.nextShadowAt = performance.now() + 1500;
     document.getElementById("fightUi").classList.remove("show");
     document.getElementById("castMeter").classList.add("hidden");
-    setStageText("泳ぐ影を狙って、水面をタップ！");
+    setStageText("ドラッグで川辺を歩く／泳ぐ影を水面タップでキャスト！");
     updateCastsBadge();
     renderRunHand();
     clearFishingTimers();
     startStageLoop();
   }
 
-  // タップした場所へキャスト（見える水面: 影を狙う）
+  // タップした場所へキャスト（画面座標→世界座標。のべ竿は射程が短い）
   function launchCast(lx, ly) {
-    var ty = Math.max(HORIZON + 30, Math.min(446, ly || 300));
-    var wb = waterBounds(ty);
-    var tx = Math.max(wb[0] + 4, Math.min(wb[1] - 4, lx || 180));
-    fs.castTX = tx; fs.castTY = ty;
-    fs.castZone = ty < HORIZON + 105 ? "far" : ty > 386 ? "near" : "mid";
+    var u = w3unproj(lx || 180, Math.max(HORIZON + 6, ly || 320));
+    var wz = Math.max(w3.pz + 14, Math.min(w3.pz + 250, u.z));
+    var wb = waterBounds(wz);
+    var wx = Math.max(wb[0] + 2, Math.min(wb[1] - 2, u.x));
+    // 竿の射程（のべ竿は近距離のみ→歩いて近づくのが攻略）
+    var maxD = state.selectedRodId === "bait_rod" ? 130 : 250;
+    var ddx = wx - w3.px, ddz = wz - w3.pz;
+    var dd = Math.sqrt(ddx * ddx + ddz * ddz);
+    if (dd > maxD) {
+      var kk = maxD / dd;
+      wx = w3.px + ddx * kk; wz = Math.max(w3.pz + 14, w3.pz + ddz * kk);
+      var wb2 = waterBounds(wz);
+      wx = Math.max(wb2[0] + 2, Math.min(wb2[1] - 2, wx));
+      showToast('<div style="font-size:12px;">🎣 竿の射程ギリギリ！ もっと近づくと狙いやすい</div>', 1100);
+    }
+    fs.castTX = wx; fs.castTY = wz;
+    var dzC = wz - w3.pz;
+    fs.castZone = dzC > 150 ? "far" : dzC < 70 ? "near" : "mid";
     fs.phase = "cast";
     fs.castT = 0;
     setStageText("キャスト！");
@@ -6539,8 +6511,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       if (sh.st !== "swim") continue;
       var dx = sh.x - fs.castTX, dy = sh.y - fs.castTY;
       var d = Math.sqrt(dx * dx + dy * dy);
-      if (d < 16) { sh.st = "flee"; sh.dir = dx >= 0 ? 1 : -1; scared++; continue; }
-      if (d < 60 && d < luredD) { lured = sh; luredD = d; }
+      if (d < 10) { sh.st = "flee"; sh.dir = dx >= 0 ? 1 : -1; scared++; continue; }
+      if (d < 35 && d < luredD) { lured = sh; luredD = d; }
     }
     fs.wasNice = false;
     if (scared) {
@@ -6701,8 +6673,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         fs.jumping = true; fs.jumpEndAt = now + 750; fs.jumpHoldT = 0;
         setStageText("🌊 跳んだ！ 離せ！！", true);
         SFX.splash(); buzz(45);
-        burst(fs.fpX || 180, 288, 18, 150, "235,246,250");
-        spawnRipple(fs.fpX || 180, 292, true);
+        burst(fs.fpX || fs.castTX, fs.fpY || fs.castTY, 18, 150, "235,246,250");
+        spawnRipple(fs.fpX || fs.castTX, fs.fpY || fs.castTY, true);
         cv.shakeAmp = 5;
       }
       if (fs.jumping) {
@@ -6718,7 +6690,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           } else {
             fs.progress = Math.min(100, fs.progress + 7);
             setStageText("ナイス対応！ 一気に寄せろ！", true);
-            burst(180, 292, 10, 130, "255,230,150");
+            burst(fs.fpX || fs.castTX, fs.fpY || fs.castTY, 10, 130, "255,230,150");
           }
         }
       }
@@ -6739,7 +6711,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
           fs.progress = Math.min(100, fs.progress + 6);
           setStageText("剥がした！ 巻け巻け！", true);
           SFX.splash(); buzz([30, 30, 50]);
-          burst(180, 300, 14, 140, "230,244,248");
+          burst(fs.fpX || fs.castTX, fs.fpY || fs.castTY, 14, 140, "230,244,248");
         } else {
           setStageText("浮いてきた…長押しで巻け！", true);
         }
@@ -6807,17 +6779,18 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     tf.className = fs.tension > lineMax - 12 ? "danger" : (fs.tension > fs.zoneHi || fs.tension < fs.zoneLo ? "warn" : "");
     document.getElementById("progressFill").style.width = fs.progress + "%";
 
-    // 魚の暴れ位置（ラインの先端）。跳躍中は水面から飛び出す
-    var fcx = fs.castTX || 180, fcy = Math.min(430, (fs.castTY || 300) + 8);
-    fs.fpX = fcx + Math.sin(now / 320) * (fs.pulling ? 52 : 30);
-    fs.fpY = fcy + Math.sin(now / 210) * (fs.pulling ? 14 : 6);
+    // 魚の暴れ位置（世界座標）。跳躍中は画面オフセットで水面から飛び出す
+    var fcx = fs.castTX || 0, fcy = (fs.castTY || (w3.pz + 60)) + 4;
+    fs.fpX = fcx + Math.sin(now / 320) * (fs.pulling ? 26 : 15);
+    fs.fpY = fcy + Math.sin(now / 210) * (fs.pulling ? 7 : 3);
     var wbF = waterBounds(fs.fpY);
-    fs.fpX = Math.max(wbF[0] + 10, Math.min(wbF[1] - 10, fs.fpX));
+    fs.fpX = Math.max(wbF[0] + 4, Math.min(wbF[1] - 4, fs.fpX));
+    fs.jumpPx = 0;
     if (fs.jumping) {
       var jp = 1 - Math.abs((fs.jumpEndAt - now) / 750 * 2 - 1); // 0→1→0
-      fs.fpY -= jp * 34;
+      fs.jumpPx = jp * 40;
     }
-    if (fs.anchored) { fs.fpX = fcx + Math.sin(now / 900) * 6; fs.fpY = fcy + 10; }
+    if (fs.anchored) { fs.fpX = fcx + Math.sin(now / 900) * 3; fs.fpY = fcy + 5; }
     if (fs.pulling && Math.random() < 9 * dt) {
       burst(fs.fpX, fs.fpY - 6, 3, 95, "230,244,248");
       spawnRipple(fs.fpX, fs.fpY - 4, false);
@@ -6844,8 +6817,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     // 魚が水面から跳ねる（Canvasで描画）
     fs.landT = 0;
     fishImage(fishId, false, fs.pendingVariant); // 事前ロード
-    burst(fs.castTX || 180, (fs.castTY || 300) + 16, 26, 175, "235,246,250");
-    spawnRipple(fs.castTX || 180, (fs.castTY || 300) + 18, true);
+    burst(fs.castTX || 0, (fs.castTY || (w3.pz + 60)) + 2, 26, 175, "235,246,250");
+    spawnRipple(fs.castTX || 0, (fs.castTY || (w3.pz + 60)) + 2, true);
     cv.shakeAmp = 6;
     setTimeout(function () {
       handleHitSuccess(fishId);
@@ -6912,21 +6885,34 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       if (fs.phase === "aim") {
         fs.aimT += dt;
         fs.rodBend = 0.05;
+        // ドラッグ＝バーチャルスティックで川辺を歩く
+        if (fs.joy) {
+          var wsp = 78;
+          w3.px += fs.joy.nx * wsp * dt;
+          w3.pz += -fs.joy.ny * wsp * dt;
+          w3clampPlayer();
+          w3.moving = 1;
+          if (Math.abs(fs.joy.nx) > 0.25) w3.face = fs.joy.nx > 0 ? 1 : -1;
+        } else {
+          w3.moving = 0;
+        }
         updateShadows(now, dt);
       } else if (fs.phase === "cast") {
         fs.castT += dt;
         var p = Math.min(1, fs.castT / 0.6);
-        // 竿先(224,208)からタップした着水点へ放物線
-        var arcH = 40 + Math.abs(fs.castTY - 208) * 0.25 + Math.abs(fs.castTX - 224) * 0.2;
-        fs.bobX = 224 + (fs.castTX - 224) * p;
-        fs.bobY = 208 + (fs.castTY - 208) * p - Math.sin(p * Math.PI) * arcH;
+        // プレイヤーの足元からタップした着水点へ、世界座標で放物線
+        var sz0 = w3.pz + 6;
+        fs.bobX = w3.px + (fs.castTX - w3.px) * p;
+        fs.bobY = sz0 + (fs.castTY - sz0) * p;
+        fs.bobArcPx = Math.sin(p * Math.PI) * (30 + (fs.castTY - w3.pz) * 0.3);
         fs.rodBend = 0.25 * (1 - p);
         updateShadows(now, dt);
         if (p >= 1) {
+          fs.bobArcPx = 0;
           fs.phase = "wait";
           SFX.plop();
-          spawnRipple(fs.castTX, fs.castTY + 4, true);
-          burst(fs.castTX, fs.castTY + 2, 8, 75, "235,246,250");
+          spawnRipple(fs.castTX, fs.castTY, true);
+          burst(fs.castTX, fs.castTY, 8, 75, "235,246,250");
           onBobberLanded();
           fs.nextIdleRippleAt = now + 1200;
         }
@@ -6935,7 +6921,8 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         var dip = fs.phase === "bite" ? 7 + Math.sin(fs.idleT * 30) * 3 : Math.sin(fs.idleT * 2.4) * 2.2;
         if (fs.phase === "wait" && fs.nibbleAnimUntil && now < fs.nibbleAnimUntil) dip += 5; // ピクッ
         fs.bobX = fs.castTX;
-        fs.bobY = fs.castTY + dip;
+        fs.bobY = fs.castTY;
+        fs.bobDipPx = dip;
         fs.rodBend = fs.phase === "bite" ? 0.18 : 0.05 + Math.sin(fs.idleT * 1.2) * 0.02;
         if (fs.phase === "wait") updateShadows(now, dt);
         if (fs.phase === "wait" && now > fs.nextIdleRippleAt) {
@@ -7003,14 +6990,22 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
     if (state.biteTimeoutTimer) { clearTimeout(state.biteTimeoutTimer); state.biteTimeoutTimer = null; }
   }
 
+  function stageLXY(e) {
+    var rect = document.getElementById("fishStage").getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) / rect.width * 360,
+      y: (e.clientY - rect.top) / rect.height * 480
+    };
+  }
+
   function onStagePress(e) {
     if (e.target && e.target.id === "muteBtn") return;
     SFX.ensure();
     if (fs.phase === "aim") {
-      var rect = document.getElementById("fishStage").getBoundingClientRect();
-      var lx = (e.clientX - rect.left) / rect.width * 360;
-      var ly = (e.clientY - rect.top) / rect.height * 480;
-      launchCast(lx, ly);
+      // 押しただけでは打たない: 短いタップ=キャスト / ドラッグ=移動（pointerupで判定）
+      var l0 = stageLXY(e);
+      fs.ptr = { x: l0.x, y: l0.y, moved: false };
+      fs.joy = null;
       return;
     }
     if (fs.phase === "wait") {
@@ -7054,16 +7049,47 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
         fs.anchorHits++;
         SFX.click();
         buzz(15);
-        burst(180, 302, 4, 90, "230,244,248");
+        burst(fs.fpX || fs.castTX, fs.fpY || fs.castTY, 4, 90, "230,244,248");
         cv.shakeAmp = Math.max(cv.shakeAmp, 3);
       }
     }
   }
 
-  function onStageRelease() {
+  function onStageMove(e) {
+    if (!fs.ptr || fs.phase !== "aim") return;
+    var l1 = stageLXY(e);
+    var dx = l1.x - fs.ptr.x, dy = l1.y - fs.ptr.y;
+    if (!fs.ptr.moved && dx * dx + dy * dy > 170) fs.ptr.moved = true;
+    if (fs.ptr.moved) {
+      var len = Math.sqrt(dx * dx + dy * dy) || 1;
+      var cl = Math.min(len, 46);
+      fs.joy = {
+        nx: dx / len * (cl / 46), ny: dy / len * (cl / 46),
+        bx: fs.ptr.x, by: fs.ptr.y,
+        kx: fs.ptr.x + dx / len * cl, ky: fs.ptr.y + dy / len * cl
+      };
+    }
+  }
+
+  function onStageRelease(e) {
     fs.holding = false;
     var stage = document.getElementById("fishStage");
     if (stage) stage.classList.remove("reeling-grip");
+    if (fs.phase === "aim" && fs.ptr) {
+      // 短いタップ＝キャスト（水面のみ。岸や空は不発）
+      if (e && e.type === "pointerup" && !fs.ptr.moved && fs.ptr.y > HORIZON + 4) {
+        var u = w3unproj(fs.ptr.x, fs.ptr.y);
+        var wbT = waterBounds(u.z);
+        if (u.x > wbT[0] - 14 && u.x < wbT[1] + 14) {
+          launchCast(fs.ptr.x, fs.ptr.y);
+        } else {
+          setStageText("水面をタップでキャスト！ ドラッグで移動");
+        }
+      }
+      fs.ptr = null; fs.joy = null; w3.moving = 0;
+      return;
+    }
+    fs.ptr = null; fs.joy = null;
   }
 
   // ===== 抽選ロジック（SPEC §5、v2ではアタリ発生時に実行） =====
@@ -7744,6 +7770,7 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
   (function () {
     var stage = document.getElementById("fishStage");
     stage.addEventListener("pointerdown", onStagePress);
+    stage.addEventListener("pointermove", onStageMove);
     stage.addEventListener("pointerup", onStageRelease);
     stage.addEventListener("pointercancel", onStageRelease);
     stage.addEventListener("pointerleave", onStageRelease);
@@ -7796,9 +7823,14 @@ if(typeof module!=='undefined') module.exports={renderFish,SPECIES_ART};
       money: save.money,
       diff: fs.diff, zoneLo: fs.zoneLo, zoneHi: fs.zoneHi, bigRun: fs.bigRun,
       style: fs.style, jumping: !!fs.jumping, anchored: !!fs.anchored, golden: !!fs.golden, anchorHits: fs.anchorHits || 0,
-      shadows: (fs.shadows || []).map(function (s) { return { kind: s.kind, id: s.id, cm: Math.round(s.cm || 0), st: s.st, x: Math.round(s.x), y: Math.round(s.y), nushi: !!s.isNushi }; }),
+      shadows: (fs.shadows || []).map(function (s) {
+        var pp = w3proj(s.x, s.y);
+        return { kind: s.kind, id: s.id, cm: Math.round(s.cm || 0), st: s.st, x: Math.round(s.x), y: Math.round(s.y), sx: Math.round(pp.x), sy: Math.round(pp.y), nushi: !!s.isNushi };
+      }),
       engaged: fs.engaged ? { st: fs.engaged.st, id: fs.engaged.id, kind: fs.engaged.kind, nibbleN: fs.engaged.nibbleN } : null,
       castTX: fs.castTX, castTY: fs.castTY,
+      castSX: Math.round(w3proj(fs.castTX || 0, fs.castTY || 60).x), castSY: Math.round(w3proj(fs.castTX || 0, fs.castTY || 60).y),
+      player: { px: Math.round(w3.px), pz: Math.round(w3.pz), moving: !!w3.moving, dam: w3.dam },
       castZone: fs.castZone,
       trip: trip ? { castsLeft: trip.castsLeft, catches: trip.catches.length, score: trip.score, earned: trip.earned, events: trip.events, over: trip.over, runMode: !!trip.runMode } : null,
       run: run ? { round: run.round, score: run.score, money: run.money, cards: run.cards.slice(), quota: runQuotaEff(), cleared: run.cleared, betFish: run.betFish, weather: run.weather, timeKey: run.timeKey, shop: run.shopStock || null, handName: run.handName, hand: (run.hand || []).map(function (c) { return c.rank + c.suit[0] + ":" + c.fishId + ":" + c.value; }), pendingCard: !!run.pendingCard, rods: run.rods.slice(), lures: run.lures.slice(), mod: run.mod } : null,
