@@ -7905,14 +7905,87 @@ three/build/three.module.js:
     w3.face = 1; w3.moving = 0;
     G3.key = ""; // 地形を作り直す
   }
+  // 水深: 瀬（狭い）は浅く、淵（広い）は深い。岸ぎわは浅く、流心が最深。岩のそばは飛び石で浅い
+  function waterDepthAt(x, z) {
+    var cx = riverCX(z), hw = riverHW(z);
+    var u = (x - cx) / hw;
+    if (u < -1 || u > 1) return 0;
+    var poolT = (Math.sin(z * 0.0065 + w3.seed * 2.3) * 0.30 + 0.30) / 0.60;
+    var dmax = w3.dam ? 3.2 : 0.85 + poolT * 2.6;
+    var d = dmax * (1 - u * u);
+    if (d > 0.5 && rockNearby(x, z)) d = 0.45;
+    return d;
+  }
+  function rockNearby(x, z) {
+    var cell = 26;
+    for (var zi = Math.floor((z - 40) / cell); zi <= Math.floor((z + 40) / cell); zi++) {
+      for (var ps = 0; ps < 2; ps++) {
+        if (w3.dam && ps === 1) continue;
+        var h1 = hash2(zi, ps * 977 + 11);
+        var zc = zi * cell + hash2(zi, ps + 31) * cell;
+        var thr = segP(zc, 29) > 0.6 ? 0.68 : 0.84;
+        if (h1 <= thr) continue;
+        var cxc = riverCX(zc), hwc = riverHW(zc);
+        var sgn = ps === 0 ? -1 : 1;
+        var rxx = cxc + sgn * (hwc - 3 - hash2(zi, ps + 91) * 7);
+        var rr = 1.4 + hash2(zi, ps + 97) * 2.2;
+        var dx = x - rxx, dz = z - zc;
+        if (dx * dx + dz * dz < (rr + 3.2) * (rr + 3.2)) return true;
+      }
+    }
+    return false;
+  }
   function w3clampPlayer() {
-    // 歩ける範囲は「水際〜奥の木立の手前」の川沿いの帯だけ
+    // 両岸の帯＋川の中（渡渉）を歩ける。深みに入ると流される
     var cx = riverCX(w3.pz), hw = riverHW(w3.pz);
-    var side = w3.dam ? -1 : (w3.px < cx ? -1 : 1);
-    var edge = cx + side * (hw + 7);   // 水際
-    var back = cx + side * (hw + 62);  // 木立の手前
-    if (side < 0) w3.px = Math.max(Math.min(w3.px, edge), back);
-    else w3.px = Math.min(Math.max(w3.px, edge), back);
+    w3.px = Math.max(cx - hw - 62, Math.min(cx + hw + 62, w3.px));
+    w3.depth = waterDepthAt(w3.px, w3.pz);
+    if (w3.depth > 0.12 && !w3.wadeHintDone) {
+      w3.wadeHintDone = true;
+      showToast('<div style="font-size:12px;">🥾 渡渉できる！ 浅瀬や岩づたいなら対岸へ。<b style="color:#ff9a8a;">深みは流されるぞ</b></div>', 2600);
+    }
+    if (w3.depth > 1.55 && !w3.drowning) w3drown();
+  }
+  // 深みに流された！（下流へ流され、釣果を失う）
+  function w3drown() {
+    w3.drowning = true;
+    fs.joy = null; fs.ptr = null; w3.moving = 0;
+    SFX.splash(); buzz([80, 60, 160]);
+    cv.shakeAmp = 8;
+    showToast('<div class="ct-fail">🌊 深みに流された！！</div>', 1700);
+    var t0 = performance.now();
+    var iv = setInterval(function () {
+      var k = (performance.now() - t0) / 1000;
+      w3.pz -= 2.1;
+      w3.px += (riverCX(w3.pz) - w3.px) * 0.1;
+      if (Math.random() < 0.5) spawnRipple(w3.px, w3.pz, Math.random() < 0.3);
+      if (k > 1.35) {
+        clearInterval(iv);
+        var cx2 = riverCX(w3.pz), hw2 = riverHW(w3.pz);
+        w3.px = cx2 - hw2 - 23; // 左岸の小道へ這い上がる
+        w3.depth = 0;
+        w3.drowning = false;
+        w3drownPenalty();
+      }
+    }, 32);
+  }
+  function w3drownPenalty() {
+    if (trip && trip.runMode && run) {
+      showToast('<div class="ct-fail">💀 大釣行 終了…（深みは命取り）</div>', 2400);
+      yukiSay("だから深いところはダメって言ったのに…！無事でよかったです…", "sad", 3200, true);
+      clearFishingTimers();
+      resetFishStage();
+      setTimeout(function () { if (run) endRun(true); }, 1000);
+    } else if (trip) {
+      trip.catches = [];
+      trip.earned = 0;
+      trip.combo = 0;
+      trip.noBarashi = false;
+      showToast('<div class="ct-fail">💀 釣果をぜんぶ流してしまった…（強制納竿）</div>', 2600);
+      yukiSay("むちゃしないでください…！今日はもう帰りましょう…", "sad", 3200, true);
+      clearFishingTimers();
+      setTimeout(function () { if (trip) { resetFishStage(); showTripResult(); } }, 1000);
+    }
   }
   var hexRgbCache = {};
   function hxc(h) {
@@ -8771,8 +8844,11 @@ three/build/three.module.js:
     while (dy < -Math.PI) dy += Math.PI * 2;
     yk.root.rotation.y = cur + dy * Math.min(1, dt * 10);
     var bob = w3.moving ? Math.abs(Math.sin(now / 130)) * 0.5 : Math.sin(now / 900) * 0.08;
-    var gY = groundY(w3.px, w3.pz);
+    var dW = w3.depth || 0;
+    var gY = dW > 0.05 ? 1.55 - dW * 1.15 : groundY(w3.px, w3.pz);
+    if (w3.drowning) { gY = -0.6; }
     yk.root.position.set(w3.px, gY + bob, w3.pz);
+    if (w3.drowning) yk.root.rotation.y += dt * 10;
     yk.root.rotation.z = w3.moving ? Math.sin(now / 130) * 0.05 : 0;
     var swing = w3.moving ? Math.sin(now / 130) : 0;
     yk.legL.rotation.x = swing * 0.65;
@@ -11599,13 +11675,14 @@ three/build/three.module.js:
       if (fs.phase === "aim") {
         fs.aimT += dt;
         fs.rodBend = 0.05;
-        // ドラッグ＝バーチャルスティックで川辺を歩く
-        if (fs.joy) {
-          var wsp = 78;
+        // ドラッグ＝バーチャルスティックで歩く（水の中はゆっくり・しぶき付き）
+        if (fs.joy && !w3.drowning) {
+          var wsp = (w3.depth || 0) > 0.1 ? 34 : 78;
           w3.px += -fs.joy.nx * wsp * dt;
           w3.pz += -fs.joy.ny * wsp * dt;
           w3clampPlayer();
           w3.moving = 1;
+          if ((w3.depth || 0) > 0.1 && Math.random() < dt * 5) spawnRipple(w3.px, w3.pz + 1, false);
           if (Math.abs(fs.joy.nx) > 0.25) w3.face = fs.joy.nx > 0 ? 1 : -1;
         } else {
           w3.moving = 0;
@@ -11714,6 +11791,7 @@ three/build/three.module.js:
 
   function onStagePress(e) {
     if (e.target && e.target.id === "muteBtn") return;
+    if (w3.drowning) return;
     SFX.ensure();
     if (fs.phase === "aim") {
       // 押しただけでは打たない: 短いタップ=キャスト / ドラッグ=移動（pointerupで判定）
@@ -12528,9 +12606,10 @@ three/build/three.module.js:
 
   window.__G3 = function () { return G3; };
   window.__t3probe = function (wx, wz) {
-    return { proj: w3projXYZ(wx || 0, 0, wz != null ? wz : 60), rcx: riverCX(wz != null ? wz : 60), cam: G3.camPos, failed: G3.failed };
+    return { proj: w3projXYZ(wx || 0, 0, wz != null ? wz : 60), rcx: riverCX(wz != null ? wz : 60), depth: waterDepthAt(wx || 0, wz != null ? wz : 60), pdepth: w3.depth || 0, drowning: !!w3.drowning, cam: G3.camPos, failed: G3.failed };
   };
 
+  window.__teleport = function (px, pz) { w3.px = px; w3.pz = pz; w3clampPlayer(); };
   window.__debugState = function () {
     return {
       pendingFishId: state.pendingFishId,
