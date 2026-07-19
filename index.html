@@ -7953,6 +7953,112 @@ three/build/three.module.js:
     }
     return false;
   }
+  // ===== 探索スポット: 歩き回り・対岸・岩渡りのごほうび（場所×日付で決定的） =====
+  var explore = { key: "", ready: false };
+  function exploreBuild() {
+    var key = (fs.locKey || "") + "|" + new Date().toDateString();
+    if (explore.key === key) return;
+    explore.key = key;
+    var day = key.split("|")[1];
+    if (!save.exploreGot || save.exploreDay !== day) {
+      save.exploreDay = day;
+      save.exploreGot = {};
+    }
+  }
+  function exploreSpotAt(zi) {
+    var seed = seedFromString(explore.key) % 100000;
+    if (hash2(zi * 7 + seed, 501) > 0.55) return null;
+    var zc = zi * 60 + hash2(zi + seed, 503) * 50;
+    var cx = riverCX(zc), hw = riverHW(zc);
+    var sel = hash2(zi + seed, 507);
+    var x, tier;
+    if (sel < 0.5) { x = cx + hw + 10 + hash2(zi + seed, 509) * 38; tier = 2; } // 対岸の草地
+    else if (sel < 0.72) { // 川の岩の上
+      var rocks = riverRocksAt(Math.round(zc / 26));
+      if (rocks.length) { x = rocks[0].x; zc = rocks[0].z; tier = 2; }
+      else { x = cx + hw + 12 + hash2(zi + seed, 509) * 30; tier = 2; }
+    } else { x = cx - hw - 28 - hash2(zi + seed, 511) * 26; tier = 1; } // 自分の岸の奥
+    return { x: x, z: zc, tier: tier, id: "s" + zi };
+  }
+  function exploreActive() {
+    if (trip && trip.runMode) return []; // 大釣行中はなし
+    exploreBuild();
+    var out = [];
+    for (var zi = Math.floor((w3.pz - 60) / 60); zi <= Math.floor((w3.pz + 300) / 60); zi++) {
+      var sp = exploreSpotAt(zi);
+      if (!sp) continue;
+      if (save.exploreGot[explore.key + "|" + sp.id]) continue;
+      out.push(sp);
+    }
+    return out;
+  }
+  function exploreAward(sp) {
+    var loc = getLocation(state.selectedLocationId);
+    burst(sp.x, sp.z, 14, 120, "255,236,150");
+    var r = Math.random();
+    var trTh = sp.tier === 2 ? 0.5 : 0.3; // 対岸・岩の上はおたから率が高い
+    if (r < trTh && loc) {
+      var id = pickTreasure(loc);
+      var t = TREASURE[id] || TREASURE.kosen;
+      var isNew = !save.treasures[id];
+      save.treasures[id] = true;
+      save.money += t.price; save.totals.earned += t.price;
+      var sb = checkTreasureSet(id);
+      if (sb) { save.money += sb.bonus; save.totals.earned += sb.bonus; }
+      addYukiXp(isNew ? 30 : 8);
+      if (isNew) addYukiMemory("おたから発見: " + t.name);
+      addRankXp(isNew ? 25 : 5);
+      SFX.jingle(); buzz(40);
+      showToast('<div>' + t.emoji + ' <b>' + t.name + '</b>を見つけた！ +' + t.price + '円' + (isNew ? '　<span style="color:#ffe9a8;">NEW!</span>' : '') + '</div>', 2400);
+      if (isNew) yukiSay(pickLine(YUKI_LINES.treasureNew), "excited", 3000, true);
+    } else if (r < trTh + 0.3) {
+      var amt = 150 + Math.floor(Math.random() * (sp.tier === 2 ? 650 : 350));
+      save.money += amt; save.totals.earned += amt;
+      addRankXp(3);
+      SFX.jingle();
+      showToast('<div>💰 だれかの落とし物… <b>+' + amt + '円</b></div>', 2000);
+    } else if (r < trTh + 0.55) {
+      var j = JUNK_ITEMS[Math.floor(Math.random() * JUNK_ITEMS.length)];
+      save.money += j.price; save.totals.earned += j.price;
+      save.junkCleared = (save.junkCleared || 0) + 1;
+      addRankXp(1);
+      SFX.plop();
+      showToast('<div>' + j.emoji + ' ' + j.name + 'を拾った（川のおそうじ +1 / 累計' + save.junkCleared + '）</div>', 2000);
+    } else {
+      var xp2 = sp.tier === 2 ? 14 : 8;
+      addRankXp(xp2);
+      SFX.jingle();
+      showToast('<div>✨ とっておきの景色を見つけた！ ランクXP +' + xp2 + '</div>', 1800);
+    }
+    persistSave(); updateStatusBar();
+  }
+  function exploreTick() {
+    if (w3.drowning || (trip && trip.runMode)) return;
+    var spots = exploreActive();
+    for (var i = 0; i < spots.length; i++) {
+      var sp = spots[i];
+      var dx = w3.px - sp.x, dz = w3.pz - sp.z;
+      if (dx * dx + dz * dz < 30) {
+        save.exploreGot[explore.key + "|" + sp.id] = 1;
+        exploreAward(sp);
+      }
+    }
+    // 上流への踏破マイルストーン
+    var marks = [300, 700, 1200];
+    for (var mi = 0; mi < marks.length; mi++) {
+      var m = marks[mi];
+      var mk = explore.key + "|dist" + m;
+      if (w3.pz >= m && !save.exploreGot[mk]) {
+        save.exploreGot[mk] = 1;
+        var xp3 = 10 + mi * 8;
+        addRankXp(xp3);
+        SFX.jingle();
+        showToast('<div>🥾 上流へ <b>' + m + 'm</b> 踏破！　ランクXP +' + xp3 + '</div>', 2200);
+        persistSave();
+      }
+    }
+  }
+
   function w3clampPlayer() {
     // 両岸の帯＋川の中（渡渉）を歩ける。深みに入ると流される
     var cx = riverCX(w3.pz), hw = riverHW(w3.pz);
@@ -9468,6 +9574,35 @@ three/build/three.module.js:
       var la2 = 1 - pp.age / pp.life;
       ctx.fillStyle = "rgba(" + pp.hue + "," + (la2 * 0.9) + ")";
       ctx.beginPath(); ctx.arc(pp.x, pp.y, pp.r * (0.6 + la2 * 0.4), 0, 6.3); ctx.fill();
+    }
+
+    // 探索スポットのきらめき（歩いて拾う）
+    if (!(trip && trip.runMode) && G3 && G3.camPos && (fs.phase === "aim" || fs.phase === "wait")) {
+      var exs = exploreActive();
+      for (var xi = 0; xi < exs.length; xi++) {
+        var sp2 = exs[xi];
+        var pE = w3projXYZ(sp2.x, 1.7 + Math.sin(now / 500 + sp2.z) * 0.5, sp2.z);
+        if (pE.y > 150 && pE.x > -20 && pE.x < 380) {
+          var scE = Math.max(0.5, Math.min(1.7, pE.s * 0.4));
+          var puE = 0.6 + 0.4 * Math.sin(now / 300 + sp2.z);
+          var gE = ctx.createRadialGradient(pE.x, pE.y, 0.5, pE.x, pE.y, 9 * scE);
+          gE.addColorStop(0, "rgba(255,240,170," + (0.75 * puE).toFixed(2) + ")");
+          gE.addColorStop(1, "rgba(255,240,170,0)");
+          ctx.fillStyle = gE;
+          ctx.fillRect(pE.x - 9 * scE, pE.y - 9 * scE, 18 * scE, 18 * scE);
+          ctx.strokeStyle = "rgba(255,250,220," + (0.9 * puE).toFixed(2) + ")";
+          ctx.lineWidth = 1.4;
+          var rS = 4.5 * scE * (0.8 + puE * 0.3);
+          ctx.beginPath();
+          ctx.moveTo(pE.x - rS, pE.y); ctx.lineTo(pE.x + rS, pE.y);
+          ctx.moveTo(pE.x, pE.y - rS); ctx.lineTo(pE.x, pE.y + rS);
+          ctx.stroke();
+        }
+      }
+      if (exs.length && !save.exploreHint) {
+        save.exploreHint = 1; persistSave();
+        showToast('<div style="font-size:12px;">✨ 川辺のどこかに光るものが…歩いて近づくと拾える。<b>対岸や岩の上</b>にも眠っているらしい</div>', 3400);
+      }
     }
 
     // 環境の生きもの（昼はちょうちょ・夜はホタル）
@@ -11717,6 +11852,7 @@ three/build/three.module.js:
         } else {
           w3.moving = 0;
         }
+        exploreTick();
         updateShadows(now, dt);
       } else if (fs.phase === "cast") {
         fs.castT += dt;
