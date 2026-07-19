@@ -7916,21 +7916,39 @@ three/build/three.module.js:
     if (d > 0.5 && rockNearby(x, z)) d = 0.45;
     return d;
   }
+  // セルごとの川岩（見た目と飛び石判定の両方で使う唯一の配置ソース）
+  function riverRocksAt(zi) {
+    var out = [];
+    for (var ps = 0; ps < 2; ps++) {
+      if (w3.dam && ps === 1) continue;
+      var h1 = hash2(zi, ps * 977 + 11);
+      var zc = zi * 26 + hash2(zi, ps + 31) * 26;
+      var rocky = segP(zc, 29) > 0.6; // 瀬の区間は岩だらけ
+      if (h1 <= (rocky ? 0.42 : 0.68)) continue;
+      var cxc = riverCX(zc), hwc = riverHW(zc);
+      var sgn = ps === 0 ? -1 : 1;
+      var u = 0.2 + hash2(zi, ps + 91) * 0.8;
+      var rxx = cxc + sgn * hwc * (1 - u * (rocky ? 0.95 : 0.5));
+      var rr = 1.3 + hash2(zi, ps + 97) * 2.2;
+      out.push({ x: rxx, z: zc, r: rr });
+      var n2 = rocky ? 2 : (hash2(zi, ps + 101) > 0.45 ? 1 : 0);
+      for (var k = 1; k <= n2; k++) {
+        out.push({
+          x: rxx + (hash2(zi, ps + 103 + k * 7) - 0.5) * (rr * 3.2 + 5),
+          z: zc + (hash2(zi, ps + 109 + k * 7) - 0.5) * (rr * 3.2 + 5),
+          r: Math.max(0.6, rr * (0.4 + hash2(zi, ps + 115 + k * 7) * 0.45))
+        });
+      }
+    }
+    return out;
+  }
   function rockNearby(x, z) {
-    var cell = 26;
-    for (var zi = Math.floor((z - 40) / cell); zi <= Math.floor((z + 40) / cell); zi++) {
-      for (var ps = 0; ps < 2; ps++) {
-        if (w3.dam && ps === 1) continue;
-        var h1 = hash2(zi, ps * 977 + 11);
-        var zc = zi * cell + hash2(zi, ps + 31) * cell;
-        var thr = segP(zc, 29) > 0.6 ? 0.68 : 0.84;
-        if (h1 <= thr) continue;
-        var cxc = riverCX(zc), hwc = riverHW(zc);
-        var sgn = ps === 0 ? -1 : 1;
-        var rxx = cxc + sgn * (hwc - 3 - hash2(zi, ps + 91) * 7);
-        var rr = 1.4 + hash2(zi, ps + 97) * 2.2;
-        var dx = x - rxx, dz = z - zc;
-        if (dx * dx + dz * dz < (rr + 3.2) * (rr + 3.2)) return true;
+    for (var zi = Math.floor((z - 40) / 26); zi <= Math.floor((z + 40) / 26); zi++) {
+      var rocks = riverRocksAt(zi);
+      for (var ri = 0; ri < rocks.length; ri++) {
+        var rk = rocks[ri];
+        var dx = x - rk.x, dz = z - rk.z;
+        if (dx * dx + dz * dz < (rk.r + 2.8) * (rk.r + 2.8)) return true;
       }
     }
     return false;
@@ -8629,6 +8647,20 @@ three/build/three.module.js:
       else fluffyAt(x2, z2, sc);
     }
     var cellSz = 26;
+    // 川の中の岩＋泡のリング（riverRocksAtが唯一のソース）
+    for (var zr = Math.floor(z0 / cellSz); zr <= Math.floor(z1 / cellSz); zr++) {
+      var rocksHere = riverRocksAt(zr);
+      for (var rj = 0; rj < rocksHere.length; rj++) {
+        var rk = rocksHere[rj];
+        if (rk.z < z0 + 4 || rk.z > z1 - 4) continue;
+        var rockC = mix3(RCK, [0, 0, 0.02], hash2(Math.floor(rk.x * 3), Math.floor(rk.z * 3)) * 0.3);
+        mbBall(tm, rk.r, rk.x, -0.45 + rk.r * 0.22, rk.z, rockC, 6, 0.75);
+        if (!w3.dam && rk.r > 0.9) {
+          var fr = rk.r * 0.75 + 0.8;
+          mbQuad(fm, [rk.x - fr, 0.05, rk.z - fr], [rk.x + fr, 0.05, rk.z - fr], [rk.x + fr * 0.7, 0.05, rk.z + fr * 0.4], [rk.x - fr * 0.7, 0.05, rk.z + fr * 0.4], [1, 1, 1, 0.22]);
+        }
+      }
+    }
     for (var zi = Math.floor(z0 / cellSz); zi <= Math.floor(z1 / cellSz); zi++) {
       for (var pside = 0; pside < 2; pside++) {
         if (w3.dam && pside === 1) continue;
@@ -8654,16 +8686,7 @@ three/build/three.module.js:
           mbLathe(tm, [[1.05, 0], [1.0, 1.6]], 8, TRK, stx, sty, zc, 1);
           mbLathe(tm, [[0.95, 1.6], [0.01, 1.66]], 8, l3([0.72, 0.6, 0.45]), stx, sty, zc, 1);
         }
-        // 川の中の岩＋白い泡のリング（瀬の区間は岩だらけに）
-        if (h1 > (segP(zc, 29) > 0.6 ? 0.68 : 0.84)) {
-          var rxx = cxc + sgn * (hwc - 3 - hash2(zi, pside + 91) * 7);
-          var rr = 1.4 + hash2(zi, pside + 97) * 2.2;
-          mbBall(tm, rr, rxx, -0.4, zc, RCK, 5, 0.72);
-          if (!w3.dam) {
-            var fr = rr * 0.75 + 0.8;
-            mbQuad(fm, [rxx - fr, 0.05, zc - fr], [rxx + fr, 0.05, zc - fr], [rxx + fr * 0.7, 0.05, zc + fr * 0.4], [rxx - fr * 0.7, 0.05, zc + fr * 0.4], [1, 1, 1, 0.22]);
-          }
-        }
+
         // 水辺の茂み
         if (rec.reeds && hash2(zi, pside + 141) < 0.5) {
           var bxx = cxc + sgn * (hwc + 4 + hash2(zi, pside + 151) * 6);
