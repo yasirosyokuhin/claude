@@ -7883,16 +7883,19 @@ three/build/three.module.js:
 
   // ===== 本格3Dワールド（three.js）: どうぶつの森風トゥーン＋リアルタイム影 =====
   var W3 = { MAXD: 320 }; // オーバーレイの霞み距離
-  var w3 = { px: -50, pz: 0, face: 1, moving: 0, seed: 1, rs: 7, hw: 36, damHW: 175, dam: false, rodTipS: { x: 180, y: 300 } };
+  var w3 = { px: -50, pz: 0, face: 1, moving: 0, seed: 1, rs: 7, hw: 36, damHW: 175, dam: false, rec: {}, mAmp: 1, pFreq: 1, pBias: 0, rockBias: 0, riseK: 0.0016, damZ: 260, rodTipS: { x: 180, y: 300 } };
   var CURVE_K = 0.0011;
   var CAM = { back: 42, h: 28, lookY: 2.2, lookAhead: 32, fov: 46 };
 
   function riverCX(z) {
-    return Math.sin(z * 0.011 + w3.seed) * 24 + Math.sin(z * 0.0042 + w3.seed * 1.7) * 34;
+    return (Math.sin(z * 0.011 + w3.seed) * 24 + Math.sin(z * 0.0042 + w3.seed * 1.7) * 34) * (w3.mAmp || 1);
+  }
+  function poolT(z) {
+    return Math.sin(z * 0.0065 * (w3.pFreq || 1) + w3.seed * 2.3) * 0.5 + 0.5; // 0=瀬 1=淵
   }
   function riverHW(z) {
     if (w3.dam) return w3.damHW;
-    var pool = 1 + Math.sin(z * 0.0065 + w3.seed * 2.3) * 0.30; // 瀬（狭い）と淵（広い）
+    var pool = 0.7 + poolT(z) * 0.6; // 瀬（狭い）と淵（広い）
     return (w3.hw + Math.sin(z * 0.017 + w3.seed * 3) * (w3.hw * 0.18)) * pool;
   }
   function w3init(loc) {
@@ -7902,8 +7905,17 @@ three/build/three.module.js:
     w3.dam = loc.type === "dam";
     w3.damHW = 150 + Math.random() * 60;
     var rec = SCENERY[loc.id] || {};
+    w3.rec = rec;
     var baseHw = rec.width === "wide" ? 46 : rec.width === "narrow" ? 26 : 36;
     w3.hw = baseHw * (0.85 + Math.random() * 0.3);
+    // 川の性格: 渓流=蛇行強く瀬が多い / 大河=ゆったり深い淵が長い
+    var wc = rec.width || "mid";
+    w3.mAmp = wc === "narrow" ? 1.35 : wc === "wide" ? 0.7 : 1;
+    w3.pFreq = wc === "narrow" ? 1.5 : wc === "wide" ? 0.7 : 1;
+    w3.pBias = wc === "narrow" ? -0.3 : wc === "wide" ? 0.25 : 0;
+    w3.rockBias = (wc === "narrow" ? 0.18 : 0) + (rec.mt === "gorge" ? 0.1 : 0);
+    w3.riseK = rec.mt === "gorge" ? 0.005 : rec.mt === "wetland" ? 0.0008 : 0.0016;
+    w3.damZ = 230 + Math.random() * 60;
     w3.pz = 0;
     w3.px = riverCX(0) - riverHW(0) - 23; // 左岸の小道からスタート
     w3.face = 1; w3.moving = 0;
@@ -7914,8 +7926,7 @@ three/build/three.module.js:
     var cx = riverCX(z), hw = riverHW(z);
     var u = (x - cx) / hw;
     if (u < -1 || u > 1) return 0;
-    var poolT = (Math.sin(z * 0.0065 + w3.seed * 2.3) * 0.30 + 0.30) / 0.60;
-    var dmax = w3.dam ? 3.2 : 0.85 + poolT * 2.6;
+    var dmax = w3.dam ? 3.2 : Math.max(0.7, 0.85 + poolT(z) * 2.6 + (w3.pBias || 0));
     var d = dmax * (1 - u * u);
     if (d > 0.5 && rockNearby(x, z)) d = 0.45;
     return d;
@@ -7927,8 +7938,8 @@ three/build/three.module.js:
       if (w3.dam && ps === 1) continue;
       var h1 = hash2(zi + w3.rs, ps * 977 + 11);
       var zc = zi * 26 + hash2(zi + w3.rs, ps + 31) * 26;
-      var rocky = segP(zc, 29) > 0.6; // 瀬の区間は岩だらけ
-      if (h1 <= (rocky ? 0.42 : 0.68)) continue;
+      var rocky = segP(zc, 29) > 0.6 - (w3.rockBias || 0); // 瀬の区間は岩だらけ（渓流・峡谷はさらに）
+      if (h1 <= (rocky ? 0.42 - (w3.rockBias || 0) : 0.68 - (w3.rockBias || 0))) continue;
       var cxc = riverCX(zc), hwc = riverHW(zc);
       var sgn = ps === 0 ? -1 : 1;
       var u = 0.2 + hash2(zi + w3.rs, ps + 91) * 0.8;
@@ -8065,6 +8076,7 @@ three/build/three.module.js:
 
   function w3clampPlayer() {
     // 両岸の帯＋川の中（渡渉）を歩ける。深みに入ると流される
+    if (w3.dam) w3.pz = Math.min(w3.pz, w3.damZ - 14);
     var cx = riverCX(w3.pz), hw = riverHW(w3.pz);
     w3.px = Math.max(cx - hw - 62, Math.min(cx + hw + 62, w3.px));
     w3.depth = waterDepthAt(w3.px, w3.pz);
@@ -8303,7 +8315,7 @@ three/build/three.module.js:
   function groundY(x, z) {
     var o = Math.abs(x - riverCX(z)) - riverHW(z) - 6;
     if (o < 0) o = 0;
-    var rise = o > 70 ? (o - 70) * (o - 70) * 0.0016 : 0;
+    var rise = o > 70 ? (o - 70) * (o - 70) * (w3.riseK || 0.0016) : 0;
     var h = grassHt(x, z) + rise;
     if (o >= 10 && o <= 24) h = 1.7 + (h - 1.7) * 0.35; // 小道はなだらか
     return h;
@@ -8859,6 +8871,52 @@ three/build/three.module.js:
         mbLathe(tm, [[0.9, 0], [0.72, 1.5]], 7, mix3(TRK, [1, 1, 1], 0.35), fx3 - 5.4, fyg + 0.1, lz, 1);
       }
     }
+    // ダムの堰堤（湖の上流をふさぐコンクリートの壁）
+    if (w3.dam && w3.damZ > z0 + 20 && w3.damZ < z1 - 6) {
+      var dwz = w3.damZ + 8;
+      var dcx = riverCX(w3.damZ);
+      var dwW = riverHW(w3.damZ) * 2 + 90;
+      var CONC = l3([0.72, 0.72, 0.68]), CONC2 = l3([0.58, 0.58, 0.54]);
+      mbBox(tm, dcx, -2.5, dwz, dwW, 27, 10, CONC);
+      mbBox(tm, dcx, 24.5, dwz, dwW, 2.4, 13, CONC2);
+      for (var sl = 0; sl < 7; sl++) {
+        mbBox(tm, dcx - dwW / 2 + (sl + 0.5) * (dwW / 7), -2, dwz - 5.4, 2.4, 23, 1.4, CONC2);
+      }
+      mbBox(tm, dcx + dwW * 0.18, 25, dwz, 7, 10, 7, CONC);
+      mbBox(tm, dcx + dwW * 0.18, 35, dwz, 8.6, 1.3, 8.6, CONC2);
+    }
+    // 川をまたぐ桁橋（豊平川など）
+    if (!w3.dam && rec.bridge) {
+      var bz = 120 + hash2(5, w3.rs) * 120;
+      if (bz > z0 + 20 && bz < z1 - 20) {
+        var bcx = riverCX(bz), bhw = riverHW(bz);
+        var BW = bhw * 2 + 70;
+        var GIRD = l3([0.42, 0.45, 0.5]), DECK = l3([0.56, 0.57, 0.6]);
+        mbBox(tm, bcx - bhw * 0.5, -2.5, bz, 4, 17, 4, GIRD);
+        mbBox(tm, bcx + bhw * 0.5, -2.5, bz, 4, 17, 4, GIRD);
+        mbBox(tm, bcx, 14.5, bz, BW, 2.4, 9.5, DECK);
+        mbBox(tm, bcx, 16.9, bz - 4.2, BW, 1.7, 0.8, GIRD);
+        mbBox(tm, bcx, 16.9, bz + 4.2, BW, 1.7, 0.8, GIRD);
+      }
+    }
+    // タンチョウ（釧路川の浅瀬にたたずむ）
+    if (rec.crane) {
+      for (var crn = 0; crn < 2; crn++) {
+        var crz = 90 + crn * 140 + hash2(crn, w3.rs + 7) * 60;
+        if (crz < z0 + 10 || crz > z1 - 10) continue;
+        var ccx = riverCX(crz), chw = riverHW(crz);
+        var crx = ccx - chw + 4 + hash2(crn, w3.rs + 11) * 5;
+        var WHT = l3([0.93, 0.94, 0.93]), BLKc = l3([0.09, 0.09, 0.1]);
+        mbLathe(tm, [[0.1, 0], [0.08, 3.4]], 4, BLKc, crx - 0.5, -0.3, crz, 1);
+        mbLathe(tm, [[0.1, 0], [0.08, 3.4]], 4, BLKc, crx + 0.5, -0.3, crz, 1);
+        mbBall(tm, 1.6, crx, 3.6, crz, WHT, 8, 0.75);
+        mbBall(tm, 0.95, crx - 1.5, 3.5, crz, BLKc, 6, 0.7);
+        mbLathe(tm, [[0.24, 0], [0.15, 3.4]], 5, WHT, crx + 1.0, 4.0, crz, 1);
+        mbBall(tm, 0.6, crx + 1.0, 7.6, crz, WHT, 6);
+        mbBall(tm, 0.24, crx + 1.0, 8.15, crz, l3([0.78, 0.1, 0.12]), 4);
+        mbLathe(tm, [[0.16, 0], [0.02, 1.3]], 4, l3([0.55, 0.5, 0.4]), crx + 1.55, 7.35, crz, 1);
+      }
+    }
     if (G3.terra) { G3.scene.remove(G3.terra); G3.terra.geometry.dispose(); }
     if (G3.waterM) { G3.scene.remove(G3.waterM); G3.waterM.geometry.dispose(); }
     if (G3.foamM) { G3.scene.remove(G3.foamM); G3.foamM.geometry.dispose(); }
@@ -8884,15 +8942,76 @@ three/build/three.module.js:
       var rng = mulberry(seedFromString(locId) * 5 + 11);
       var far1 = mix3(lin01((pal.r3 || ["#6d8e6e"])[0]), sky2, 0.55);
       var far2 = mix3(lin01((pal.r2 || ["#9db4a0"])[0]), sky2, 0.35);
-      for (var mi = 0; mi < 11; mi++) {
-        var mx = -780 + mi * 156 + rng() * 60;
-        var mh = 72 + rng() * 90;
-        mbTri(mm, [mx - 150, -8, 470], [mx + 150, -8, 470], [mx, mh, 470], [far1[0], far1[1], far1[2], 1]);
+      var SNOWC = mix3([0.9, 0.92, 0.97], sky2, 0.15);
+      var mtT = rec.mt || "hills";
+      // 地平線基準: 地形の見かけの水平線は world y≈-46（湾曲で沈み込むため）。
+      // vh = 地平線からの見かけの高さ。基部は -52 で必ず地形の下に隠す。
+      var HB = -52, HL = -44;
+      function peakAt(mx, vh, halfW, zP, col, cap) {
+        var pY = HL + vh;
+        mbTri(mm, [mx - halfW, HB, zP], [mx + halfW, HB, zP], [mx, pY, zP], [col[0], col[1], col[2], 1]);
+        if (cap) {
+          var capY = pY - vh * 0.42;
+          var chw = halfW * (pY - capY) / (pY - HB) * 1.12;
+          mbTri(mm, [mx - chw, capY, zP - 3], [mx + chw, capY, zP - 3], [mx, pY + 0.5, zP - 3], [SNOWC[0], SNOWC[1], SNOWC[2], 1]);
+        }
       }
-      for (var mj = 0; mj < 9; mj++) {
-        var mx2 = -740 + mj * 185 + rng() * 70;
-        var mh2 = 44 + rng() * 62;
-        mbTri(mm, [mx2 - 170, -8, 425], [mx2 + 170, -8, 425], [mx2, mh2, 425], [far2[0], far2[1], far2[2], 1]);
+      if (mtT === "wetland") {
+        // 湿原: 山を置かず、低い樹林の地平線だけ（広い空）
+        var WET = mix3(lin01("#4e6b4a"), sky2, 0.35);
+        for (var wi = 0; wi < 70; wi++) {
+          var wxm = -770 + wi * 22 + rng() * 12;
+          peakAt(wxm, 1.8 + rng() * 2.6, 34, 462, WET, false);
+        }
+      } else if (mtT === "city") {
+        // 札幌のスカイライン: ビル群＋うしろに低い山
+        for (var mi0 = 0; mi0 < 9; mi0++) {
+          peakAt(-740 + mi0 * 190 + rng() * 60, 13 + rng() * 12, 150, 480, far1, false);
+        }
+        var BLD = mix3(t.night ? [0.05, 0.06, 0.1] : [0.32, 0.35, 0.4], sky2, t.night ? 0.15 : 0.45);
+        for (var bi0 = 0; bi0 < 14; bi0++) {
+          var bxm = -560 + bi0 * 84 + rng() * 36;
+          var bh = 10 + rng() * 22;
+          var bw = 13 + rng() * 9;
+          mbBox(mm, bxm, HB, 428, bw, bh + (HL - HB), 10, [BLD[0], BLD[1], BLD[2], 1]);
+          if (t.night) {
+            for (var wn = 0; wn < 5; wn++) {
+              var wxw = bxm - bw / 2 + 2 + rng() * (bw - 4);
+              var wyw = HL + bh - 3 - rng() * (bh + 14);
+              mbQuad(mm, [wxw, wyw, 422.5], [wxw + 1.4, wyw, 422.5], [wxw + 1.4, wyw + 1.9, 422.5], [wxw, wyw + 1.9, 422.5], [0.9, 0.78, 0.35, 1]);
+            }
+          }
+        }
+      } else if (mtT === "volcano") {
+        // 羊蹄山: 丘なみの中央に大きな単峰＋雪冠
+        for (var mv = 0; mv < 9; mv++) {
+          peakAt(-720 + mv * 180 + rng() * 60, 11 + rng() * 12, 160, 470, far1, false);
+        }
+        peakAt(-60 + rng() * 120, 66, 115, 440, mix3(far2, [0.02, 0.02, 0.06], 0.25), true);
+      } else if (mtT === "alps" || snowy) {
+        // 高峰: 尖った峰に雪冠
+        for (var ma = 0; ma < 9; ma++) {
+          peakAt(-760 + ma * 190 + rng() * 60, 40 + rng() * 28, 68, 470, mix3(far1, [0.02, 0.02, 0.05], 0.15), true);
+        }
+        for (var mb = 0; mb < 7; mb++) {
+          peakAt(-700 + mb * 230 + rng() * 70, 22 + rng() * 18, 85, 420, far2, true);
+        }
+      } else if (mtT === "gorge") {
+        // 峡谷: 岩肌色の切り立つ壁が近い
+        var ROCKW = mix3(l3([0.45, 0.43, 0.4]), sky2, 0.3);
+        for (var mg = 0; mg < 10; mg++) {
+          peakAt(-700 + mg * 160 + rng() * 50, 46 + rng() * 22, 62, 340, ROCKW, false);
+        }
+        for (var mg2 = 0; mg2 < 8; mg2++) {
+          peakAt(-660 + mg2 * 190 + rng() * 60, 58 + rng() * 26, 72, 300, mix3(ROCKW, [0, 0, 0], 0.2), false);
+        }
+      } else {
+        for (var mi = 0; mi < 11; mi++) {
+          peakAt(-780 + mi * 156 + rng() * 60, 26 + rng() * 22, 150, 470, far1, false);
+        }
+        for (var mj = 0; mj < 9; mj++) {
+          peakAt(-740 + mj * 185 + rng() * 70, 12 + rng() * 16, 170, 425, far2, false);
+        }
       }
       G3.mtn = new T3.Mesh(mbUpload(mm), G3.mats.mtn);
       G3.mtn.frustumCulled = false;
@@ -8922,6 +9041,9 @@ three/build/three.module.js:
     G3.hemi.groundColor.set(L.hemiG);
     G3.hemi.intensity = L.hi * (0.7 + dim * 0.3);
     G3.scene.fog.color.set(pal.sky[2]);
+    var mistOn = w3.rec && w3.rec.mist;
+    G3.scene.fog.near = mistOn ? 85 : 130;
+    G3.scene.fog.far = mistOn ? 235 : 310;
     G3.skyU.uTop.value = c01(pal.sky[0]);
     G3.skyU.uMid.value = c01(pal.sky[1]);
     G3.skyU.uBot.value = c01(pal.sky[2]);
@@ -8949,6 +9071,7 @@ three/build/three.module.js:
     wu.uSunDir.value = ldn;
     wu.uSunCol.value = L.sunC;
     wu.uFogC.value = c01(pal.sky[2]);
+    wu.uFogNF.value = mistOn ? [85, 235] : [130, 310];
     wu.uCamPos.value = eye;
     // 逆光のリムライト
     G3.rim.position.set(w3.px - 25, 24, w3.pz + 95);
@@ -11170,6 +11293,7 @@ three/build/three.module.js:
     var loc = getLocation(state.selectedLocationId);
     if (!loc) return null;
     var y = w3.pz + 26 + Math.random() * 200; // プレイヤー前方の川に湧く（y=奥行きz）
+    if (w3.dam) y = Math.min(y, w3.damZ - 18);
     var wb = waterBounds(y);
     var fromLeft = Math.random() < 0.5;
     var sh = {
@@ -11443,6 +11567,7 @@ three/build/three.module.js:
   function launchCast(lx, ly) {
     var u = w3unproj(lx || 180, Math.max(HORIZON + 6, ly || 320));
     var wz = Math.max(w3.pz + 14, Math.min(w3.pz + 250, u.z));
+    if (w3.dam) wz = Math.min(wz, w3.damZ - 12);
     var wb = waterBounds(wz);
     var wx = Math.max(wb[0] + 2, Math.min(wb[1] - 2, u.x));
     // 竿の射程（のべ竿は近距離のみ→歩いて近づくのが攻略）
