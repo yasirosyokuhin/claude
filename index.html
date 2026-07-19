@@ -7883,7 +7883,7 @@ three/build/three.module.js:
 
   // ===== 本格3Dワールド（three.js）: どうぶつの森風トゥーン＋リアルタイム影 =====
   var W3 = { MAXD: 320 }; // オーバーレイの霞み距離
-  var w3 = { px: -50, pz: 0, face: 1, moving: 0, seed: 1, hw: 36, dam: false, rodTipS: { x: 180, y: 300 } };
+  var w3 = { px: -50, pz: 0, face: 1, moving: 0, seed: 1, rs: 7, hw: 36, damHW: 175, dam: false, rodTipS: { x: 180, y: 300 } };
   var CURVE_K = 0.0011;
   var CAM = { back: 42, h: 28, lookY: 2.2, lookAhead: 32, fov: 46 };
 
@@ -7891,19 +7891,23 @@ three/build/three.module.js:
     return Math.sin(z * 0.011 + w3.seed) * 24 + Math.sin(z * 0.0042 + w3.seed * 1.7) * 34;
   }
   function riverHW(z) {
-    if (w3.dam) return 175;
+    if (w3.dam) return w3.damHW;
     var pool = 1 + Math.sin(z * 0.0065 + w3.seed * 2.3) * 0.30; // 瀬（狭い）と淵（広い）
     return (w3.hw + Math.sin(z * 0.017 + w3.seed * 3) * (w3.hw * 0.18)) * pool;
   }
   function w3init(loc) {
-    w3.seed = (seedFromString(loc.id) % 1000) / 1000 * 6.28;
+    // 地形は毎回ランダム生成（川筋・瀬と淵・岩・植生パターン）
+    w3.seed = Math.random() * 6.283;
+    w3.rs = Math.floor(Math.random() * 100000);
     w3.dam = loc.type === "dam";
+    w3.damHW = 150 + Math.random() * 60;
     var rec = SCENERY[loc.id] || {};
-    w3.hw = rec.width === "wide" ? 46 : rec.width === "narrow" ? 26 : 36;
+    var baseHw = rec.width === "wide" ? 46 : rec.width === "narrow" ? 26 : 36;
+    w3.hw = baseHw * (0.85 + Math.random() * 0.3);
     w3.pz = 0;
     w3.px = riverCX(0) - riverHW(0) - 23; // 左岸の小道からスタート
     w3.face = 1; w3.moving = 0;
-    G3.key = ""; // 地形を作り直す
+    G3.key = ""; G3.mtnKey = ""; // 地形を作り直す
   }
   // 水深: 瀬（狭い）は浅く、淵（広い）は深い。岸ぎわは浅く、流心が最深。岩のそばは飛び石で浅い
   function waterDepthAt(x, z) {
@@ -7921,22 +7925,22 @@ three/build/three.module.js:
     var out = [];
     for (var ps = 0; ps < 2; ps++) {
       if (w3.dam && ps === 1) continue;
-      var h1 = hash2(zi, ps * 977 + 11);
-      var zc = zi * 26 + hash2(zi, ps + 31) * 26;
+      var h1 = hash2(zi + w3.rs, ps * 977 + 11);
+      var zc = zi * 26 + hash2(zi + w3.rs, ps + 31) * 26;
       var rocky = segP(zc, 29) > 0.6; // 瀬の区間は岩だらけ
       if (h1 <= (rocky ? 0.42 : 0.68)) continue;
       var cxc = riverCX(zc), hwc = riverHW(zc);
       var sgn = ps === 0 ? -1 : 1;
-      var u = 0.2 + hash2(zi, ps + 91) * 0.8;
+      var u = 0.2 + hash2(zi + w3.rs, ps + 91) * 0.8;
       var rxx = cxc + sgn * hwc * (1 - u * (rocky ? 0.95 : 0.5));
-      var rr = 1.3 + hash2(zi, ps + 97) * 2.2;
+      var rr = 1.3 + hash2(zi + w3.rs, ps + 97) * 2.2;
       out.push({ x: rxx, z: zc, r: rr });
-      var n2 = rocky ? 2 : (hash2(zi, ps + 101) > 0.45 ? 1 : 0);
+      var n2 = rocky ? 2 : (hash2(zi + w3.rs, ps + 101) > 0.45 ? 1 : 0);
       for (var k = 1; k <= n2; k++) {
         out.push({
-          x: rxx + (hash2(zi, ps + 103 + k * 7) - 0.5) * (rr * 3.2 + 5),
-          z: zc + (hash2(zi, ps + 109 + k * 7) - 0.5) * (rr * 3.2 + 5),
-          r: Math.max(0.6, rr * (0.4 + hash2(zi, ps + 115 + k * 7) * 0.45))
+          x: rxx + (hash2(zi + w3.rs, ps + 103 + k * 7) - 0.5) * (rr * 3.2 + 5),
+          z: zc + (hash2(zi + w3.rs, ps + 109 + k * 7) - 0.5) * (rr * 3.2 + 5),
+          r: Math.max(0.6, rr * (0.4 + hash2(zi + w3.rs, ps + 115 + k * 7) * 0.45))
         });
       }
     }
@@ -8320,7 +8324,7 @@ three/build/three.module.js:
     mbQuad(m, [x0, y0, q0], [x1, y0, q0], [x1, y1, q0], [x0, y1, q0], col);
     mbQuad(m, [x0, y0, q1], [x1, y0, q1], [x1, y1, q1], [x0, y1, q1], col);
   }
-  function segP(z, k) { return hash2(Math.floor(z / 140), k); } // 140単位の「区間」ごとの決定的パラメータ
+  function segP(z, k) { return hash2(Math.floor(z / 140) + w3.rs, k); } // 140単位の「区間」ごとの決定的パラメータ
   function mbQuadG(m, a, b, c, d, col) { // なめらか法線つきの地面クアッド
     var al = col.length > 3 ? col[3] : 1;
     var base = m.v.length / 10;
@@ -8770,49 +8774,49 @@ three/build/three.module.js:
     for (var zi = Math.floor(z0 / cellSz); zi <= Math.floor(z1 / cellSz); zi++) {
       for (var pside = 0; pside < 2; pside++) {
         if (w3.dam && pside === 1) continue;
-        var h1 = hash2(zi, pside * 977 + 11);
-        var zc = zi * cellSz + hash2(zi, pside + 31) * cellSz;
+        var h1 = hash2(zi + w3.rs, pside * 977 + 11);
+        var zc = zi * cellSz + hash2(zi + w3.rs, pside + 31) * cellSz;
         if (zc < z0 + 4 || zc > z1 - 4) continue;
         var cxc = riverCX(zc), hwc = riverHW(zc);
         var sgn = pside === 0 ? -1 : 1;
         // 木立の境界線（毎セル。歩ける草地の奥をふさぐ）
-        var tlOff = 74 + hash2(zi, pside + 301) * 14;
-        treeAt(cxc + sgn * (hwc + 6 + tlOff), zc, 1.0 + hash2(zi, pside + 305) * 0.55);
-        if (hash2(zi, pside + 309) > 0.45) {
-          treeAt(cxc + sgn * (hwc + 6 + tlOff + 12 + hash2(zi, pside + 311) * 20), zc + 9 + hash2(zi, pside + 313) * 8, 0.85 + hash2(zi, pside + 315) * 0.5);
+        var tlOff = 74 + hash2(zi + w3.rs, pside + 301) * 14;
+        treeAt(cxc + sgn * (hwc + 6 + tlOff), zc, 1.0 + hash2(zi + w3.rs, pside + 305) * 0.55);
+        if (hash2(zi + w3.rs, pside + 309) > 0.45) {
+          treeAt(cxc + sgn * (hwc + 6 + tlOff + 12 + hash2(zi + w3.rs, pside + 311) * 20), zc + 9 + hash2(zi + w3.rs, pside + 313) * 8, 0.85 + hash2(zi + w3.rs, pside + 315) * 0.5);
         }
         // 草地の中の木（まばら・小道の外側のみ。区間で密度が変わる）
         if (h1 < 0.18 + segP(zc, 23) * 0.45) {
-          treeAt(cxc + sgn * (hwc + 6 + 38 + hash2(zi, pside + 57) * 30), zc + 12, 0.75 + hash2(zi, pside + 71) * 0.55);
+          treeAt(cxc + sgn * (hwc + 6 + 38 + hash2(zi + w3.rs, pside + 57) * 30), zc + 12, 0.75 + hash2(zi + w3.rs, pside + 71) * 0.55);
         }
         // 切り株
         if (h1 >= 0.7 && h1 < 0.74 && !snowy) {
-          var stx = cxc + sgn * (hwc + 6 + 46 + hash2(zi, pside + 321) * 18);
+          var stx = cxc + sgn * (hwc + 6 + 46 + hash2(zi + w3.rs, pside + 321) * 18);
           var sty = gy(46, stx, zc) - 0.2;
           mbLathe(tm, [[1.05, 0], [1.0, 1.6]], 8, TRK, stx, sty, zc, 1);
           mbLathe(tm, [[0.95, 1.6], [0.01, 1.66]], 8, l3([0.72, 0.6, 0.45]), stx, sty, zc, 1);
         }
 
         // 水辺の茂み
-        if (rec.reeds && hash2(zi, pside + 141) < 0.5) {
-          var bxx = cxc + sgn * (hwc + 4 + hash2(zi, pside + 151) * 6);
-          mbBall(tm, 1.6 + hash2(zi, pside + 161) * 1.2, bxx, gy(0, bxx, zc) + 0.2, zc, BSH, 7, 0.75);
+        if (rec.reeds && hash2(zi + w3.rs, pside + 141) < 0.5) {
+          var bxx = cxc + sgn * (hwc + 4 + hash2(zi + w3.rs, pside + 151) * 6);
+          mbBall(tm, 1.6 + hash2(zi + w3.rs, pside + 161) * 1.2, bxx, gy(0, bxx, zc) + 0.2, zc, BSH, 7, 0.75);
         }
         // 花と草むら（小道のまわり）
         if (!snowy && h1 >= 0.3 && h1 < 0.55) {
-          var fxx = cxc + sgn * (hwc + 6 + 4 + hash2(zi, pside + 171) * 34);
-          var fCol = l3([[0.97, 0.95, 0.85], [0.88, 0.3, 0.32], [0.98, 0.82, 0.26]][Math.floor(hash2(zi, pside + 181) * 3)]);
+          var fxx = cxc + sgn * (hwc + 6 + 4 + hash2(zi + w3.rs, pside + 171) * 34);
+          var fCol = l3([[0.97, 0.95, 0.85], [0.88, 0.3, 0.32], [0.98, 0.82, 0.26]][Math.floor(hash2(zi + w3.rs, pside + 181) * 3)]);
           for (var fi = 0; fi < 3; fi++) {
-            var ffx = fxx + (hash2(zi, fi + 191) - 0.5) * 5;
-            var ffz = zc + (hash2(zi, fi + 195) - 0.5) * 5;
+            var ffx = fxx + (hash2(zi + w3.rs, fi + 191) - 0.5) * 5;
+            var ffz = zc + (hash2(zi + w3.rs, fi + 195) - 0.5) * 5;
             mbBall(tm, 0.42, ffx, gy(Math.abs(Math.abs(ffx - cxc) - hwc - 6), ffx, ffz) + 0.45, ffz, fCol, 5, 0.7);
           }
         }
         if (!snowy && h1 >= 0.55 && h1 < 0.7) {
           for (var gi2 = 0; gi2 < 2; gi2++) {
-            var gxx = cxc + sgn * (hwc + 6 + 3 + hash2(zi, pside + 211 + gi2 * 7) * 36);
-            var gzz = zc + (hash2(zi, gi2 + 217) - 0.5) * 16;
-            mbLathe(tm, [[1.1, 0], [0.01, 2.4]], 5, mix3(g1, [0, 0.1, 0], 0.4), gxx, gy(Math.abs(Math.abs(gxx - cxc) - hwc - 6), gxx, gzz) - 0.15, gzz, 0.7 + hash2(zi, 219 + gi2) * 0.5);
+            var gxx = cxc + sgn * (hwc + 6 + 3 + hash2(zi + w3.rs, pside + 211 + gi2 * 7) * 36);
+            var gzz = zc + (hash2(zi + w3.rs, gi2 + 217) - 0.5) * 16;
+            mbLathe(tm, [[1.1, 0], [0.01, 2.4]], 5, mix3(g1, [0, 0.1, 0], 0.4), gxx, gy(Math.abs(Math.abs(gxx - cxc) - hwc - 6), gxx, gzz) - 0.15, gzz, 0.7 + hash2(zi + w3.rs, 219 + gi2) * 0.5);
           }
         }
       }
@@ -8820,9 +8824,9 @@ three/build/three.module.js:
     // 区間ごとのランドマーク
     var WOOD = l3([0.52, 0.4, 0.26]), WOOD2 = l3([0.4, 0.3, 0.19]);
     for (var sg = Math.floor(z0 / 140); sg <= Math.floor(z1 / 140); sg++) {
-      var lz = sg * 140 + hash2(sg, 911) * 100;
+      var lz = sg * 140 + hash2(sg + w3.rs, 911) * 100;
       if (lz < z0 + 16 || lz > z1 - 16) continue;
-      var typ = Math.floor(hash2(sg, 913) * 4);
+      var typ = Math.floor(hash2(sg + w3.rs, 913) * 4);
       var lcx = riverCX(lz), lhw = riverHW(lz);
       if (typ === 0 && !w3.dam) {
         // 木の桟橋（岸から川へ張り出す）
@@ -8842,14 +8846,14 @@ three/build/three.module.js:
         mbBox(tm, sx3, syg + 3.1, lz, 4.8, 2.7, 0.55, WOOD);
       } else if (typ === 2) {
         // 苔むした大岩
-        var bx3 = lcx - lhw - 6 - (30 + hash2(sg, 917) * 22);
+        var bx3 = lcx - lhw - 6 - (30 + hash2(sg + w3.rs, 917) * 22);
         var byg = groundY(bx3, lz);
         mbBall(tm, 3.5, bx3, byg - 0.9, lz, RCK, 7, 0.8);
         mbBall(tm, 2.4, bx3 + 2.9, byg - 0.7, lz + 1.7, mix3(RCK, [0, 0, 0], 0.15), 6, 0.8);
         mbBall(tm, 1.6, bx3 - 0.6, byg + 1.9, lz - 0.4, BSH, 6, 0.55);
       } else {
         // 倒木
-        var fx3 = lcx - lhw - 6 - (32 + hash2(sg, 919) * 22);
+        var fx3 = lcx - lhw - 6 - (32 + hash2(sg + w3.rs, 919) * 22);
         var fyg = groundY(fx3, lz);
         mbBox(tm, fx3, fyg - 0.15, lz, 11, 1.5, 1.6, TRK);
         mbLathe(tm, [[0.9, 0], [0.72, 1.5]], 7, mix3(TRK, [1, 1, 1], 0.35), fx3 - 5.4, fyg + 0.1, lz, 1);
@@ -10019,6 +10023,12 @@ three/build/three.module.js:
   }
 
   function startTrip() {
+    var locT = getLocation(state.selectedLocationId);
+    if (locT) {
+      w3init(locT);            // 毎回ランダムな地形で釣行開始
+      fs.shadows = [];
+      fs.locKey = state.selectedLocationId;
+    }
     trip = {
       locId: state.selectedLocationId,
       castsLeft: run ? (RUN_CASTS + (runHasCard("kazuuchi") ? 3 : 0)) : (TRIP_CASTS + rankBonusCasts()),
