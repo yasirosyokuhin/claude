@@ -11852,13 +11852,14 @@ three/build/three.module.js:
         fs.rodBend = 0.05;
         // ドラッグ＝バーチャルスティックで歩く（水の中はゆっくり・しぶき付き）
         if (fs.joy && !w3.drowning) {
+          var jl = fs.joy; // w3clampPlayer→w3drownがfs.joyをnullにしても安全に
           var wsp = (w3.depth || 0) > 0.1 ? 34 : 78;
-          w3.px += -fs.joy.nx * wsp * dt;
-          w3.pz += -fs.joy.ny * wsp * dt;
+          w3.px += -jl.nx * wsp * dt;
+          w3.pz += -jl.ny * wsp * dt;
           w3clampPlayer();
           w3.moving = 1;
           if ((w3.depth || 0) > 0.1 && Math.random() < dt * 5) spawnRipple(w3.px, w3.pz + 1, false);
-          if (Math.abs(fs.joy.nx) > 0.25) w3.face = fs.joy.nx > 0 ? 1 : -1;
+          if (Math.abs(jl.nx) > 0.25) w3.face = jl.nx > 0 ? 1 : -1;
         } else {
           w3.moving = 0;
         }
