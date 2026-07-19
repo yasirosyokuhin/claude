@@ -7892,7 +7892,8 @@ three/build/three.module.js:
   }
   function riverHW(z) {
     if (w3.dam) return 175;
-    return w3.hw + Math.sin(z * 0.017 + w3.seed * 3) * (w3.hw * 0.18);
+    var pool = 1 + Math.sin(z * 0.0065 + w3.seed * 2.3) * 0.30; // 瀬（狭い）と淵（広い）
+    return (w3.hw + Math.sin(z * 0.017 + w3.seed * 3) * (w3.hw * 0.18)) * pool;
   }
   function w3init(loc) {
     w3.seed = (seedFromString(loc.id) % 1000) / 1000 * 6.28;
@@ -8113,6 +8114,16 @@ three/build/three.module.js:
     var l = Math.hypot(dx, 2 * e, dz);
     return [-dx / l, 2 * e / l, -dz / l];
   }
+  function mbBox(m, cx2, cy2, cz2, sx2, sy2, sz2, col) { // 底面が(cy2)の箱
+    var x0 = cx2 - sx2 / 2, x1 = cx2 + sx2 / 2, y0 = cy2, y1 = cy2 + sy2, q0 = cz2 - sz2 / 2, q1 = cz2 + sz2 / 2;
+    mbQuad(m, [x0, y1, q0], [x1, y1, q0], [x1, y1, q1], [x0, y1, q1], col);
+    mbQuad(m, [x0, y0, q0], [x1, y0, q0], [x1, y0, q1], [x0, y0, q1], col);
+    mbQuad(m, [x0, y0, q0], [x0, y1, q0], [x0, y1, q1], [x0, y0, q1], col);
+    mbQuad(m, [x1, y0, q0], [x1, y1, q0], [x1, y1, q1], [x1, y0, q1], col);
+    mbQuad(m, [x0, y0, q0], [x1, y0, q0], [x1, y1, q0], [x0, y1, q0], col);
+    mbQuad(m, [x0, y0, q1], [x1, y0, q1], [x1, y1, q1], [x0, y1, q1], col);
+  }
+  function segP(z, k) { return hash2(Math.floor(z / 140), k); } // 140単位の「区間」ごとの決定的パラメータ
   function mbQuadG(m, a, b, c, d, col) { // なめらか法線つきの地面クアッド
     var al = col.length > 3 ? col[3] : 1;
     var base = m.v.length / 10;
@@ -8124,32 +8135,40 @@ three/build/three.module.js:
   }
 
   // --- ユキ（3Dちびキャラv2: ニット帽＋ボブ髪。顔テクスチャ・腕脚アニメ付き） ---
-  function faceTexture() {
+  function faceTexture(closed) {
     var c = document.createElement("canvas");
     c.width = 256; c.height = 128;
     var x = c.getContext("2d");
     x.fillStyle = "#ffe9da"; x.fillRect(0, 0, 256, 128);
     var cxF = 64;
-    // ほお（やわらかい血色）
-    var bl = x.createRadialGradient(cxF - 19, 86, 1, cxF - 19, 86, 8);
-    bl.addColorStop(0, "rgba(255,150,140,0.6)"); bl.addColorStop(1, "rgba(255,150,140,0)");
-    x.fillStyle = bl; x.fillRect(cxF - 29, 76, 20, 20);
-    var br = x.createRadialGradient(cxF + 19, 86, 1, cxF + 19, 86, 8);
-    br.addColorStop(0, "rgba(255,150,140,0.6)"); br.addColorStop(1, "rgba(255,150,140,0)");
-    x.fillStyle = br; x.fillRect(cxF + 9, 76, 20, 20);
-    // 目（まるい黒目＋大小ハイライト）
-    function eye(ex) {
-      x.fillStyle = "#33291f";
-      x.beginPath(); x.ellipse(ex, 73, 5.6, 7.2, 0, 0, 6.3); x.fill();
-      x.fillStyle = "#fff";
-      x.beginPath(); x.arc(ex - 1.8, 70.2, 2.2, 0, 6.3); x.fill();
-      x.fillStyle = "rgba(255,255,255,0.85)";
-      x.beginPath(); x.arc(ex + 1.7, 75.8, 1.1, 0, 6.3); x.fill();
+    // ほお（やわらかい血色・広め）
+    [-1, 1].forEach(function (s2) {
+      var g = x.createRadialGradient(cxF + s2 * 20, 88, 1, cxF + s2 * 20, 88, 9.5);
+      g.addColorStop(0, "rgba(255,148,138,0.55)"); g.addColorStop(1, "rgba(255,148,138,0)");
+      x.fillStyle = g; x.fillRect(cxF + s2 * 20 - 11, 77, 22, 22);
+    });
+    if (closed) {
+      // まばたき（にっこり閉じ目）
+      x.strokeStyle = "#33291f"; x.lineWidth = 2.6; x.lineCap = "round";
+      [-12, 12].forEach(function (ex) {
+        x.beginPath(); x.arc(cxF + ex, 72, 5.4, Math.PI * 0.15, Math.PI * 0.85); x.stroke();
+      });
+    } else {
+      // 大きなうるうるの瞳
+      [-12, 12].forEach(function (ex) {
+        var g2 = x.createLinearGradient(0, 66, 0, 83);
+        g2.addColorStop(0, "#3a2d22"); g2.addColorStop(1, "#6b4a33");
+        x.fillStyle = g2;
+        x.beginPath(); x.ellipse(cxF + ex, 74, 6.2, 8.6, 0, 0, 6.3); x.fill();
+        x.fillStyle = "#fff";
+        x.beginPath(); x.arc(cxF + ex - 2.1, 70.5, 2.5, 0, 6.3); x.fill();
+        x.fillStyle = "rgba(255,255,255,0.9)";
+        x.beginPath(); x.arc(cxF + ex + 1.9, 77.5, 1.25, 0, 6.3); x.fill();
+      });
     }
-    eye(cxF - 10.5); eye(cxF + 10.5);
-    // くち（にっこり小さく）
-    x.strokeStyle = "#c96b58"; x.lineWidth = 1.8; x.lineCap = "round";
-    x.beginPath(); x.arc(cxF, 84, 2.6, 0.35, Math.PI - 0.35); x.stroke();
+    // くち（にっこり）
+    x.strokeStyle = "#c96b58"; x.lineWidth = 1.9; x.lineCap = "round";
+    x.beginPath(); x.arc(cxF, 86, 2.7, 0.35, Math.PI - 0.35); x.stroke();
     var tx = new T3.CanvasTexture(c);
     tx.colorSpace = T3.SRGBColorSpace;
     return tx;
@@ -8203,30 +8222,47 @@ three/build/three.module.js:
       return pv;
     }
     var armL = makeArm(-1), armR = makeArm(1);
-    // 頭（小さめ・顔テクスチャ）＋ボブ髪＋ニット帽
+    // 頭v3: 大きな瞳＋ぱっつん前髪＋後ろにちょこんとニット帽
     var head = new T3.Group();
     head.position.set(0, 7.95, 0.1);
-    var skull = new T3.Mesh(new T3.SphereGeometry(2.6, 28, 20), toonMat(0xffffff, { map: faceTexture() }));
+    G3.faceOpen = faceTexture(false);
+    G3.faceClosed = faceTexture(true);
+    G3.skullMat = toonMat(0xffffff, { map: G3.faceOpen });
+    var skull = new T3.Mesh(new T3.SphereGeometry(2.75, 28, 20), G3.skullMat);
+    skull.scale.set(1, 0.97, 0.97);
     skull.castShadow = true;
     head.add(skull);
-    // ボブ髪（横・後ろ・前髪）
-    var sh1 = mesh(sph, HAIR); sh1.scale.set(0.85, 1.15, 0.95); sh1.position.set(-2.25, -0.95, 0.25); head.add(sh1);
-    var sh2 = sh1.clone(); sh2.position.x = 2.25; head.add(sh2);
-    var bk = mesh(sph, HAIR); bk.scale.set(2.0, 1.5, 1.15); bk.position.set(0, -0.95, -1.7); head.add(bk);
-    // ニット帽（クリーム×赤バンド＋ぼんぼん）
+    // ボブ髪（後ろのボリューム・横・もみあげ）
+    var bk = mesh(sph, HAIR); bk.scale.set(2.6, 2.5, 1.9); bk.position.set(0, 0.3, -1.35); head.add(bk);
+    var sh1 = mesh(sph, HAIR); sh1.scale.set(0.95, 1.5, 1.05); sh1.position.set(-2.35, -0.7, 0.2); head.add(sh1);
+    var sh2 = sh1.clone(); sh2.position.x = 2.35; head.add(sh2);
+    var st1 = mesh(sph, HAIR); st1.scale.set(0.58, 1.45, 0.58); st1.position.set(-2.45, 0.1, 1.3); head.add(st1);
+    var st2 = st1.clone(); st2.position.x = 2.45; head.add(st2);
+    // ぱっつん前髪（丸をならべたスカラップ）
+    for (var bi5 = 0; bi5 < 4; bi5++) {
+      var bx5 = -1.65 + bi5 * 1.1;
+      var bf = mesh(sph, HAIR);
+      bf.scale.set(0.8, 0.98, 0.72);
+      bf.position.set(bx5, 1.32 - Math.abs(bx5) * 0.14, 2.12);
+      head.add(bf);
+    }
+    // 小さめのニット帽（後ろに傾けてのせる）
+    var hatG = new T3.Group();
+    hatG.position.set(0, 1.75, -0.6);
+    hatG.rotation.x = -0.32;
     var hatPts = [];
-    [[2.72, 0.2], [2.66, 1.15], [2.3, 2.15], [1.45, 3.1], [0.01, 3.38]].forEach(function (p) {
+    [[2.32, 0], [2.26, 0.8], [1.92, 1.7], [1.18, 2.5], [0.01, 2.72]].forEach(function (p) {
       hatPts.push(new T3.Vector2(p[0], p[1]));
     });
-    var hat = mesh(new T3.LatheGeometry(hatPts, 22), CREAM);
-    head.add(hat);
-    var band = mesh(new T3.CylinderGeometry(2.76, 2.8, 0.85, 22, 1, true), RED);
-    band.position.y = 0.78; head.add(band);
-    var pom = mesh(sph, 0xffffff); pom.scale.set(0.78, 0.78, 0.78); pom.position.set(0, 3.66, 0); head.add(pom);
-    // シマエナガのワッペン（帽子の赤バンドに）
-    var wp = mesh(sph, 0xffffff); wp.scale.set(0.55, 0.5, 0.4); wp.position.set(1.7, 0.78, 2.1); head.add(wp);
-    var we = mesh(sph, DARK); we.scale.set(0.11, 0.11, 0.11); we.position.set(1.72, 0.9, 2.5); head.add(we);
-    var wb = mesh(sph, 0xf0a860); wb.scale.set(0.1, 0.08, 0.12); wb.position.set(1.56, 0.72, 2.52); head.add(wb);
+    hatG.add(mesh(new T3.LatheGeometry(hatPts, 22), CREAM));
+    var band = mesh(new T3.CylinderGeometry(2.36, 2.4, 0.6, 22, 1, true), RED);
+    band.position.y = 0.26; hatG.add(band);
+    var pom = mesh(sph, 0xffffff); pom.scale.set(0.68, 0.68, 0.68); pom.position.set(0, 2.9, 0); hatG.add(pom);
+    head.add(hatG);
+    // シマエナガの髪どめ（前髪の上・トレードマーク）
+    var wp = mesh(sph, 0xffffff); wp.scale.set(0.6, 0.55, 0.45); wp.position.set(-1.78, 1.62, 1.98); head.add(wp);
+    var we = mesh(sph, DARK); we.scale.set(0.12, 0.12, 0.12); we.position.set(-1.7, 1.75, 2.4); head.add(we);
+    var wb = mesh(sph, 0xf0a860); wb.scale.set(0.1, 0.08, 0.12); wb.position.set(-1.94, 1.55, 2.42); head.add(wb);
     root.add(head);
     root.traverse(function (o) { o.frustumCulled = false; });
     G3.yk = { root: root, legL: legL, legR: legR, armL: armL, armR: armR, head: head };
@@ -8437,6 +8473,7 @@ three/build/three.module.js:
             var ck = (Math.floor((xa0 + xa1) / 26) + Math.floor(z / 13)) % 2 === 0 ? 0.2 : 0.42;
             ck += (hash2(Math.floor(z / 5), oi + (sd + 1) * 3) - 0.5) * 0.1;
             var gc = mix3(g0, g1, Math.max(0, Math.min(1, ck)));
+            gc = mix3(gc, [0.5, 0.42, 0.08], (segP(z, 21) - 0.5) * 0.2); // 区間ごとに暖色/寒色へ
             col = [gc[0], gc[1], gc[2], 1];
           }
           mbQuadG(tm,
@@ -8464,7 +8501,7 @@ three/build/three.module.js:
       }
       mbQuad(fm, [cA - hA - 0.4, 0.06, zA], [cA - hA + 1.2, 0.06, zA], [cB - hB + 1.2, 0.06, zB], [cB - hB - 0.4, 0.06, zB], [1, 1, 1, 0.5]);
       mbQuad(fm, [cA + hA - 1.2, 0.06, zA], [cA + hA + 0.4, 0.06, zA], [cB + hB + 0.4, 0.06, zB], [cB + hB - 1.2, 0.06, zB], [1, 1, 1, 0.5]);
-      if (!w3.dam && hash2(Math.floor(z * 0.5), 77) > 0.55) {
+      if (!w3.dam && hash2(Math.floor(z * 0.5), 77) > (0.78 - segP(z, 29) * 0.45)) {
         var fu = hash2(Math.floor(z * 0.5), 81) - 0.5;
         var fx0A = cA + fu * hA * 1.3, fx0B = cB + fu * hB * 1.3;
         mbQuad(fm, [fx0A - 0.55, 0.04, zA], [fx0A + 0.55, 0.04, zA], [fx0B + 0.55, 0.04, zB], [fx0B - 0.55, 0.04, zB], [1, 1, 1, 0.12]);
@@ -8501,6 +8538,7 @@ three/build/three.module.js:
     }
     function treeAt(x2, z2, sc) {
       var tv = hash2(Math.floor(x2 * 3.7), Math.floor(z2 * 1.3));
+      tv = Math.max(0, Math.min(1, tv + (segP(z2, 27) - 0.5) * 0.6)); // 区間で針葉樹林↔白樺林に偏る
       if (snowy || tv < 0.52) spruceAt(x2, z2, sc, tv);
       else if (tv < 0.82) birchAt(x2, z2, sc);
       else fluffyAt(x2, z2, sc);
@@ -8520,8 +8558,8 @@ three/build/three.module.js:
         if (hash2(zi, pside + 309) > 0.45) {
           treeAt(cxc + sgn * (hwc + 6 + tlOff + 12 + hash2(zi, pside + 311) * 20), zc + 9 + hash2(zi, pside + 313) * 8, 0.85 + hash2(zi, pside + 315) * 0.5);
         }
-        // 草地の中の木（まばら・小道の外側のみ）
-        if (h1 < 0.42) {
+        // 草地の中の木（まばら・小道の外側のみ。区間で密度が変わる）
+        if (h1 < 0.18 + segP(zc, 23) * 0.45) {
           treeAt(cxc + sgn * (hwc + 6 + 38 + hash2(zi, pside + 57) * 30), zc + 12, 0.75 + hash2(zi, pside + 71) * 0.55);
         }
         // 切り株
@@ -8531,8 +8569,8 @@ three/build/three.module.js:
           mbLathe(tm, [[1.05, 0], [1.0, 1.6]], 8, TRK, stx, sty, zc, 1);
           mbLathe(tm, [[0.95, 1.6], [0.01, 1.66]], 8, l3([0.72, 0.6, 0.45]), stx, sty, zc, 1);
         }
-        // 川の中の岩＋白い泡のリング
-        if (h1 > 0.84) {
+        // 川の中の岩＋白い泡のリング（瀬の区間は岩だらけに）
+        if (h1 > (segP(zc, 29) > 0.6 ? 0.68 : 0.84)) {
           var rxx = cxc + sgn * (hwc - 3 - hash2(zi, pside + 91) * 7);
           var rr = 1.4 + hash2(zi, pside + 97) * 2.2;
           mbBall(tm, rr, rxx, -0.4, zc, RCK, 5, 0.72);
@@ -8563,6 +8601,44 @@ three/build/three.module.js:
             mbLathe(tm, [[1.1, 0], [0.01, 2.4]], 5, mix3(g1, [0, 0.1, 0], 0.4), gxx, gy(Math.abs(Math.abs(gxx - cxc) - hwc - 6), gxx, gzz) - 0.15, gzz, 0.7 + hash2(zi, 219 + gi2) * 0.5);
           }
         }
+      }
+    }
+    // 区間ごとのランドマーク
+    var WOOD = l3([0.52, 0.4, 0.26]), WOOD2 = l3([0.4, 0.3, 0.19]);
+    for (var sg = Math.floor(z0 / 140); sg <= Math.floor(z1 / 140); sg++) {
+      var lz = sg * 140 + hash2(sg, 911) * 100;
+      if (lz < z0 + 16 || lz > z1 - 16) continue;
+      var typ = Math.floor(hash2(sg, 913) * 4);
+      var lcx = riverCX(lz), lhw = riverHW(lz);
+      if (typ === 0 && !w3.dam) {
+        // 木の桟橋（岸から川へ張り出す）
+        var dxE = lcx - lhw - 4;
+        for (var pk = 0; pk < 5; pk++) {
+          mbBox(tm, dxE - 5 + pk * 2.35, 1.75, lz, 2.15, 0.35, 7.6, pk % 2 ? WOOD : WOOD2);
+        }
+        mbBox(tm, dxE - 4.2, -1.2, lz - 3.1, 0.9, 3.3, 0.9, WOOD2);
+        mbBox(tm, dxE + 5.0, -1.2, lz - 3.1, 0.9, 3.3, 0.9, WOOD2);
+        mbBox(tm, dxE - 4.2, -1.2, lz + 3.1, 0.9, 3.3, 0.9, WOOD2);
+        mbBox(tm, dxE + 5.0, -1.2, lz + 3.1, 0.9, 3.3, 0.9, WOOD2);
+      } else if (typ === 1) {
+        // 立て看板（小道ぞい）
+        var sx3 = lcx - lhw - 6 - 28;
+        var syg = groundY(sx3, lz);
+        mbBox(tm, sx3, syg - 0.2, lz, 0.7, 4.4, 0.7, WOOD2);
+        mbBox(tm, sx3, syg + 3.1, lz, 4.8, 2.7, 0.55, WOOD);
+      } else if (typ === 2) {
+        // 苔むした大岩
+        var bx3 = lcx - lhw - 6 - (30 + hash2(sg, 917) * 22);
+        var byg = groundY(bx3, lz);
+        mbBall(tm, 3.5, bx3, byg - 0.9, lz, RCK, 7, 0.8);
+        mbBall(tm, 2.4, bx3 + 2.9, byg - 0.7, lz + 1.7, mix3(RCK, [0, 0, 0], 0.15), 6, 0.8);
+        mbBall(tm, 1.6, bx3 - 0.6, byg + 1.9, lz - 0.4, BSH, 6, 0.55);
+      } else {
+        // 倒木
+        var fx3 = lcx - lhw - 6 - (32 + hash2(sg, 919) * 22);
+        var fyg = groundY(fx3, lz);
+        mbBox(tm, fx3, fyg - 0.15, lz, 11, 1.5, 1.6, TRK);
+        mbLathe(tm, [[0.9, 0], [0.72, 1.5]], 7, mix3(TRK, [1, 1, 1], 0.35), fx3 - 5.4, fyg + 0.1, lz, 1);
       }
     }
     if (G3.terra) { G3.scene.remove(G3.terra); G3.terra.geometry.dispose(); }
@@ -8702,6 +8778,13 @@ three/build/three.module.js:
     rodArm.rotation.x = fishing ? -1.15 : (w3.moving ? -swing * 0.5 : -0.15);
     freeArm.rotation.x = w3.moving ? swing * 0.5 : 0;
     yk.head.rotation.x = fishing ? 0.12 : 0;
+    yk.head.rotation.z = Math.sin(now / 1700) * 0.05;
+    // まばたき
+    if (G3.skullMat) {
+      var blinkT = now % 3400;
+      var wantMap = blinkT < 130 ? G3.faceClosed : G3.faceOpen;
+      if (G3.skullMat.map !== wantMap) { G3.skullMat.map = wantMap; }
+    }
     // 竿（川側へ構える。曲がりで先端が下がる）
     var bend = fs.rodBend || 0;
     var tilt = 0.95 - bend * 0.55;
