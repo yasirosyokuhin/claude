@@ -8890,10 +8890,16 @@ three/build/three.module.js:
       var bz = 120 + hash2(5, w3.rs) * 120;
       if (bz > z0 + 20 && bz < z1 - 20) {
         var bcx = riverCX(bz), bhw = riverHW(bz);
-        var BW = bhw * 2 + 70;
+        // 両岸の丘に埋まるまで伸ばし、陸側にも橋脚を並べる（浮いた端を作らない）
+        var BW = (bhw + 260) * 2;
         var GIRD = l3([0.42, 0.45, 0.5]), DECK = l3([0.56, 0.57, 0.6]);
         mbBox(tm, bcx - bhw * 0.5, -2.5, bz, 4, 17, 4, GIRD);
         mbBox(tm, bcx + bhw * 0.5, -2.5, bz, 4, 17, 4, GIRD);
+        for (var bp = 0; bp < 4; bp++) {
+          var bpo = bhw + 22 + bp * 58;
+          if (groundY(bcx - bpo, bz) < 13) mbBox(tm, bcx - bpo, -2.5, bz, 3.2, 17, 3.2, GIRD);
+          if (groundY(bcx + bpo, bz) < 13) mbBox(tm, bcx + bpo, -2.5, bz, 3.2, 17, 3.2, GIRD);
+        }
         mbBox(tm, bcx, 14.5, bz, BW, 2.4, 9.5, DECK);
         mbBox(tm, bcx, 16.9, bz - 4.2, BW, 1.7, 0.8, GIRD);
         mbBox(tm, bcx, 16.9, bz + 4.2, BW, 1.7, 0.8, GIRD);
@@ -9668,7 +9674,10 @@ three/build/three.module.js:
         var ease = 1 - (1 - lt) * (1 - lt);
         var pL = w3proj(fs.castTX || 0, fs.castTY || (w3.pz + 80));
         var szMul = Math.max(0.5, Math.min(1.05, pL.s * 0.32));
-        var lcx = pL.x, lcy = pL.y + 6;
+        // 魚の絵が画面外に見切れないように位置をクランプ
+        var halfWL = 112 * (0.62 + 0.42) * szMul, halfHL = 62 * (0.62 + 0.42) * szMul;
+        var lcx = Math.max(halfWL + 4, Math.min(356 - halfWL, pL.x));
+        var lcy = Math.max(halfHL + 150 * szMul + 66, Math.min(474, pL.y + 6));
         var fy = lcy - ease * 140 * szMul + Math.sin(lt * 9) * 3 * (1 - lt);
         var rot = -0.45 + ease * 0.55;
         var scl = (0.62 + ease * 0.42) * szMul;
