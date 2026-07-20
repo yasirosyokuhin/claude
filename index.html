@@ -8354,34 +8354,34 @@ three/build/three.module.js:
     var x = c.getContext("2d");
     x.fillStyle = "#ffe9da"; x.fillRect(0, 0, 256, 128);
     var cxF = 64;
-    // ほお（やわらかい血色・広め）
+    // ほお（やわらかい血色・大きめ・低め）
     [-1, 1].forEach(function (s2) {
-      var g = x.createRadialGradient(cxF + s2 * 20, 88, 1, cxF + s2 * 20, 88, 9.5);
-      g.addColorStop(0, "rgba(255,148,138,0.55)"); g.addColorStop(1, "rgba(255,148,138,0)");
-      x.fillStyle = g; x.fillRect(cxF + s2 * 20 - 11, 77, 22, 22);
+      var g = x.createRadialGradient(cxF + s2 * 22, 92, 1, cxF + s2 * 22, 92, 11);
+      g.addColorStop(0, "rgba(255,145,135,0.62)"); g.addColorStop(1, "rgba(255,145,135,0)");
+      x.fillStyle = g; x.fillRect(cxF + s2 * 22 - 12, 80, 24, 24);
     });
     if (closed) {
       // まばたき（にっこり閉じ目）
-      x.strokeStyle = "#33291f"; x.lineWidth = 2.6; x.lineCap = "round";
-      [-12, 12].forEach(function (ex) {
-        x.beginPath(); x.arc(cxF + ex, 72, 5.4, Math.PI * 0.15, Math.PI * 0.85); x.stroke();
+      x.strokeStyle = "#33291f"; x.lineWidth = 3.2; x.lineCap = "round";
+      [-13, 13].forEach(function (ex) {
+        x.beginPath(); x.arc(cxF + ex, 74, 6.4, Math.PI * 0.15, Math.PI * 0.85); x.stroke();
       });
     } else {
-      // 大きなうるうるの瞳
-      [-12, 12].forEach(function (ex) {
-        var g2 = x.createLinearGradient(0, 66, 0, 83);
-        g2.addColorStop(0, "#3a2d22"); g2.addColorStop(1, "#6b4a33");
+      // 大きなうるうるの瞳（丸く・低めに）
+      [-13, 13].forEach(function (ex) {
+        var g2 = x.createLinearGradient(0, 66, 0, 87);
+        g2.addColorStop(0, "#38291d"); g2.addColorStop(1, "#7a5136");
         x.fillStyle = g2;
-        x.beginPath(); x.ellipse(cxF + ex, 74, 6.2, 8.6, 0, 0, 6.3); x.fill();
+        x.beginPath(); x.ellipse(cxF + ex, 76, 7.3, 10, 0, 0, 6.3); x.fill();
         x.fillStyle = "#fff";
-        x.beginPath(); x.arc(cxF + ex - 2.1, 70.5, 2.5, 0, 6.3); x.fill();
-        x.fillStyle = "rgba(255,255,255,0.9)";
-        x.beginPath(); x.arc(cxF + ex + 1.9, 77.5, 1.25, 0, 6.3); x.fill();
+        x.beginPath(); x.arc(cxF + ex - 2.4, 71.5, 3.1, 0, 6.3); x.fill();
+        x.fillStyle = "rgba(255,255,255,0.92)";
+        x.beginPath(); x.arc(cxF + ex + 2.4, 80.5, 1.55, 0, 6.3); x.fill();
       });
     }
-    // くち（にっこり）
-    x.strokeStyle = "#c96b58"; x.lineWidth = 1.9; x.lineCap = "round";
-    x.beginPath(); x.arc(cxF, 86, 2.7, 0.35, Math.PI - 0.35); x.stroke();
+    // くち（ちいさくにっこり）
+    x.strokeStyle = "#c96b58"; x.lineWidth = 2.1; x.lineCap = "round";
+    x.beginPath(); x.arc(cxF, 90, 2.4, 0.35, Math.PI - 0.35); x.stroke();
     var tx = new T3.CanvasTexture(c);
     tx.colorSpace = T3.SRGBColorSpace;
     return tx;
@@ -8389,93 +8389,92 @@ three/build/three.module.js:
 
   function t3buildYuki() {
     var root = new T3.Group();
-    var RED = 0xd7444c, CREAM = 0xf6f3e8, HAIR = 0xefe7d2, AQUA = 0x3f96a4, DARK = 0x2a2320;
+    var RED = 0xd7444c, CREAM = 0xf6f3e8, HAIR = 0xd9b385, AQUA = 0x3f96a4, DARK = 0x2a2320;
     function mesh(geo, hex, opt) {
       var mm = new T3.Mesh(geo, toonMat(hex, opt));
       mm.castShadow = true;
       return mm;
     }
     var sph = new T3.SphereGeometry(1, 22, 16);
-    // 脚＋ブーツ
-    var legGeo = new T3.CapsuleGeometry(0.4, 0.85, 4, 10);
+    // v4: 2頭身。頭が胴体より大きい・手足は短いスタブ・たまご型コート
+    // 脚＋ブーツ（すそに隠れる短いスタブ）
+    var legGeo = new T3.CapsuleGeometry(0.42, 0.5, 4, 10);
     var legL = new T3.Group(), legR = new T3.Group();
-    legL.position.set(-0.8, 1.55, 0); legR.position.set(0.8, 1.55, 0);
+    legL.position.set(-0.78, 1.15, 0); legR.position.set(0.78, 1.15, 0);
     [legL, legR].forEach(function (lg) {
-      var lm = mesh(legGeo, 0x8a7462); lm.position.set(0, -0.7, 0); lg.add(lm);
-      var bt = mesh(sph, 0x4a3a30); bt.scale.set(0.6, 0.42, 0.82); bt.position.set(0, -1.28, 0.22); lg.add(bt);
+      var lm = mesh(legGeo, 0x8a7462); lm.position.set(0, -0.5, 0); lg.add(lm);
+      var bt = mesh(sph, 0x4a3a30); bt.scale.set(0.62, 0.46, 0.85); bt.position.set(0, -0.92, 0.24); lg.add(bt);
       root.add(lg);
     });
-    // ダッフルコート（なめらかな回転体）
+    // ダッフルコート（まるいたまご型・低め）
     var coatPts = [];
-    [[0.01, 0], [2.32, 0.08], [2.48, 0.95], [2.02, 3.2], [1.52, 4.5], [1.12, 5.15], [0.01, 5.35]].forEach(function (p) {
+    [[0.01, 0], [2.05, 0.05], [2.42, 0.7], [2.5, 1.5], [2.32, 2.5], [1.9, 3.3], [1.45, 3.75], [0.01, 3.95]].forEach(function (p) {
       coatPts.push(new T3.Vector2(p[0], p[1]));
     });
-    var coat = mesh(new T3.LatheGeometry(coatPts, 24), RED);
-    coat.position.y = 1.05;
+    var coat = mesh(new T3.LatheGeometry(coatPts, 26), RED);
+    coat.position.y = 0.9;
     root.add(coat);
-    var trim = mesh(new T3.CylinderGeometry(2.4, 2.45, 0.46, 24), CREAM);
-    trim.position.y = 1.3; root.add(trim);
+    var trim = mesh(new T3.CylinderGeometry(2.28, 2.38, 0.5, 26), CREAM);
+    trim.position.y = 1.15; root.add(trim);
     // トグルボタン（表面に沿わせる）
-    var b1 = mesh(sph, CREAM); b1.scale.set(0.26, 0.34, 0.16); b1.position.set(0, 3.9, 1.85); root.add(b1);
-    var b2 = mesh(sph, CREAM); b2.scale.set(0.26, 0.34, 0.16); b2.position.set(0, 2.9, 2.18); root.add(b2);
-    // マフラー＋たれ
-    var scarf = mesh(new T3.TorusGeometry(1.38, 0.5, 10, 20), AQUA);
-    scarf.rotation.x = Math.PI / 2; scarf.position.y = 6.05; root.add(scarf);
-    var tail = mesh(new T3.CapsuleGeometry(0.4, 1.0, 4, 10), AQUA);
-    tail.position.set(0.8, 5.25, 1.45); tail.rotation.z = 0.22; tail.rotation.x = 0.18; root.add(tail);
-    // 腕＋ミトン
-    var armGeo = new T3.CapsuleGeometry(0.48, 1.25, 4, 10);
+    var b1 = mesh(sph, CREAM); b1.scale.set(0.28, 0.36, 0.16); b1.position.set(0, 3.55, 2.1); root.add(b1);
+    var b2 = mesh(sph, CREAM); b2.scale.set(0.28, 0.36, 0.16); b2.position.set(0, 2.55, 2.42); root.add(b2);
+    // マフラー（あごまわりの太いえり巻き）＋たれ
+    var scarf = mesh(new T3.TorusGeometry(2.3, 0.58, 12, 22), AQUA);
+    scarf.rotation.x = Math.PI / 2; scarf.position.y = 4.55; root.add(scarf);
+    var tail = mesh(new T3.CapsuleGeometry(0.42, 0.9, 4, 10), AQUA);
+    tail.position.set(0.9, 3.8, 2.15); tail.rotation.z = 0.2; tail.rotation.x = 0.24; root.add(tail);
+    // 腕＋ミトン（短くぷにっと）
+    var armGeo = new T3.CapsuleGeometry(0.44, 0.8, 4, 10);
     function makeArm(sx) {
       var pv = new T3.Group();
-      pv.position.set(sx * 2.15, 5.5, 0);
-      var am = mesh(armGeo, RED); am.position.set(0, -0.85, 0); pv.add(am);
-      var mt = mesh(sph, CREAM); mt.scale.set(0.58, 0.58, 0.58); mt.position.set(0, -1.68, 0); pv.add(mt);
-      pv.rotation.z = -sx * 0.2;
+      pv.position.set(sx * 2.05, 4.35, 0);
+      var am = mesh(armGeo, RED); am.position.set(0, -0.6, 0); pv.add(am);
+      var mt = mesh(sph, CREAM); mt.scale.set(0.56, 0.56, 0.56); mt.position.set(0, -1.28, 0); pv.add(mt);
+      pv.rotation.z = -sx * 0.3;
       root.add(pv);
       return pv;
     }
     var armL = makeArm(-1), armR = makeArm(1);
-    // 頭v3: 大きな瞳＋ぱっつん前髪＋後ろにちょこんとニット帽
+    // 頭v4: 胴体より大きい頭・大きな瞳・ぱっつん前髪・ちょこんとニット帽
     var head = new T3.Group();
-    head.position.set(0, 7.95, 0.1);
+    head.position.set(0, 6.55, 0.1);
     G3.faceOpen = faceTexture(false);
     G3.faceClosed = faceTexture(true);
     G3.skullMat = toonMat(0xffffff, { map: G3.faceOpen });
-    var skull = new T3.Mesh(new T3.SphereGeometry(2.75, 28, 20), G3.skullMat);
-    skull.scale.set(1, 0.97, 0.97);
+    var skull = new T3.Mesh(new T3.SphereGeometry(3.3, 30, 22), G3.skullMat);
+    skull.scale.set(1, 0.92, 0.95);
     skull.castShadow = true;
     head.add(skull);
-    // ボブ髪（後ろのボリューム・横・もみあげ）
-    var bk = mesh(sph, HAIR); bk.scale.set(2.6, 2.5, 1.9); bk.position.set(0, 0.3, -1.35); head.add(bk);
-    var sh1 = mesh(sph, HAIR); sh1.scale.set(0.95, 1.5, 1.05); sh1.position.set(-2.35, -0.7, 0.2); head.add(sh1);
-    var sh2 = sh1.clone(); sh2.position.x = 2.35; head.add(sh2);
-    var st1 = mesh(sph, HAIR); st1.scale.set(0.58, 1.45, 0.58); st1.position.set(-2.45, 0.1, 1.3); head.add(st1);
-    var st2 = st1.clone(); st2.position.x = 2.45; head.add(st2);
-    // ぱっつん前髪（丸をならべたスカラップ）
-    for (var bi5 = 0; bi5 < 4; bi5++) {
-      var bx5 = -1.65 + bi5 * 1.1;
+    // ボブ髪（後ろの大きなボリューム・頬横のふさ）
+    var bk = mesh(sph, HAIR); bk.scale.set(3.58, 3.28, 2.78) ; bk.position.set(0, 0.4, -0.85); head.add(bk);
+    var sh1 = mesh(sph, HAIR); sh1.scale.set(0.85, 1.35, 1.05); sh1.position.set(-2.72, -0.5, 0.85); head.add(sh1);
+    var sh2 = sh1.clone(); sh2.position.x = 2.72; head.add(sh2);
+    // ぱっつん前髪（丸をならべたスカラップ・こめかみまで巻き込む）
+    for (var bi5 = 0; bi5 < 7; bi5++) {
+      var bx5 = -3.0 + bi5 * 1.0;
       var bf = mesh(sph, HAIR);
-      bf.scale.set(0.8, 0.98, 0.72);
-      bf.position.set(bx5, 1.32 - Math.abs(bx5) * 0.14, 2.12);
+      bf.scale.set(0.85, 0.92 + Math.abs(bx5) * 0.14, 0.6);
+      bf.position.set(bx5, 1.6 - Math.abs(bx5) * 0.28, 2.42 - Math.abs(bx5) * 0.3);
       head.add(bf);
     }
-    // 小さめのニット帽（後ろに傾けてのせる）
+    // 小さめのニット帽（後ろに傾けてちょこんと）
     var hatG = new T3.Group();
-    hatG.position.set(0, 1.75, -0.6);
-    hatG.rotation.x = -0.32;
+    hatG.position.set(0, 3.55, -1.05);
+    hatG.rotation.x = -0.46;
     var hatPts = [];
-    [[2.32, 0], [2.26, 0.8], [1.92, 1.7], [1.18, 2.5], [0.01, 2.72]].forEach(function (p) {
+    [[1.98, 0], [1.92, 0.55], [1.6, 1.15], [0.95, 1.65], [0.01, 1.8]].forEach(function (p) {
       hatPts.push(new T3.Vector2(p[0], p[1]));
     });
     hatG.add(mesh(new T3.LatheGeometry(hatPts, 22), CREAM));
-    var band = mesh(new T3.CylinderGeometry(2.36, 2.4, 0.6, 22, 1, true), RED);
-    band.position.y = 0.26; hatG.add(band);
-    var pom = mesh(sph, 0xffffff); pom.scale.set(0.68, 0.68, 0.68); pom.position.set(0, 2.9, 0); hatG.add(pom);
+    var band = mesh(new T3.CylinderGeometry(2.02, 2.06, 0.5, 22, 1, true), RED);
+    band.position.y = 0.18; hatG.add(band);
+    var pom = mesh(sph, 0xffffff); pom.scale.set(0.56, 0.56, 0.56); pom.position.set(0, 1.92, 0); hatG.add(pom);
     head.add(hatG);
     // シマエナガの髪どめ（前髪の上・トレードマーク）
-    var wp = mesh(sph, 0xffffff); wp.scale.set(0.6, 0.55, 0.45); wp.position.set(-1.78, 1.62, 1.98); head.add(wp);
-    var we = mesh(sph, DARK); we.scale.set(0.12, 0.12, 0.12); we.position.set(-1.7, 1.75, 2.4); head.add(we);
-    var wb = mesh(sph, 0xf0a860); wb.scale.set(0.1, 0.08, 0.12); wb.position.set(-1.94, 1.55, 2.42); head.add(wb);
+    var wp = mesh(sph, 0xffffff); wp.scale.set(0.46, 0.4, 0.3); wp.position.set(-1.6, 2.15, 2.35); head.add(wp);
+    var we = mesh(sph, DARK); we.scale.set(0.1, 0.1, 0.1); we.position.set(-1.52, 2.26, 2.63); head.add(we);
+    var wb = mesh(sph, 0xf0a860); wb.scale.set(0.09, 0.07, 0.1); wb.position.set(-1.74, 2.1, 2.64); head.add(wb);
     root.add(head);
     root.traverse(function (o) { o.frustumCulled = false; });
     G3.yk = { root: root, legL: legL, legR: legR, armL: armL, armR: armR, head: head };
