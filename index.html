@@ -8532,6 +8532,17 @@ three/build/three.module.js:
     // 既存アニメ配線を壊さないためのダミー関節（ミクは単一メッシュ＝全身で動かす）
     G3.yk = { root: root, legL: dummy(), legR: dummy(), armL: dummy(), armR: dummy(), head: dummy(), mesh: mesh };
     G3.skullMat = null; // 顔テクスチャ差し替え(まばたき)は無効
+    // 足元候補点（最下部）を集める。毎フレーム回転後の最下点を地面に合わせて“接地”させる
+    var pos = mesh.geometry.attributes.position, oy = mesh.position.y;
+    var mnY = Infinity, mxY = -Infinity;
+    for (var i = 0; i < pos.count; i++) { var y = pos.getY(i); if (y < mnY) mnY = y; if (y > mxY) mxY = y; }
+    var thr = mnY + (mxY - mnY) * 0.13;
+    var all = [];
+    for (var j = 0; j < pos.count; j++) { var y2 = pos.getY(j); if (y2 <= thr) all.push(pos.getX(j), y2 + oy, pos.getZ(j)); }
+    var cnt = all.length / 3, stepc = Math.max(1, Math.floor(cnt / 180)), fc = [];
+    for (var k = 0; k < cnt; k += stepc) fc.push(all[k * 3], all[k * 3 + 1], all[k * 3 + 2]);
+    G3.yk.footCands = new Float32Array(fc);
+    G3.yk.tmpFoot = new T3.Vector3();
     return root;
   }
 
@@ -9275,20 +9286,30 @@ three/build/three.module.js:
     var moving = w3.moving;
     var fishing = fs.phase === "cast" || fs.phase === "wait" || fs.phase === "bite" || fs.phase === "fight";
     var step = now / 140;                 // 歩調
-    // 歩行中は足を接地させたまま（上下に浮かせない）。呼吸のゆらぎのみアイドルで
-    var bob = moving ? 0 : Math.sin(now / 900) * 0.05;
+    var bob = moving ? 0 : Math.sin(now / 900) * 0.05; // アイドルの呼吸のみ
     var dW = w3.depth || 0;
     var gY = dW > 0.05 ? 1.5 - dW * 0.95 : groundY(w3.px, w3.pz);
     if (w3.drowning) { gY = -0.4; }
-    yk.root.position.set(w3.px, gY + bob, w3.pz);
+    // まず向き・傾きを決める
     if (w3.drowning) {
       yk.root.rotation.x = 0; yk.root.rotation.z = 0;
       yk.root.rotation.y += dt * 10;
     } else {
-      // ペンギン歩き: 足元を軸に左右へ大きくゆれ（2歩で1周）＋前後の踏み込み。関節なしでも“歩き”に見せる
+      // ペンギン歩き: 足元を軸に左右へゆれ（2歩で1周）＋前後の踏み込み。関節なしでも“歩き”に見せる
       yk.root.rotation.z = moving ? Math.sin(step) * 0.2 : 0;
       yk.root.rotation.x = moving ? Math.sin(step * 2) * 0.07 : (fishing ? 0.05 : Math.sin(now / 1600) * 0.02);
     }
+    // 接地補正: 傾けた後の“最も低い足”をちょうど地面に合わせる（浮き/めり込みを防ぐ）
+    var footDrop = 0;
+    if (yk.footCands && !w3.drowning) {
+      var fcs = yk.footCands, tv = yk.tmpFoot, sc = yk.root.scale.x, eul = yk.root.rotation, lo = Infinity;
+      for (var fi = 0; fi < fcs.length; fi += 3) {
+        tv.set(fcs[fi], fcs[fi + 1], fcs[fi + 2]).applyEuler(eul);
+        if (tv.y * sc < lo) lo = tv.y * sc;
+      }
+      footDrop = lo; // 最下点の(root原点からの)相対高さ
+    }
+    yk.root.position.set(w3.px, gY + bob - footDrop, w3.pz);
     // まばたき
     if (G3.skullMat) {
       var blinkT = now % 3400;
