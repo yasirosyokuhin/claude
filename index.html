@@ -360,6 +360,14 @@
   .choice-item .ci-desc { font-size: 12px; color: var(--sub-ink); margin-top: 2px; }
   .choice-item.selected { border-color: var(--accent); background: #eefaf6; }
   .section-label { font-size: 13px; color: var(--sub-ink); font-weight: 700; margin: 10px 0 6px; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .env-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--card-bg); border: 2px solid #e2ebe8; border-radius: 999px;
+    padding: 8px 13px; font-size: 14px; font-weight: 700; color: var(--ink);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .env-chip.selected { border-color: var(--accent); background: #eefaf6; color: var(--accent-dark); }
   .shop-price { font-size: 13px; font-weight: 800; color: var(--accent-dark); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .shop-price.ng { color: #b3492f; opacity: .7; }
   .shop-owned { font-size: 12px; font-weight: 700; color: #3f9d63; white-space: nowrap; }
@@ -1007,6 +1015,12 @@
     <div id="lureSection" class="hidden">
       <div class="section-label">② ルアー／エサを選ぶ</div>
       <div id="lureList" class="choice-list"></div>
+    </div>
+    <div id="envSection" class="hidden">
+      <div class="section-label">③ 時間帯</div>
+      <div id="timeChips" class="chip-row"></div>
+      <div class="section-label">④ 天気</div>
+      <div id="weatherChips" class="chip-row"></div>
     </div>
     <div class="btn-row">
       <button class="btn" id="startFishingBtn" data-action="start-fishing" disabled>🎣 釣り開始</button>
@@ -7313,7 +7327,9 @@ three/build/three.module.js:
     biteTimeoutTimer: null,
     biteActive: false,
     biteWindowMs: 1300,
-    prevScreenBeforeZukan: "screen-title"
+    prevScreenBeforeZukan: "screen-title",
+    chosenTime: null,   // 通常モードで選んだ時間帯キー（null=実時刻におまかせ）
+    chosenWeather: null // 通常モードで選んだ天気（null=日替わりにおまかせ）
   };
 
   var save = loadSave();
@@ -7736,6 +7752,45 @@ three/build/three.module.js:
         '<div class="ci-text"><div class="ci-name">' + rod.name + '</div><div class="ci-desc">' + rod.desc + '</div></div>';
       item.addEventListener("click", function () { selectRod(rod.id); });
       rodList.appendChild(item);
+    });
+    renderEnvPicker();
+  }
+
+  // 時間帯・天気の切り替え（通常モードのみ。大釣行中はカード/ラウンドで決まるので非表示）
+  function renderEnvPicker() {
+    var sec = document.getElementById("envSection");
+    if (run && trip && trip.runMode) { sec.classList.add("hidden"); return; }
+    sec.classList.remove("hidden");
+    var TIME_CHIPS = [
+      { key: null, label: "おまかせ", emoji: "🕒" },
+      { key: "asa", label: "朝マズメ", emoji: "🌅" },
+      { key: "hiru", label: "日中", emoji: "☀️" },
+      { key: "yuu", label: "夕マズメ", emoji: "🌇" },
+      { key: "yoru", label: "夜釣り", emoji: "🌙" }
+    ];
+    var WEATHER_CHIPS = [
+      { key: null, label: "おまかせ", emoji: "🎲" },
+      { key: "sun", label: "晴れ", emoji: "☀️" },
+      { key: "cloud", label: "くもり", emoji: "☁️" },
+      { key: "rain", label: "雨", emoji: "☔" }
+    ];
+    var tRow = document.getElementById("timeChips");
+    tRow.innerHTML = "";
+    TIME_CHIPS.forEach(function (c) {
+      var el = document.createElement("div");
+      el.className = "env-chip" + (state.chosenTime === c.key ? " selected" : "");
+      el.innerHTML = '<span>' + c.emoji + '</span>' + c.label;
+      el.addEventListener("click", function () { state.chosenTime = c.key; renderEnvPicker(); });
+      tRow.appendChild(el);
+    });
+    var wRow = document.getElementById("weatherChips");
+    wRow.innerHTML = "";
+    WEATHER_CHIPS.forEach(function (c) {
+      var el = document.createElement("div");
+      el.className = "env-chip" + (state.chosenWeather === c.key ? " selected" : "");
+      el.innerHTML = '<span>' + c.emoji + '</span>' + c.label;
+      el.addEventListener("click", function () { state.chosenWeather = c.key; renderEnvPicker(); });
+      wRow.appendChild(el);
     });
   }
 
@@ -9984,6 +10039,7 @@ three/build/three.module.js:
       return run.weather || "sun";
     }
     if (trip && trip.rain) return "rain";
+    if (state.chosenWeather) return state.chosenWeather;
     return (state.daily && state.daily.weather) || "sun";
   }
 
@@ -11547,13 +11603,15 @@ three/build/three.module.js:
     document.getElementById("fishLocName").textContent = loc ? loc.name : "";
     showScreen("screen-fish");
     resetFishStage();
-    state.time = (run && trip && trip.runMode) ? runTimeDef() : timeInfo();
+    state.time = (run && trip && trip.runMode) ? runTimeDef()
+      : (state.chosenTime && TIME_DEFS[state.chosenTime]) ? TIME_DEFS[state.chosenTime]
+      : timeInfo();
     if (loc) renderStageScene(loc);
     clearFishShadow();
 
     state.daily = dailyInfo();
     var badge = document.getElementById("timeBadge");
-    badge.textContent = (WEATHER_INFO[state.daily.weather] || {}).emoji + " " + state.time.label;
+    badge.textContent = (WEATHER_INFO[effWeather()] || {}).emoji + " " + state.time.label;
     badge.className = "time-badge" + (state.time.mazume ? " mazume" : "");
     document.getElementById("muteBtn").textContent = SFX.muted() ? "🔇" : "🔊";
 
@@ -12242,7 +12300,7 @@ three/build/three.module.js:
       var w = base * mult * rodPower[tier];  // 竿のクラスで大物ほど掛かりにくく
       var dl = state.daily;
       if (dl && dl.hot.indexOf(fid) >= 0) w *= 2;
-      var rainNow = (dl && dl.weather === "rain") || (typeof trip !== "undefined" && trip && trip.rain);
+      var rainNow = effWeather() === "rain";
       if (rainNow && (fid === "amemasu" || fid === "oshorokoma" || fid === "ito")) w *= 1.5;
       if (w > 0) {
         total += w;
