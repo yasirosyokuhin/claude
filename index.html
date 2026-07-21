@@ -8524,6 +8524,7 @@ three/build/three.module.js:
   }
   function t3buildMiku() {
     var root = new T3.Group();
+    root.rotation.order = "YXZ"; // 向き(y)→前傾(x)→横ゆれ(z)の順で回す
     var mesh = buildMikuMesh();
     root.add(mesh);
     root.traverse(function (o) { o.frustumCulled = false; });
@@ -8775,7 +8776,7 @@ three/build/three.module.js:
       G3.depthMat = curvePatch(new T3.MeshDepthMaterial({ depthPacking: T3.RGBADepthPacking }), false);
       // キャラ＋竿（川に対して人間サイズに縮小）
       var ykRoot = t3buildMiku();
-      ykRoot.scale.set(3.2, 3.2, 3.2);
+      ykRoot.scale.set(3.6, 3.6, 3.6);
       G3.scene.add(ykRoot);
       G3.rodG = new T3.Group();
       var rodM = new T3.Mesh(new T3.CylinderGeometry(0.07, 0.17, 12, 7), toonMat(0x54412e));
@@ -9271,24 +9272,23 @@ three/build/three.module.js:
     while (dy > Math.PI) dy -= Math.PI * 2;
     while (dy < -Math.PI) dy += Math.PI * 2;
     yk.root.rotation.y = cur + dy * Math.min(1, dt * 10);
-    var bob = w3.moving ? Math.abs(Math.sin(now / 130)) * 0.32 : Math.sin(now / 900) * 0.06;
+    var moving = w3.moving;
+    var fishing = fs.phase === "cast" || fs.phase === "wait" || fs.phase === "bite" || fs.phase === "fight";
+    var step = now / 140;                 // 歩調
+    // 歩行中は足を接地させたまま（上下に浮かせない）。呼吸のゆらぎのみアイドルで
+    var bob = moving ? 0 : Math.sin(now / 900) * 0.05;
     var dW = w3.depth || 0;
     var gY = dW > 0.05 ? 1.5 - dW * 0.95 : groundY(w3.px, w3.pz);
     if (w3.drowning) { gY = -0.4; }
     yk.root.position.set(w3.px, gY + bob, w3.pz);
-    if (w3.drowning) yk.root.rotation.y += dt * 10;
-    yk.root.rotation.z = w3.moving ? Math.sin(now / 130) * 0.05 : 0;
-    var swing = w3.moving ? Math.sin(now / 130) : 0;
-    yk.legL.rotation.x = swing * 0.65;
-    yk.legR.rotation.x = -swing * 0.65;
-    // 竿を持つ側の腕は構え、反対は振る
-    var rodArm = side > 0 ? yk.armR : yk.armL;
-    var freeArm = side > 0 ? yk.armL : yk.armR;
-    var fishing = fs.phase === "cast" || fs.phase === "wait" || fs.phase === "bite" || fs.phase === "fight";
-    rodArm.rotation.x = fishing ? -1.15 : (w3.moving ? -swing * 0.5 : -0.15);
-    freeArm.rotation.x = w3.moving ? swing * 0.5 : 0;
-    yk.head.rotation.x = fishing ? 0.12 : 0;
-    yk.head.rotation.z = Math.sin(now / 1700) * 0.05;
+    if (w3.drowning) {
+      yk.root.rotation.x = 0; yk.root.rotation.z = 0;
+      yk.root.rotation.y += dt * 10;
+    } else {
+      // ペンギン歩き: 足元を軸に左右へ大きくゆれ（2歩で1周）＋前後の踏み込み。関節なしでも“歩き”に見せる
+      yk.root.rotation.z = moving ? Math.sin(step) * 0.2 : 0;
+      yk.root.rotation.x = moving ? Math.sin(step * 2) * 0.07 : (fishing ? 0.05 : Math.sin(now / 1600) * 0.02);
+    }
     // まばたき
     if (G3.skullMat) {
       var blinkT = now % 3400;
