@@ -7941,6 +7941,7 @@ three/build/three.module.js:
   var w3 = { px: -50, pz: 0, face: 1, moving: 0, seed: 1, rs: 7, hw: 36, damHW: 175, dam: false, rec: {}, mAmp: 1, pFreq: 1, pBias: 0, rockBias: 0, riseK: 0.0016, damZ: 260, rodTipS: { x: 180, y: 300 } };
   var CURVE_K = 0.0011;
   var CAM = { back: 42, h: 28, lookY: 2.2, lookAhead: 32, fov: 46 };
+  var MIKU_HAND = [0.0, 1.12, 0.5]; // 竿を持たせる手元（ミクroot-local。胸元で組んだ両手）
 
   function riverCX(z) {
     return (Math.sin(z * 0.011 + w3.seed) * 24 + Math.sin(z * 0.0042 + w3.seed * 1.7) * 34) * (w3.mAmp || 1);
@@ -9221,7 +9222,7 @@ three/build/three.module.js:
     // カメラ（暴れの揺れつき・川側へ寄せる構図）
     var shx = (Math.random() * 2 - 1) * cv.shakeAmp * 0.18;
     var shy = (Math.random() * 2 - 1) * cv.shakeAmp * 0.12;
-    var camShift = Math.max(-8, Math.min(w3.dam ? 16 : 10, (riverCX(w3.pz) - w3.px) * 0.3));
+    var camShift = Math.max(-6, Math.min(w3.dam ? 9 : 7, (riverCX(w3.pz) - w3.px) * 0.3));
     var eye = [w3.px + camShift + shx, CAM.h, w3.pz - CAM.back];
     var look = [w3.px + camShift + shx * 0.5, CAM.lookY + shy, w3.pz + CAM.lookAhead];
     G3.cam.position.set(eye[0], eye[1], eye[2]);
@@ -9294,18 +9295,19 @@ three/build/three.module.js:
       var wantMap = blinkT < 130 ? G3.faceClosed : G3.faceOpen;
       if (G3.skullMat.map !== wantMap) { G3.skullMat.map = wantMap; }
     }
-    // 竿（川側へ構える。曲がりで先端が下がる）
+    // 竿：ミクの手元（胸元で組んだ手）に持たせ、ミクの正面（＝川方向）へ構える
     var bend = fs.rodBend || 0;
-    var tilt = 0.95 - bend * 0.55;
-    if (fs.phase === "cast") tilt -= Math.sin(Math.min(1, fs.castT / 0.6) * Math.PI) * 0.5; // 振り込み
-
-    var hand = [w3.px + side * 1.75, gY + bob + 2.7, w3.pz + 0.4];
-    var dir = [side * Math.sin(tilt), Math.cos(tilt), 0.08];
-    G3.rodG.position.set(hand[0], hand[1], hand[2]);
-    G3.rodG.rotation.z = -side * tilt;
-    var tip = [hand[0] + dir[0] * 8.2, hand[1] + dir[1] * 8.2, hand[2] + dir[2] * 8.2];
+    // pitch: ローカル+y(上)を前へ倒す量。0で真上、-π/2で真正面(+z)。少し上向きに構える
+    var pitch = -Math.PI / 2 + (0.5 - bend * 0.5);
+    if (fs.phase === "cast") pitch += Math.sin(Math.min(1, fs.castT / 0.6) * Math.PI) * 0.7; // 振り込みで前へ振り下ろす
+    yk.root.updateMatrixWorld();
+    var handW = new T3.Vector3(MIKU_HAND[0], MIKU_HAND[1], MIKU_HAND[2]);
+    yk.root.localToWorld(handW);
+    G3.rodG.position.copy(handW);
+    G3.rodG.rotation.set(pitch, yk.root.rotation.y + Math.PI, 0, "YXZ");
+    var tipV = new T3.Vector3(0, 12 * 0.68, 0).applyEuler(G3.rodG.rotation).add(handW);
     G3.renderer.render(G3.scene, G3.cam);
-    w3.rodTipS = w3projXYZ(tip[0], tip[1], tip[2]);
+    w3.rodTipS = w3projXYZ(tipV.x, tipV.y, tipV.z);
   }
 
   function initCanvas() {
