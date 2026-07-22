@@ -8495,12 +8495,9 @@ three/build/three.module.js:
       return out;
     }
     var prim = gj.meshes[0].primitives[0];
-    var geo = new T3.BufferGeometry();
-    geo.setAttribute("position", new T3.BufferAttribute(acc(prim.attributes.POSITION), 3));
-    geo.setAttribute("normal", new T3.BufferAttribute(acc(prim.attributes.NORMAL), 3));
-    geo.setAttribute("uv", new T3.BufferAttribute(acc(prim.attributes.TEXCOORD_0), 2));
-    geo.setIndex(new T3.BufferAttribute(acc(prim.indices), 1));
-    geo.computeBoundingBox();
+    var posArr = acc(prim.attributes.POSITION), norArr = acc(prim.attributes.NORMAL), uvArr = acc(prim.attributes.TEXCOORD_0);
+    var idxArr = acc(prim.indices);
+    var posA = new T3.BufferAttribute(posArr, 3), norA = new T3.BufferAttribute(norArr, 3), uvA = new T3.BufferAttribute(uvArr, 2);
     var mat = new T3.MeshStandardMaterial({ roughness: 0.82, metalness: 0, side: T3.FrontSide });
     // 埋め込みJPEGを取り出してテクスチャ化（非同期。読み込むまでは白で表示）
     var img = gj.images[0], ibv = gj.bufferViews[img.bufferView];
@@ -8516,29 +8513,58 @@ three/build/three.module.js:
       mat.map = tx; mat.needsUpdate = true; URL.revokeObjectURL(url);
     };
     im.src = url;
-    __mikuGeo = geo; __mikuMat = mat;
-    var mesh = new T3.Mesh(geo, mat);
-    mesh.castShadow = true;
-    mesh.position.y = -geo.boundingBox.min.y; // 足元をy=0に
-    return mesh;
+    // --- 脚を左右に切り出して振れるようにする（スカートより下＝縫い目はスカートで隠れる）---
+    // ストレイ(左足元の遊離片)を除去し、腰下を左右の脚に、それ以外を胴体に振り分け
+    var HIPY = -0.44, SPLITX = 0.11, STRAYX = -0.45; // モデルローカル座標
+    var bodyI = [], lI = [], rI = [];
+    for (var t = 0; t < idxArr.length; t += 3) {
+      var a = idxArr[t], b2 = idxArr[t + 1], c2 = idxArr[t + 2];
+      var cx = (posArr[a * 3] + posArr[b2 * 3] + posArr[c2 * 3]) / 3;
+      var cy = (posArr[a * 3 + 1] + posArr[b2 * 3 + 1] + posArr[c2 * 3 + 1]) / 3;
+      if (cx < STRAYX && cy < -0.7) continue; // ストレイ除去
+      if (cy < HIPY) { (cx < SPLITX ? lI : rI).push(a, b2, c2); }
+      else bodyI.push(a, b2, c2);
+    }
+    function subMesh(idxList) {
+      var g = new T3.BufferGeometry();
+      g.setAttribute("position", posA); g.setAttribute("normal", norA); g.setAttribute("uv", uvA);
+      g.setIndex(idxList);
+      var m = new T3.Mesh(g, mat); m.castShadow = true; m.frustumCulled = false;
+      return m;
+    }
+    // 全体のバウンディング(足元オフセット用)
+    var mnY = Infinity;
+    for (var vi = 0; vi < posArr.length; vi += 3) if (posArr[vi + 1] < mnY) mnY = posArr[vi + 1];
+    var container = new T3.Group();
+    container.position.y = -mnY; // 足元をy=0に
+    container.add(subMesh(bodyI));
+    // 脚ピボット: 腰(HIPY)を軸に前後に振る
+    function legNode(idxList, hipX) {
+      var pv = new T3.Group(); pv.position.set(hipX, HIPY, 0);
+      var m = subMesh(idxList); m.position.set(-hipX, -HIPY, 0); pv.add(m);
+      container.add(pv);
+      return pv;
+    }
+    var legL = legNode(lI, 0.02), legR = legNode(rI, 0.22);
+    __mikuGeo = { posArr: posArr }; __mikuMat = mat;
+    return { container: container, legL: legL, legR: legR, posArr: posArr, oy: -mnY, hipY: HIPY, legLen: HIPY - mnY };
   }
   function t3buildMiku() {
     var root = new T3.Group();
     root.rotation.order = "YXZ"; // 向き(y)→前傾(x)→横ゆれ(z)の順で回す
-    var mesh = buildMikuMesh();
-    root.add(mesh);
+    var mk = buildMikuMesh();
+    root.add(mk.container);
     root.traverse(function (o) { o.frustumCulled = false; });
     function dummy() { return new T3.Group(); }
-    // 既存アニメ配線を壊さないためのダミー関節（ミクは単一メッシュ＝全身で動かす）
-    G3.yk = { root: root, legL: dummy(), legR: dummy(), armL: dummy(), armR: dummy(), head: dummy(), mesh: mesh };
+    G3.yk = { root: root, legL: mk.legL, legR: mk.legR, armL: dummy(), armR: dummy(), head: dummy(), mesh: mk.container, hipY: mk.hipY, legLen: mk.legLen };
     G3.skullMat = null; // 顔テクスチャ差し替え(まばたき)は無効
-    // 足元候補点（最下部）を集める。毎フレーム回転後の最下点を地面に合わせて“接地”させる
-    var pos = mesh.geometry.attributes.position, oy = mesh.position.y;
+    // 足元候補点（脚の最下部）を集める。毎フレーム回転後の最下点を地面に合わせて“接地”させる
+    var posArr = mk.posArr, oy = mk.oy, n = posArr.length / 3;
     var mnY = Infinity, mxY = -Infinity;
-    for (var i = 0; i < pos.count; i++) { var y = pos.getY(i); if (y < mnY) mnY = y; if (y > mxY) mxY = y; }
+    for (var i = 0; i < n; i++) { var y = posArr[i * 3 + 1]; if (y < mnY) mnY = y; if (y > mxY) mxY = y; }
     var thr = mnY + (mxY - mnY) * 0.13;
     var all = [];
-    for (var j = 0; j < pos.count; j++) { var y2 = pos.getY(j); if (y2 <= thr) all.push(pos.getX(j), y2 + oy, pos.getZ(j)); }
+    for (var j = 0; j < n; j++) { var y2 = posArr[j * 3 + 1], x2 = posArr[j * 3]; if (y2 <= thr && !(x2 < -0.45 && y2 < -0.7)) all.push(x2, y2 + oy, posArr[j * 3 + 2]); }
     var cnt = all.length / 3, stepc = Math.max(1, Math.floor(cnt / 180)), fc = [];
     for (var k = 0; k < cnt; k += stepc) fc.push(all[k * 3], all[k * 3 + 1], all[k * 3 + 2]);
     G3.yk.footCands = new Float32Array(fc);
@@ -9295,9 +9321,18 @@ three/build/three.module.js:
       yk.root.rotation.x = 0; yk.root.rotation.z = 0;
       yk.root.rotation.y += dt * 10;
     } else {
-      // ペンギン歩き: 足元を軸に左右へゆれ（2歩で1周）＋前後の踏み込み。関節なしでも“歩き”に見せる
-      yk.root.rotation.z = moving ? Math.sin(step) * 0.2 : 0;
-      yk.root.rotation.x = moving ? Math.sin(step * 2) * 0.07 : (fishing ? 0.05 : Math.sin(now / 1600) * 0.02);
+      // 左右のゆれ（2歩で1周）＋前後の踏み込み
+      yk.root.rotation.z = moving ? Math.sin(step) * 0.12 : 0;
+      yk.root.rotation.x = moving ? Math.sin(step * 2) * 0.05 : (fishing ? 0.05 : Math.sin(now / 1600) * 0.02);
+    }
+    // 脚を交互に前後に振る（実際の歩行モーション）。振ると足先が持ち上がるぶん腰を下げて接地を保つ
+    if (yk.legL && yk.legL.rotation) {
+      var legSwing = (moving && !w3.drowning) ? Math.sin(step) * 0.5 : 0;
+      yk.legL.rotation.x = legSwing;
+      yk.legR.rotation.x = -legSwing;
+      var drop = (yk.legLen || 0.56) * (1 - Math.cos(legSwing)); // 振り角ぶんの足先の持ち上がりを相殺
+      yk.legL.position.y = yk.hipY - drop;
+      yk.legR.position.y = yk.hipY - drop;
     }
     // 接地補正: 傾けた後の“最も低い足”をちょうど地面に合わせる（浮き/めり込みを防ぐ）
     var footDrop = 0;
