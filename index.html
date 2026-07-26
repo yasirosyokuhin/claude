@@ -8318,16 +8318,30 @@ three/build/three.module.js:
   function mbQuad(m, a, b, c, d, col) { mbTri(m, a, b, c, col); mbTri(m, a, c, d, col); }
   function mbLathe(m, prof, seg, col, cx, cy, cz, sc) {
     sc = sc || 1;
+    // 高さ方向の環境光グラデーション（下=陰／上=空の光）を焼き込む＝擬似AOで立体感が出る
+    var pMin = prof[0][1], pMax = prof[0][1];
+    for (var pi2 = 1; pi2 < prof.length; pi2++) {
+      if (prof[pi2][1] < pMin) pMin = prof[pi2][1];
+      if (prof[pi2][1] > pMax) pMax = prof[pi2][1];
+    }
+    var pRange = Math.max(0.0001, pMax - pMin);
+    var AO_LO = 0.74, AO_HI = 1.10;
+    function shade(py) {
+      var f = AO_LO + (AO_HI - AO_LO) * ((py - pMin) / pRange);
+      return [Math.min(1, col[0] * f), Math.min(1, col[1] * f), Math.min(1, col[2] * f),
+        col.length > 3 ? col[3] : 1];
+    }
     for (var s = 0; s < seg; s++) {
       var a0 = s / seg * 6.2832, a1 = (s + 1) / seg * 6.2832;
       for (var i = 0; i < prof.length - 1; i++) {
         var p0 = prof[i], p1 = prof[i + 1];
+        var cMid = shade((p0[1] + p1[1]) * 0.5);
         mbQuad(m,
           [cx + Math.cos(a0) * p0[0] * sc, cy + p0[1] * sc, cz + Math.sin(a0) * p0[0] * sc],
           [cx + Math.cos(a1) * p0[0] * sc, cy + p0[1] * sc, cz + Math.sin(a1) * p0[0] * sc],
           [cx + Math.cos(a1) * p1[0] * sc, cy + p1[1] * sc, cz + Math.sin(a1) * p1[0] * sc],
           [cx + Math.cos(a0) * p1[0] * sc, cy + p1[1] * sc, cz + Math.sin(a0) * p1[0] * sc],
-          col);
+          cMid);
       }
     }
   }
@@ -8795,9 +8809,12 @@ three/build/three.module.js:
       G3.scene.add(G3.hemi);
       G3.dir = new T3.DirectionalLight(0xfff6e0, 1.55);
       G3.dir.castShadow = true;
-      G3.dir.shadow.mapSize.set(1024, 1024);
-      G3.dir.shadow.camera.left = -95; G3.dir.shadow.camera.right = 95;
-      G3.dir.shadow.camera.top = 95; G3.dir.shadow.camera.bottom = -95;
+      // 影の解像度を上げ、範囲を絞って接地感のあるシャープな影にする
+      G3.dir.shadow.mapSize.set(2048, 2048);
+      G3.dir.shadow.camera.left = -70; G3.dir.shadow.camera.right = 70;
+      G3.dir.shadow.camera.top = 70; G3.dir.shadow.camera.bottom = -70;
+      G3.dir.shadow.bias = -0.0006;
+      G3.dir.shadow.normalBias = 0.5;
       G3.dir.shadow.camera.near = 5; G3.dir.shadow.camera.far = 420;
       G3.dir.shadow.bias = -0.0004;
       G3.dir.shadow.normalBias = 1.2;
@@ -8819,9 +8836,10 @@ three/build/three.module.js:
           "uniform float uNight, uT;",
           "void main() {",
           "  vec3 r = normalize(vD);",
-          "  float h = clamp(r.y * 1.7 + 0.42, 0.0, 1.0);",
-          "  vec3 col = mix(uBot, uMid, smoothstep(0.0, 0.5, h));",
-          "  col = mix(col, uTop, smoothstep(0.5, 1.0, h));",
+          // 地平線でちょうど uBot（＝霧の色）に一致させ、遠景と空の継ぎ目(白い帯)をなくす
+          "  float h = clamp(r.y * 1.35, 0.0, 1.0);",
+          "  vec3 col = mix(uBot, uMid, smoothstep(0.0, 0.42, h));",
+          "  col = mix(col, uTop, smoothstep(0.40, 1.0, h));",
           "  float sd = max(dot(r, normalize(uSunDir)), 0.0);",
           "  col += uSunC * (pow(sd, 700.0) * 1.4 + pow(sd, 20.0) * 0.3);",
           "  if (uNight > 0.5 && r.y > 0.03) {",
@@ -9288,21 +9306,43 @@ three/build/three.module.js:
       // 地平線基準: 地形の見かけの水平線は world y≈-46（湾曲で沈み込むため）。
       // vh = 地平線からの見かけの高さ。基部は -52 で必ず地形の下に隠す。
       var HB = -52, HL = -44;
-      // 稜線を「日向側／日陰側」の2面に割って立体感を出す（無陰影マテリアルなので色で表現）
+      // 稜線をギザギザの多面体で作る（三角形1枚だと紙のシルエットに見えるため）
+      // 各面は日向/日陰＋ゆらぎで塗り分け、雪冠は稜線の上部に沿って乗せる
+      var mSeed = 0;
       function peakAt(mx, vh, halfW, zP, col, cap) {
         var pY = HL + vh;
-        var lit = [Math.min(1, col[0] * 1.14 + 0.012), Math.min(1, col[1] * 1.13 + 0.012), Math.min(1, col[2] * 1.11 + 0.012)];
-        var shd = [col[0] * 0.80, col[1] * 0.82, col[2] * 0.88];
-        // 日向（左半分）と日陰（右半分）
-        mbTri(mm, [mx - halfW, HB, zP], [mx, HB, zP], [mx, pY, zP], [lit[0], lit[1], lit[2], 1]);
-        mbTri(mm, [mx, HB, zP], [mx + halfW, HB, zP], [mx, pY, zP], [shd[0], shd[1], shd[2], 1]);
+        var N = 8, xs = [], ys = [];
+        mSeed++;
+        for (var ri = 0; ri <= N; ri++) {
+          var u = ri / N;
+          var xr = mx - halfW + halfW * 2 * u;
+          // 山型（中央が高い）に、稜線のギザギザを重ねる
+          var base = Math.pow(Math.sin(u * Math.PI), 0.72);
+          var jag = (hash2(mSeed * 71 + ri, 907) - 0.5) * 0.30 + (hash2(mSeed * 71 + ri, 911) - 0.5) * 0.16;
+          var yr = HB + (pY - HB) * Math.max(0.02, base * (1 + jag));
+          xs.push(xr + (hash2(mSeed * 71 + ri, 913) - 0.5) * halfW * 0.10);
+          ys.push(yr);
+        }
+        xs[0] = mx - halfW; ys[0] = HB; xs[N] = mx + halfW; ys[N] = HB;
+        for (var fi2 = 0; fi2 < N; fi2++) {
+          var lft = (xs[fi2] + xs[fi2 + 1]) * 0.5 < mx;           // 左＝日向側
+          var vj = (hash2(mSeed * 71 + fi2, 919) - 0.5) * 0.07;   // 面ごとの微妙な明度差
+          var f = (lft ? 1.13 : 0.82) + vj;
+          var fc = [Math.min(1, col[0] * f), Math.min(1, col[1] * f), Math.min(1, col[2] * f), 1];
+          mbQuad(mm, [xs[fi2], HB, zP], [xs[fi2 + 1], HB, zP], [xs[fi2 + 1], ys[fi2 + 1], zP], [xs[fi2], ys[fi2], zP], fc);
+        }
         if (cap) {
-          var capY = pY - vh * 0.42;
-          var chw = halfW * (pY - capY) / (pY - HB) * 1.12;
-          var snL = [Math.min(1, SNOWC[0] * 1.06 + 0.02), Math.min(1, SNOWC[1] * 1.06 + 0.02), Math.min(1, SNOWC[2] * 1.04 + 0.02)];
-          var snD = [SNOWC[0] * 0.88, SNOWC[1] * 0.9, SNOWC[2] * 0.96];
-          mbTri(mm, [mx - chw, capY, zP - 3], [mx, capY, zP - 3], [mx, pY + 0.5, zP - 3], [snL[0], snL[1], snL[2], 1]);
-          mbTri(mm, [mx, capY, zP - 3], [mx + chw, capY, zP - 3], [mx, pY + 0.5, zP - 3], [snD[0], snD[1], snD[2], 1]);
+          // 雪冠: 稜線の上部だけを白く（各面ごとに雪線から上を塗る）
+          var snowY = pY - vh * 0.46;
+          for (var ci2 = 0; ci2 < N; ci2++) {
+            if (ys[ci2] <= snowY && ys[ci2 + 1] <= snowY) continue;
+            var lft2 = (xs[ci2] + xs[ci2 + 1]) * 0.5 < mx;
+            var sf = lft2 ? 1.05 : 0.9;
+            var sc3 = [Math.min(1, SNOWC[0] * sf), Math.min(1, SNOWC[1] * sf), Math.min(1, SNOWC[2] * sf), 1];
+            mbQuad(mm,
+              [xs[ci2], Math.min(ys[ci2], snowY), zP - 2], [xs[ci2 + 1], Math.min(ys[ci2 + 1], snowY), zP - 2],
+              [xs[ci2 + 1], ys[ci2 + 1], zP - 2], [xs[ci2], ys[ci2], zP - 2], sc3);
+          }
         }
       }
       if (mtT === "wetland") {
@@ -9362,6 +9402,31 @@ three/build/three.module.js:
           peakAt(-740 + mj * 185 + rng() * 70, 12 + rng() * 16, 170, 425, far2, false);
         }
       }
+      // 遠景の樹林帯: 山の手前に暗い木立のシルエットを重ね、地平線の空白を埋めて奥行きを出す
+      if (mtT !== "wetland") {
+        var FOR1 = mix3(lin01(snowy ? "#7f93a2" : "#31492e"), sky2, 0.34); // 奥（霞み強）
+        var FOR2 = mix3(lin01(snowy ? "#6d8496" : "#243c22"), sky2, 0.16); // 手前
+        // 連続した帯として作る（三角形を並べるとノコギリ状に見えて安っぽい）
+        for (var fl = 0; fl < 2; fl++) {
+          var fz2 = fl === 0 ? 392 : 356;
+          var fcol = fl === 0 ? FOR1 : FOR2;
+          var fh = fl === 0 ? 3.2 : 4.2;
+          var fStep = 6, fx0 = -830, fN = Math.ceil(1660 / fStep);
+          var prevX = fx0, prevY = HL;
+          for (var ft = 1; ft <= fN; ft++) {
+            var fx2 = fx0 + ft * fStep;
+            // 樹冠のうねり: 大きな林の起伏＋個々の梢
+            var k1 = Math.sin(fx2 * 0.017 + fl * 2.1) * 0.5 + 0.5;
+            var k2 = Math.sin(fx2 * 0.071 + fl * 5.3) * 0.5 + 0.5;
+            var k3 = hash2(Math.floor(fx2 / fStep) + fl * 313, 941);
+            var topY = HL + fh * (0.45 + k1 * 0.75 + k2 * 0.45 + k3 * 0.55);
+            var shd2 = 0.9 + k3 * 0.2;
+            var fcc = [Math.min(1, fcol[0] * shd2), Math.min(1, fcol[1] * shd2), Math.min(1, fcol[2] * shd2), 1];
+            mbQuad(mm, [prevX, HB, fz2], [fx2, HB, fz2], [fx2, topY, fz2], [prevX, prevY, fz2], fcc);
+            prevX = fx2; prevY = topY;
+          }
+        }
+      }
       G3.mtn = new T3.Mesh(mbUpload(mm), G3.mats.mtn);
       G3.mtn.frustumCulled = false;
       G3.scene.add(G3.mtn);
@@ -9389,13 +9454,15 @@ three/build/three.module.js:
     G3.hemi.color.set(L.hemiS);
     G3.hemi.groundColor.set(L.hemiG);
     G3.hemi.intensity = L.hi * (0.7 + dim * 0.3);
-    G3.scene.fog.color.set(pal.sky[2]);
+    // 地平線の色（霞み）: 真っ白だと遠景が白い帯に見えるので、空の中間色を少し混ぜて締める
+    var hazeC = mix3(c01(pal.sky[2]), c01(pal.sky[1]), 0.5);
+    G3.scene.fog.color.setRGB(hazeC[0], hazeC[1], hazeC[2]);
     var mistOn = w3.rec && w3.rec.mist;
     G3.scene.fog.near = mistOn ? 85 : 130;
     G3.scene.fog.far = mistOn ? 235 : 310;
     G3.skyU.uTop.value = c01(pal.sky[0]);
     G3.skyU.uMid.value = c01(pal.sky[1]);
-    G3.skyU.uBot.value = c01(pal.sky[2]);
+    G3.skyU.uBot.value = hazeC;
     G3.skyU.uSunC.value = L.sunC;
     G3.skyU.uSunDir.value = ldn;
     G3.skyU.uNight.value = t.night ? 1 : 0;
@@ -9419,7 +9486,7 @@ three/build/three.module.js:
     wu.uSky.value = c01(pal.sky[1]);
     wu.uSunDir.value = ldn;
     wu.uSunCol.value = L.sunC;
-    wu.uFogC.value = c01(pal.sky[2]);
+    wu.uFogC.value = hazeC; // 水面の霞みも地平線の色に合わせる（継ぎ目をなくす）
     wu.uFogNF.value = mistOn ? [85, 235] : [130, 310];
     wu.uCamPos.value = eye;
     // 逆光のリムライト
